@@ -4,7 +4,7 @@ import {directedCut} from './cinematicCut.js';
 const length=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]));
 const direction=pose=>{const d=pose.target.map((x,i)=>x-pose.position[i]),n=Math.hypot(...d);return d.map(x=>x/Math.max(n,1e-9));};
 export function angularDistance(a,b){const x=direction(a),y=direction(b);return Math.acos(Math.max(-1,Math.min(1,x.reduce((s,v,i)=>s+v*y[i],0))))*180/Math.PI;}
-export function createPacing({mobile=false,samples=400,poseFor=(p)=>directedCut(p,mobile,null,(p,m)=>reviewPose(p,m,true,'aisle','opposite',true,'brand-hero'))}={}){
+export function createPacing({mobile=false,samples=1600,poseFor=(p)=>directedCut(p,mobile,null,(p,m)=>reviewPose(p,m,true,'aisle','opposite',true,'brand-hero'))}={}){
  const chapters=[];
  for(let i=0;i<windows.length-1;i++){
   const lo=windows[i],hi=windows[i+1],poses=Array.from({length:samples+1},(_,j)=>poseFor(lo+(hi-lo)*j/samples));
@@ -12,14 +12,14 @@ export function createPacing({mobile=false,samples=400,poseFor=(p)=>directedCut(
   for(let j=1;j<=samples;j++){
    const a=poses[j-1],b=poses[j],covered=a.mask>=.98||b.mask>=.98;
    // Hide teleportation from the cost model only when fully masked. Optical zoom remains weighted.
-   cost.push(covered?0:length(a.pose.position,b.pose.position)/3+angularDistance(a.pose,b.pose)/65+Math.abs(a.pose.fov-b.pose.fov)/35);
+   cost.push(covered?0:length(a.pose.position,b.pose.position)/3+angularDistance(a.pose,b.pose)/45+Math.abs(a.pose.fov-b.pose.fov)/35);
   }
   // A positive reading floor and local smoothing prevent starving stationary holds.
   const total=cost.reduce((s,v)=>s+v,0),floor=Math.max(.75,total*.60)/samples;
   const weights=cost.map((v,j)=>Math.max(v,((cost[j-1]??v)+2*v+(cost[j+1]??v))/4)+floor);
   const cumulative=[0];for(const w of weights)cumulative.push(cumulative.at(-1)+w);
   const sum=cumulative.at(-1),curve=cumulative.map(v=>v/sum);
-  const vh=Math.max(i===6?1.65:1.6,Math.min(4.5,sum*.65));
+  const vh=Math.max(i===6?1.65:1.6,Math.min(i===4?5.5:4.5,sum*.55));
   chapters.push({lo,hi,curve,vh,cost:total});
  }
  function progress(index,local){
