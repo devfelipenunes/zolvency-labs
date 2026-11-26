@@ -1,7 +1,7 @@
 import { mkdir,writeFile } from 'node:fs/promises';
 import * as THREE from 'three';
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
-import { modelParts } from '../src/graphics/models.js';
+import { modelParts,catalog,palette } from '../src/graphics/models.js';
 import { bakedModel,geometries,materials } from '../src/graphics/meshFactory.js';
 // GLTFExporter uses the browser FileReader interface; Node supplies Blob and ArrayBuffer.
 globalThis.FileReader=class{
@@ -11,7 +11,7 @@ globalThis.FileReader=class{
 await mkdir('public/models',{recursive:true});
 const geo=geometries(),mats=materials();
 const manifest=[];
-for(const [name,make] of Object.entries(modelParts)){
+for(const [name,make] of Object.entries(modelParts).filter(([n])=>['ledger','processor','cryostat'].includes(n))){
  const root=bakedModel(make(),geo,mats);root.name=name;
  const scene=new THREE.Scene();scene.add(root);
  const bytes=await new GLTFExporter().parseAsync(scene,{binary:true,onlyVisible:true});
@@ -21,6 +21,7 @@ for(const [name,make] of Object.entries(modelParts)){
  manifest.push({name,file:name+'.glb',bytes:data.length,triangles,source:'Original Zolvency Labs procedural blueprint; no external asset'});
  root.traverse(o=>o.geometry?.dispose());
 }
+await mkdir('artifacts/authoring',{recursive:true});await writeFile('artifacts/authoring/catalog.json',JSON.stringify({palette,entries:catalog(),heroes:Object.fromEntries(Object.entries(modelParts).map(([k,v])=>[k,v()]))}));
 await writeFile('public/models/manifest.json',JSON.stringify(manifest,null,2));
 Object.values(geo).forEach(g=>g.dispose());Object.values(mats).forEach(m=>m.dispose());
 console.log('Generated GLB models:',JSON.stringify(manifest));
