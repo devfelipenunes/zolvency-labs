@@ -27,6 +27,7 @@ export const reviewCases=[
  {name:'backlog-final-copy',group:'backlog',params:'composition=final-copy',poses:[.985,.992,1]},
  {name:'backlog-ops-copy',group:'backlog',params:'composition=ops-copy&light=subject',poses:[.705,.715,.73,.74,.755]},
  {name:'backlog-staged-copy',group:'backlog',params:'composition=backlog-copy',poses:[.025,.055,.17,.185,.205,.365,.385,.405,.625,.715,.73,.935,.985,.992]},
+ {name:'backlog-selected',group:'backlog',params:'composition=backlog-selected',poses:[.055,.205,.405,.625,.705,.715,.73,.74,.755,.935,.985,.992,1]},
  {name:'public-scroll',group:'motion',params:'',motion:true},
  ...['default','no-ao','no-bloom','neither'].map(effect=>({name:'effects-'+effect,group:'effects',params:'effects='+effect+'&plate=1',poses:[.055,.405,.935],desktopOnly:true}))
 ];
