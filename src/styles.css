@@ -67,3 +67,27 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
  #stage[data-renderer="three"]:not([data-space-mode="baseline"])[data-visual-chapter="5"] ~ main .chapter:not(:nth-child(6)) .copy{opacity:0;pointer-events:none;}
  #stage[data-renderer="three"]:not([data-space-mode="baseline"])[data-visual-chapter="6"] ~ main .chapter:not(:nth-child(7)) .copy{opacity:0;pointer-events:none;}
 }
+
+/* V0.20.1 — centered cinematic composition, no lateral editorial veil or blur. */
+.brand{position:fixed;left:var(--gutter);width:clamp(104px,12vw,178px);display:block;z-index:4}.brand img{display:block;width:100%;height:auto}
+@media(prefers-reduced-motion:no-preference){
+ #stage[data-side] .veil,#stage[data-renderer="three"][data-side] .veil,#stage[data-renderer="three"][data-surface-readable="true"][data-side] .veil{background:none;backdrop-filter:none}
+ .chapter[data-side] .copy::before{content:none;background:none;mask-image:none}
+ .chapter[data-side] .copy{position:sticky;top:clamp(90px,65svh,calc(100svh - 230px));width:min(680px,calc(100vw - 2 * var(--gutter)));max-width:100%;text-align:center;margin-inline:auto;text-shadow:0 1px 4px #04090d,0 2px 12px #04090d}
+ .chapter[data-side] .eyebrow{justify-content:center;font-size:10px;margin-bottom:9px;letter-spacing:.14em;color:#b6ddd0}
+ .chapter[data-side] h1,.chapter[data-side] h2{font-size:clamp(25px,3.1vw,43px);line-height:1.12;letter-spacing:-.04em;margin:0 0 9px;font-weight:500}
+ .chapter[data-side] p{max-width:590px;margin:0 auto 8px;font-size:clamp(13px,1.08vw,16px);line-height:1.48;color:#ecf2ee}
+ .chapter[data-side] .tag,.chapter[data-side] .endnote{margin-top:10px;font-size:9px}
+ #stage[data-renderer="three"][data-visual-chapter] ~ main .chapter[data-side] .copy{position:fixed;left:50%;right:auto;top:auto;bottom:clamp(48px,9svh,100px);transform:translateX(-50%);margin:0;pointer-events:none}
+ #stage[data-renderer="three"][data-visual-chapter] ~ main .chapter:not([data-active="true"]) .copy{opacity:0}
+ #stage[data-renderer="three"][data-visual-chapter="0"] ~ main .chapter:nth-child(1) .copy{opacity:1}
+#stage[data-renderer="three"][data-visual-chapter="1"] ~ main .chapter:nth-child(2) .copy{opacity:1}
+#stage[data-renderer="three"][data-visual-chapter="2"] ~ main .chapter:nth-child(3) .copy{opacity:1}
+#stage[data-renderer="three"][data-visual-chapter="3"] ~ main .chapter:nth-child(4) .copy{opacity:1}
+#stage[data-renderer="three"][data-visual-chapter="4"] ~ main .chapter:nth-child(5) .copy{opacity:1}
+#stage[data-renderer="three"][data-visual-chapter="5"] ~ main .chapter:nth-child(6) .copy{opacity:1}
+#stage[data-renderer="three"][data-visual-chapter="6"] ~ main .chapter:nth-child(7) .copy{opacity:1}
+ #stage[data-renderer="three"][data-typography-mode="signage"][data-surface-title]:not([data-surface-title=""]) ~ main .chapter[data-side] .copy{transition:opacity 180ms ease-out}
+ @media(max-width:720px){.chapter[data-side] .copy{top:clamp(85px,61svh,calc(100svh - 215px));width:calc(100vw - 44px)}.chapter[data-side] h1,.chapter[data-side] h2{font-size:clamp(23px,6vw,32px)}.chapter[data-side] p{font-size:13px;line-height:1.4}#stage[data-renderer="three"][data-visual-chapter] ~ main .chapter[data-side] .copy{bottom:58px}}
+}
+@media(prefers-reduced-motion:reduce){.chapter[data-side] .copy{text-align:center;margin-inline:auto}.chapter[data-side] .eyebrow{justify-content:center}.chapter[data-side] p{margin-inline:auto}}
