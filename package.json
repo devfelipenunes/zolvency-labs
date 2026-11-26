@@ -1,17 +1,19 @@
 {
   "name": "zolvency-labs",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "private": true,
   "type": "module",
   "scripts": {
     "export:models": "node scripts/export-models.mjs",
     "predev": "npm run export:models",
     "dev": "vite --host 0.0.0.0",
-    "prebuild": "npm run export:models",
+    "prebuild": "npm run export:models && npm run assets:stage",
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test",
-    "test:browser": "node scripts/browser-check.mjs"
+    "test:browser": "node scripts/browser-check.mjs",
+    "assets:verify": "node scripts/audition-assets.mjs",
+    "assets:stage": "node scripts/audition-assets.mjs --stage"
   },
   "engines": {
     "node": ">=22.12.0 <23"

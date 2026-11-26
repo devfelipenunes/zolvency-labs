@@ -3,7 +3,7 @@ const TAU=2*Math.PI,sample=(n,fn)=>Array.from({length:n+1},(_,i)=>fn(i/n));
 const add=(a,b)=>a.map((v,i)=>v+b[i]);
 export const sceneNames=['ORIGIN','CRYPTOGRAPHY','BLOCKCHAIN','STELLAR','INTELLIGENCE','QUANTUM','CONVERGENCE'];
 export const blockCenters=[-14,-7,0,7,14].map(x=>[x,2,-48]);
-export const importedModels=[{name:'processor',position:[12,3,-100]},{name:'cryostat',position:[-6,5,-124]}];
+export const importedModels=[{name:'processor',position:[12,3,-100]},{name:'cryostat',position:[-6,5,-124]},{name:'rack',position:[-27,2,-72]}];
 export function makeScene(){
  const objects=[],paths=[];
  const path=(points,radius=.035,kind='accent')=>paths.push({points,radius,kind});
@@ -22,7 +22,7 @@ export function makeScene(){
  for(let i=0;i<4;i++)for(const z of [-49.15,-46.85])link([blockCenters[i][0]+2.35,1.75,z],[blockCenters[i+1][0]-2.35,1.75,z],'accent',.10,.18);
  // Stellar: network across a volume, not actual SCP topology.
  const ns=[[-22,4,-75],[-27,2,-72],[-17,2.5,-77],[-21,7.6,-70],[-25,5.9,-80],[-18,5.5,-70],[-21,1,-80]];
- ns.forEach((p,i)=>{model(stellarParts(i),p,{station:true,phase:i});ring(p,.96,.96,.55,'gold',.04);if(i)link(ns[0],p,'accent',.055,.65);});
+ ns.forEach((p,i)=>{model(stellarParts(i),p,{station:true,phase:i,...(i===1?{asset:'rack'}:{})});ring(p,.96,.96,.55,'gold',.04);if(i)link(ns[0],p,'accent',.055,.65);});
  for(let i=1;i<ns.length-1;i++)link(ns[i],ns[i+1],'titanium',.045);
  // Intelligence: processor GLB and neural graph rising behind the chip.
  model(processorParts(),importedModels[0].position,{asset:'processor'});
