@@ -23,11 +23,13 @@ try{
    const forward=report.rows.slice(0,81),reverse=report.rows.slice(81).reverse();
    for(let i=0;i<81;i++){assert.deepEqual(forward[i].position,reverse[i].position);assert.deepEqual(forward[i].hits,reverse[i].hits);}
    assert.ok(Math.abs(Math.max(...forward.map(r=>r.position[2]))-Math.min(...forward.map(r=>r.position[2]))-4)<1e-5);
+   const spatial=await page.evaluate(()=>document.querySelector('#stage').inspectCraneSpatialSweep());
+   assert.equal(spatial.rows.length,161);assert.ok(spatial.rows.every((r,i)=>Math.abs(r.offset-i*.025)<1e-8&&r.movingMeshes>0&&r.otherMeshes>0));
    const clearance=await page.evaluate(()=>document.querySelector('#stage').inspectOpeningClearance());
    const interior=await page.evaluate(()=>{const s=document.querySelector('#stage');return {floor:s.inspectInteriorFloor(),clearance:s.inspectInteriorClearance()};});
    assert.ok(clearance.every(r=>r.distance>.06));
    // Preserve computed evidence even if subsequent screenshot/video capture fails.
-   reports.push({viewport,...report,clearance,interior});await writeFile(out+'/report.json',JSON.stringify(reports,null,2));
+   reports.push({viewport,...report,spatial,clearance,interior});await writeFile(out+'/report.json',JSON.stringify(reports,null,2));
    assert.equal(interior.floor.length,6);assert.ok(interior.floor.every(r=>r&&Number.isFinite(r.y)&&Math.abs(r.y)<.08),JSON.stringify(interior.floor));assert.equal(interior.clearance.length,41);assert.ok(interior.clearance.every(r=>r.distance>.06),JSON.stringify(interior.clearance.filter(r=>r.distance<=.06)));
    const name=viewport.width+'-'+(candidate?'candidate':'control');
    for(const p of [0,.025,.055,.075,.105,.485,.51,.535,.625,.705,.73,.755]){await page.evaluate(p=>document.querySelector('#stage').benchmarkFrame(p),p);await page.screenshot({path:out+'/'+name+'-'+p+'.png',timeout:120000,animations:'disabled'});}
@@ -35,6 +37,11 @@ try{
    assert.deepEqual(errors,[]);await page.close();
   }
  }
+ const spatialComparisons=[];
+ const summarize=rows=>[...pairs(rows)].map(pair=>{const hits=rows.filter(r=>r.hits.some(h=>h.moving+'|'+h.other===pair));return {pair,count:hits.length,firstOffset:hits[0].offset,lastOffset:hits.at(-1).offset,persistent:hits.length===rows.length};});
+ for(let i=0;i<reports.length;i+=2){const a=reports[i].spatial.rows,b=reports[i+1].spatial.rows;const differences=a.flatMap((r,j)=>{const left=[...pairs([r])].sort(),right=[...pairs([b[j]])].sort();return JSON.stringify(left)===JSON.stringify(right)?[]:[{offset:r.offset,control:left,candidate:right}];});spatialComparisons.push({viewport:reports[i].viewport,control:summarize(a),candidate:summarize(b),differences,note:'Persistent and intermittent are descriptive categories, not approval of contact.'});}
+ await writeFile(out+'/spatial-comparisons.json',JSON.stringify(spatialComparisons,null,2));
+ assert.ok(spatialComparisons.every(c=>c.differences.length===0),'different contact sets at identical crane positions '+JSON.stringify(spatialComparisons));
  const comparisons=[];
  for(let i=0;i<reports.length;i+=2){
   const control=pairs(reports[i].rows),candidate=pairs(reports[i+1].rows);
