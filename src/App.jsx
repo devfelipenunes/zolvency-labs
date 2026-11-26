@@ -5,7 +5,7 @@ import {chapters} from './story.js';
 import {useScrollStory} from './useScrollStory.js';
 import {smoothProgress} from './graphics/scrollSmoothing.js';
 import {createFallback} from './graphics/fallback.js';
-const sides=['left','left','left','left','left','left','center'];
+const sides=chapters.map(()=> 'center');
 function Stage({progress,reduced,side}){
  const host=useRef(null),fallback=useRef(null),engine=useRef(null),latest=useRef({progress,reduced});
  const [mode,setMode]=useState('canvas');const shown=useRef(0);
@@ -27,5 +27,5 @@ function Stage({progress,reduced,side}){
  },[reduced]);
  return <div id="stage" data-renderer={mode} data-side={side} ref={host} aria-hidden="true"><canvas ref={fallback}/><div className="veil"/></div>;
 }
-function Brand(){return <header className="brand"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M4 22C11 22 18 5 28 5M4 27C12 27 20 10 28 10M4 17C10 17 16 0 26 0" stroke="currentColor" strokeWidth="1.5"/></svg>ZOLVENCY<span>LABS</span></header>}
+function Brand(){return <header className="brand"><img src={import.meta.env.BASE_URL+'brand/zolvency.svg'} alt="Zolvency" width="1707" height="210"/></header>}
 export default function App(){const story=useRef(null);const {progress,index,reduced}=useScrollStory(story);return <><Stage progress={progress} reduced={reduced} side={sides[index]}/><Brand/><span className="build-version" aria-label={`Site version ${packageInfo.version}`}>v{packageInfo.version}</span><SoundControl/><main id="story" ref={story}>{chapters.map((c,i)=>{const Heading=i===0?'h1':'h2';return <section className="chapter" data-name={c.name} data-active={i===index} data-side={sides[i]} key={c.name}><div className="copy"><div className="eyebrow">{String(i+1).padStart(2,'0')} / {c.label}</div><Heading>{c.title}</Heading><p>{c.body}</p>{i===0&&<span className="tag">SCROLL TO EXPLORE ↓</span>}{i===6&&<div className="endnote">ZOLVENCY LABS / EXPERIMENTAL CONCEPT FACILITY / {packageInfo.version}</div>}</div></section>})}</main><div className="track" aria-hidden="true"><span>{String(index+1).padStart(2,'0')} / {chapters[index].name}</span><i><b style={{width:(progress*100)+'%'}}/></i><span>{String(Math.round(progress*100)).padStart(3,'0')}%</span></div></>}
