@@ -116,55 +116,106 @@ def box_metrics(o):
             if not (ndc.z>0 and .03<=ndc.x<=.97 and .04<=ndc.y<=.96):continue
             dv=q-camera.location;hit=bvh.ray_cast(camera.location,dv.normalized(),max(.001,dv.length-.015))
             if hit[0] is None:visible+=1
-    facing=max(0,(camera.location-o.location).normalized().dot(o.matrix_world.to_3x3()@Vector((0,0,1)).normalized())/o.scale.x)
+    facing=max(0,(camera.location-o.location).normalized().dot((o.matrix_world.to_3x3()@Vector((0,0,1))).normalized()))
     return {'inFrameFraction':sum(v.z>0 and 0<=v.x<=1 and 0<=v.y<=1 for v in projected)/total,'visibleBoxFraction':visible/total,'facingCosine':facing,'screenBox':[min(v.x for v in projected),min(v.y for v in projected),max(v.x for v in projected),max(v.y for v in projected)]}
 def vertical(u,v,dd):
     a=at(u,v,dd);return a,Vector((C.x-a.x,C.y-a.y,0)).normalized()
+# R38: composed camera tracks, not a small orbit compensating its own movement.
+# Input coordinates are Three.js world units; the fixed text planes are never camera-parented.
+tracks={
+ 'office':[
+  ([-5.5,1.65,-13.96],[-5.5,1.55,-13.00],66),
+  ([-6.38,1.78,-13.7],[-5.45,1.45,-12.1],60),
+  ([-6.68,2.05,-12.65],[-5.1,1.3,-11.0],55),
+  ([-6.05,2.15,-11.75],[-4.8,1.1,-10.9],54)],
+ 'quantum':[
+  ([34.9,6.7,5.4],[30,8.8,0],65.8),
+  ([33.8,6.1,4.5],[30,8.2,0],62),
+  ([31.9,5.5,4.2],[30,7.8,0],61),
+  ([30,4.8,4.8],[30,7.65,0],65)],
+ 'stellar':[
+  ([7.14,1.85,4.66],[2.8,1.55,4.66],65),
+  ([6.15,1.65,4.66],[3.7,1.5,4.55],60),
+  ([4.85,1.55,4.66],[3.5,1.55,3.95],55),
+  ([3.7,1.75,4.66],[3.2,1.55,3.93],54)]
+}
+track=[(B(pos),B(target),lens) for pos,target,lens in tracks[name]]
+def anchored(words,xyz,normal,width,surface=False,source=None):
+    return (words,B(xyz),B(normal),width,surface,source or {'note':'Authored fixed world plane within measured room geometry'})
 options=[]
 if name=='office':
-    # Anchor behind the actual chair hit, not to the camera. Orbit reveals around foreground.
-    a=pivot+F*.45+R*.18
-    options.append(('chair-reveal','AUTONOMY',a,Vector((C.x-a.x,C.y-a.y,0)).normalized(),min(1.3,dep*.56),False,[-10,0,12],subject))
+    # Start close behind the real chair at z=-13.3, travel around its left side, then face console.
+    options.append(('chair-reveal',*anchored('AUTONOMY',[-5.38,1.55,-11.15],[-.45,0,-1],1.35)))
     surface=nearest(.62,.73,lambda h:h['normal'][1]>.65 and .55<h['point'][1]<1.75)
     if surface:
-        n=B(surface['normal']).normalized();a=B(surface['point'])+n*.022
-        options.append(('desk-surface','EXPLICIT CONTROL',a,n,min(.85,dep*.42),True,[-8,0,8],surface))
+        n=B(surface['normal']).normalized();a=B(surface['point'])+n*.035
+        options.append(('desk-surface','EXPLICIT CONTROL',a,n,1.0,True,surface))
     else:
-        a,n=vertical(.64,.51,dep+.25)
-        options.append(('console-plane','EXPLICIT CONTROL',a,n,min(1.1,dep*.5),False,[-8,0,8],{'note':'No measured upward desk surface at target height; testing vertical plane instead'}))
+        options.append(('console-plane',*anchored('EXPLICIT CONTROL',[-4.8,1.45,-10.65],[-.8,0,-1],1.0)))
 elif name=='quantum':
-    a,n=vertical(.5,.72,dep+.7)
-    options.append(('reactor-axis','BEYOND CLASSICAL',a,n,min(5.0,dep*.75),False,[-7,0,7],subject))
-    a,n=vertical(.27,.61,dep*.80)
-    options.append(('reactor-side','BEYOND CLASSICAL',a,n,min(3.4,dep*.46),False,[-9,0,9],subject))
+    options.append(('reactor-axis',*anchored('BEYOND CLASSICAL',[30,5.0,1.40],[0,0,1],3.2)))
+    options.append(('reactor-side',*anchored('BEYOND CLASSICAL',[27.0,6.1,1.35],[.35,0,1],2.8)))
 else:
-    a,n=vertical(.63,.56,dep+.12)
-    # True wall/rack normal from ray hit; compare to fixed frontal plane.
-    normal=B(subject['normal']);normal.z=0
-    if normal.length>.1:
-        normal.normalize()
-        if normal.dot(C-pivot)<0:normal=-normal
-        a=pivot+normal*.045
-    else:normal=n
-    options.append(('rack-perspective','VALUE IN MOTION',a,normal,min(1.6,dep*.85),False,[-8,0,10],subject))
-    a,n=vertical(.34,.52,dep*.82)
-    options.append(('aisle-plane','VALUE IN MOTION',a,n,min(1.25,dep*.65),False,[-8,0,8],subject))
+    options.append(('rack-perspective',*anchored('VALUE IN MOTION',[3.40,1.52,4.05],[0,0,1],.85)))
+    options.append(('aisle-plane',*anchored('VALUE IN MOTION',[3.05,1.55,4.48],[1,0,.45],.70)))
+# Use a smoothly interpolated camera track. Validate every frame with BVH; if the
+# curve overshoots, try the measured piecewise-linear track with eased segments.
+def catmull(a,b,c,e,t):
+    return .5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-e)*t*t+(-a+3*b-3*c+e)*t*t*t)
+def sample_track(u,smooth=True):
+    z=min(3,max(0,u*3));i=min(2,int(z));t=z-i
+    if smooth:
+        vals=[catmull(track[max(0,i-1)][j],track[i][j],track[i+1][j],track[min(3,i+2)][j],t) for j in range(3)]
+    else:
+        h=t*t*(3-2*t);vals=[track[i][j]*(1-h)+track[i+1][j]*h for j in range(3)]
+    return vals
+def clearance(pos):
+    hit=bvh.find_nearest(pos)
+    return hit[3] if hit[0] is not None else 999
+scene.frame_end=96
+samples=[sample_track(i/95) for i in range(96)]
+if min(clearance(p) for p,_,_ in samples)<.24:
+    samples=[sample_track(i/95,False) for i in range(96)]
+path_clearance=min(clearance(p) for p,_,_ in samples)
+assert path_clearance>=.24,('Camera path too close to opaque geometry',name,path_clearance)
 report={'scene':name,'meshCount':meshcount,'triangles':len(allfaces),'omittedGlassGroups':skipped,'materialMode':'simplified untextured materials, original decoded opaque geometry, local preview lighting','options':[]}
-for tag,words,a,n,w,surface,angles,source in options:
+for option_index,(tag,words,a,n,w,surface,source) in enumerate(options):
     o=type_object(words,a,n,w,surface)
     camera.animation_data_clear()
     entry={'name':tag,'anchorThreeOrBlender':'Blender world coordinates','anchor':list(a),'sourceHit':source,'frames':[]}
-    for angle,frame in zip(angles,[1,36,72]):
-        rot=Matrix.Rotation(math.radians(angle),3,'Z');pos=clear_move(pivot+rot@(C-pivot));direction=rot@F
-        if (pos-(pivot+rot@(C-pivot))).length>.001:direction=F
-        cam_at(pos,direction);camera.keyframe_insert('location',frame=frame);camera.keyframe_insert('rotation_euler',frame=frame)
-    # Native Blender camera keyframes with Bezier interpolation, text remains world-anchored.
-    for frame in [1,36,72]:
+    camera.data.animation_data_clear()
+    camera.rotation_mode='QUATERNION'
+    previous_quat=None
+    for frame,(pos,target,lens) in enumerate(samples,1):
+        q=(target-pos).to_track_quat('-Z','Y')
+        if previous_quat is not None and q.dot(previous_quat)<0:q.negate()
+        previous_quat=q.copy()
+        camera.location=pos;camera.rotation_quaternion=q
+        camera.data.lens=16/math.tan(math.radians(lens)/2)
+        camera.keyframe_insert('location',frame=frame);camera.keyframe_insert('rotation_quaternion',frame=frame)
+        camera.data.keyframe_insert('lens',frame=frame)
+    for datablock in (camera,camera.data):
+        for curve in datablock.animation_data.action.fcurves:
+            for point in curve.keyframe_points:point.interpolation='LINEAR'
+    entry['pathClearance']=path_clearance
+    entry['cameraTravelMeters']=sum((samples[i][0]-samples[i-1][0]).length for i in range(1,len(samples)))
+    entry['startEndMeters']=(samples[-1][0]-samples[0][0]).length
+    entry['directionChangeDegrees']=math.degrees((samples[0][1]-samples[0][0]).angle(samples[-1][1]-samples[-1][0]))
+    # Four independently composed shots, in sequence, with exact position/target/FOV.
+    for frame in [1,33,64,96]:
         scene.frame_set(frame);bpy.context.view_layer.update();metrics=box_metrics(o)
         scene.render.filepath=str(out/(tag+'-'+str(frame).zfill(2)+'.png'))
         bpy.ops.render.render(write_still=True)
-        entry['frames'].append({'frame':frame,'camera':list(camera.location),**metrics})
-    scene.frame_set(36)
+        entry['frames'].append({'frame':frame,'camera':list(camera.location),'fov':math.degrees(2*math.atan(16/camera.data.lens)),**metrics})
+    # A lightweight actual animation sample, one per room, without screenshot compositing.
+    if option_index==0:
+        scene.render.resolution_x=384;scene.render.resolution_y=216;scene.cycles.samples=8
+        for frame in range(1,97,4):
+            scene.frame_set(frame);bpy.context.view_layer.update()
+            scene.render.filepath=str(out/(tag+'-motion-'+str(frame).zfill(3)+'.png'))
+            bpy.ops.render.render(write_still=True)
+        scene.render.resolution_x=640;scene.render.resolution_y=360;scene.cycles.samples=24
+    scene.frame_set(96)
     bpy.ops.wm.save_as_mainfile(filepath=str(out/(tag+'.blend')),compress=True)
     report['options'].append(entry)
     bpy.data.objects.remove(o,do_unlink=True)
