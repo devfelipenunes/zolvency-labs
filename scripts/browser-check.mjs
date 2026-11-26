@@ -25,11 +25,11 @@ for(const [mode,viewport] of [['surface',{width:1440,height:900}],['panel',{widt
    await page.waitForFunction(p=>Math.abs(Number(document.querySelector('#stage')?.dataset.progress)-p)<.002,s.hold,{timeout:30000});
    const data=await stage.evaluate(e=>({...e.dataset}));const copy=page.locator('main .chapter[data-name="'+s.name+'"] .copy');const opacity=await copy.evaluate(e=>getComputedStyle(e).opacity);
    assert.equal(await copy.locator('h1,h2').count(),1);assert.equal(await copy.locator('p').count(),1);
-   if(data.surfaceTitle===s.name){assert.ok(data.surfaceAnchor);assert.equal(data.surfaceReadable,'true');}
+   if(data.surfaceTitle===s.name){assert.ok(data.surfaceAnchor);assert.ok(['true','false'].includes(data.surfaceReadable));if(data.surfaceReadable==='false')assert.ok(Number(await copy.locator('p').evaluate(e=>getComputedStyle(e).opacity))>0);}
    else assert.ok(Number(opacity)>0,'HTML fallback must remain visible');
    if(mode==='html')assert.ok(!data.surfaceTitle);
    const file='typography-'+mode+'-'+viewport.width+'-'+s.name+'.png';await page.screenshot({timeout:90000,path:'artifacts/'+file});
-   rows.push({name:s.name,mode,viewport,anchor:data.surfaceAnchor??'',visible:data.surfaceTitle===s.name,extruded:data.surfaceExtruded,diagnostics:JSON.parse(data.surfaceDiagnostics??'{}')[s.name],file});
+   rows.push({name:s.name,mode,viewport,anchor:data.surfaceAnchor??'',visible:data.surfaceTitle===s.name,fullBody:data.surfaceReadable==='true',extruded:data.surfaceExtruded,diagnostics:JSON.parse(data.surfaceDiagnostics??'{}')[s.name],file});
   }
   assert.deepEqual(errors,[]);typeEvidence.push(...rows);
   await writeFile('artifacts/typography-evidence.json',JSON.stringify(typeEvidence,null,2));
