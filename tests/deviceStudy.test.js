@@ -20,3 +20,6 @@ test('native scroll timing is consumed once and only after a valid active frame'
  study.start();study.markScroll(100);study.markScroll(110);study.record(d,false,125);study.record(d,false,140);
  const result=study.stop(d,{width:1280,height:720});assert.equal(result.metrics.scrollToSubmitMs.samples,1);assert.equal(result.metrics.scrollToSubmitMs.p95,15);
 });
+
+
+test('full observed cadence preserves stalls and exposes truncation, legacy summary remains separate',()=>{const a=createDeviceStudy({maxSamples:3});a.start();for(const interval of [16,300,33,800])a.record({activeFrameIntervalMs:String(interval)});const r=a.stop({},{});assert.equal(r.samples,2);assert.equal(r.metrics.intervalMs.p95,33);assert.deepEqual(r.observedIntervals,{samples:3,p50:33,p95:300,max:300,over50ms:1,over250ms:1});assert.equal(r.truncated,true);a.start();assert.equal(a.stop({},{}).truncated,false);});
