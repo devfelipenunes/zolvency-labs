@@ -215,3 +215,51 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
   #stage[data-experience="editorial"][data-renderer="three"] ~ main .chapter[data-side] p{font-size:13px}
  }
 }
+
+/* Shot-directed native copy: feathered reading surface, distinct composition per vista.
+   Progress is authored by the rendered camera, never a wall-clock entrance animation. */
+@media(prefers-reduced-motion:no-preference){
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] .copy{
+  --reading-surface:rgba(7,15,20,.88);--reading-width:min(390px,32vw);
+  left:var(--gutter);right:auto;top:auto;bottom:clamp(64px,13svh,116px);width:var(--reading-width);
+  padding:0;margin:0;background:transparent;border:0;box-shadow:none;border-radius:0;
+  text-align:left;transform:none;transition:none;opacity:0;pointer-events:none;
+ }
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] .copy::before{
+  content:"";position:absolute;z-index:-1;inset:-28px -34px -26px;
+  background:linear-gradient(90deg,transparent,var(--reading-surface) 14%,var(--reading-surface) 86%,transparent);
+  mask-image:linear-gradient(0deg,transparent,#000 14%,#000 86%,transparent);pointer-events:none;
+ }
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] :is(h1,h2){font-size:clamp(28px,3.25vw,46px);line-height:1.05;letter-spacing:-.05em;font-weight:500;margin:0 0 12px;opacity:var(--directed-title,0);transform:translateY(calc((1 - var(--directed-title,0))*12px));transition:none;text-wrap:balance}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] p{font-size:16px;line-height:1.48;opacity:var(--directed-body,0);transform:translateY(calc((1 - var(--directed-body,0))*8px));transition:none;margin:0;max-width:37ch}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] .eyebrow{opacity:var(--directed-label,0);transition:none;letter-spacing:.10em;margin-bottom:12px}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] .eyebrow::before{flex-basis:16px}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] :is(.tag,.endnote){opacity:var(--directed-cue,0);margin-top:14px}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main :is(.chapter[data-name="ORIGIN"],.chapter[data-name="CONVERGENCE"]) .copy{left:50%;right:auto;transform:translateX(-50%);width:min(570px,52vw);text-align:center;bottom:clamp(64px,12svh,105px)}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main :is(.chapter[data-name="ORIGIN"],.chapter[data-name="CONVERGENCE"]) .copy p{max-width:48ch;margin-inline:auto}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main :is(.chapter[data-name="ORIGIN"],.chapter[data-name="CONVERGENCE"]) .eyebrow{justify-content:center}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-name="STELLAR"] .copy{bottom:clamp(76px,20svh,170px);--reading-width:min(350px,30vw)}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main :is(.chapter[data-name="CRYPTOGRAPHY"],.chapter[data-name="INTELLIGENCE"]) .copy{left:auto;right:var(--gutter)}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-name="QUANTUM"] .copy{--reading-width:min(330px,28vw);bottom:clamp(64px,16svh,130px)}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"][data-narrative-ready="true"]:is([data-narrative-shot="ORIGIN"],[data-narrative-shot="CONVERGENCE"]) ~ .brand{opacity:0}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"][data-visual-chapter="0"] ~ main .chapter:nth-child(1) .copy{opacity:var(--directed-alpha,0)}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"][data-visual-chapter="1"] ~ main .chapter:nth-child(2) .copy{opacity:var(--directed-alpha,0)}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"][data-visual-chapter="2"] ~ main .chapter:nth-child(3) .copy{opacity:var(--directed-alpha,0)}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"][data-visual-chapter="3"] ~ main .chapter:nth-child(4) .copy{opacity:var(--directed-alpha,0)}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"][data-visual-chapter="4"] ~ main .chapter:nth-child(5) .copy{opacity:var(--directed-alpha,0)}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"][data-visual-chapter="5"] ~ main .chapter:nth-child(6) .copy{opacity:var(--directed-alpha,0)}
+ #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"][data-visual-chapter="6"] ~ main .chapter:nth-child(7) .copy{opacity:var(--directed-alpha,0)}
+ @media(max-width:720px){
+  #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] .copy,
+  #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main :is(.chapter[data-name="ORIGIN"],.chapter[data-name="CONVERGENCE"],.chapter[data-name="STELLAR"],.chapter[data-name="CRYPTOGRAPHY"],.chapter[data-name="INTELLIGENCE"],.chapter[data-name="QUANTUM"]) .copy{left:var(--gutter);right:auto;bottom:62px;width:calc(100vw - 2 * var(--gutter));text-align:left;transform:none}
+  #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] .copy::before{inset:-22px -22px -20px}
+  #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] :is(h1,h2){font-size:clamp(26px,6.8vw,32px);margin-bottom:9px}
+  #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] p{font-size:15px;line-height:1.45;margin-inline:0}
+  #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] .eyebrow{justify-content:flex-start;margin-bottom:8px}
+ }
+ @media(max-height:470px){
+  #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] .copy{bottom:20px;left:var(--gutter);right:auto;transform:none;width:min(330px,46vw);text-align:left}
+  #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] :is(h1,h2){font-size:clamp(20px,3vw,27px);margin-bottom:6px}
+  #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] p{font-size:13px;line-height:1.35}
+ }
+}
