@@ -48,17 +48,21 @@ async function download(f,{fetchImpl,attempts,timeout,sleep,published}){
  }
  throw last;
 }
-export async function stageAssets(assets,{dir='public/models',cacheDir='.cache/facility',offline=false,published=false,fetchImpl=globalThis.fetch,attempts=3,timeout=45000,concurrency=4,sleep=ms=>new Promise(r=>setTimeout(r,ms)),log=console.log}={}){
+export async function stageAssets(assets,{dir='public/models',cacheDir='.cache/facility',vendorDir=null,offline=false,published=false,fetchImpl=globalThis.fetch,attempts=3,timeout=45000,concurrency=4,sleep=ms=>new Promise(r=>setTimeout(r,ms)),log=console.log}={}){
  validateAssets(assets);
  if(process.env.NODE_TLS_REJECT_UNAUTHORIZED==='0')throw Error('Unsafe TLS configuration: unset NODE_TLS_REJECT_UNAUTHORIZED before staging.');
- const counts={local:0,cache:0,downloaded:0};const failures=[];let next=0;
+ const counts={local:0,cache:0,vendor:0,downloaded:0};const failures=[];let next=0;
  async function stage(f){
   const dest=path.join(dir,'facility',f.file),cached=path.join(cacheDir,f.sha256);
   let b=await readVerified(dest,f);
   if(b){counts.local++;if(!await readVerified(cached,f))await atomicWrite(cached,b);return;}
   b=await readVerified(cached,f);
   if(b){await atomicWrite(dest,b);counts.cache++;return;}
-  if(offline)throw Error('missing verified local/cache bytes (offline mode)');
+  if(vendorDir){
+   b=await readVerified(path.join(vendorDir,f.file),f);
+   if(b){await atomicWrite(cached,b);await atomicWrite(dest,b);counts.vendor++;return;}
+  }
+  if(offline)throw Error('missing verified local/cache/bundled bytes (offline mode)');
   b=await download(f,{fetchImpl,attempts,timeout,sleep,published});
   await atomicWrite(cached,b);await atomicWrite(dest,b);counts.downloaded++;
   log('Downloaded and verified: '+f.file);

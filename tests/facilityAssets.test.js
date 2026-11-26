@@ -69,3 +69,16 @@ test('published recovery rejects wrong bytes and retains TLS verification',async
  await assert.rejects(readFile(dest(o,f)),{code:'ENOENT'});
  await assert.rejects(stageAssets([f],{...o,published:true,fetchImpl:async()=>{throw Object.assign(Error('fetch failed'),{cause:{code:'SELF_SIGNED_CERT_IN_CHAIN'}});}}),/zolvency-labs.vercel.app.*SELF_SIGNED_CERT_IN_CHAIN/s);
 });
+
+test('fresh checkout restores bundled models without any network, even with empty cache',async t=>{
+ const o=await fixture(t),f=entry('rack.glb','verified');const vendorDir=path.join(o.dir,'../vendor');
+ await mkdir(vendorDir,{recursive:true});await writeFile(path.join(vendorDir,f.file),'verified');
+ const noFetch=async()=>assert.fail('unexpected network');
+ let result=await stageAssets([f],{...o,vendorDir,offline:true,fetchImpl:noFetch});
+ assert.equal(result.vendor,1);assert.equal(result.downloaded,0);assert.equal(await readFile(dest(o,f),'utf8'),'verified');
+ await rm(o.dir,{recursive:true});await rm(o.cacheDir,{recursive:true});
+ result=await stageAssets([f],{...o,vendorDir,offline:true,fetchImpl:noFetch});assert.equal(result.vendor,1);
+ await rm(o.dir,{recursive:true});await rm(o.cacheDir,{recursive:true});await writeFile(path.join(vendorDir,f.file),'corrupt!');
+ await assert.rejects(stageAssets([f],{...o,vendorDir,offline:true,fetchImpl:noFetch}),/missing verified local\/cache\/bundled bytes/);
+ await assert.rejects(readFile(dest(o,f)),{code:'ENOENT'});
+});

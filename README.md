@@ -1,33 +1,24 @@
-# Zolvency Labs — V0.29
+# Zolvency Labs — V0.30.1
 
 Independent technology company. Cinematic institutional experience, React/Vite and Three.js.
 
 ## Local development
 
-Node.js 22 (22.12 or newer), npm, then:
+Node.js 22 (22.12 or newer), npm. On the first checkout:
 
 ```sh
 npm install
 npm run dev
 ```
 
-The preparation step verifies the locked external model bytes (length and SHA-256), reuses valid staged models and the content-addressed cache in .cache/facility/, and downloads only missing or corrupted assets. A failed download never deletes all existing models or writes unverified files. The manifest is replaced only after successful staging. First-time setup still requires authorized HTTPS access to the model providers; no source-lock bypass or alternate unverified asset is used.
-
-The Node staging launcher includes system-trusted CAs where supported; older Node 22 builds on Linux may use the existing OS trust bundle as NODE_EXTRA_CA_CERTS if no custom bundle is configured. If an enterprise proxy certificate is not trusted, ask IT for its approved CA bundle. Example on Ubuntu:
+On an existing checkout with dependencies installed:
 
 ```sh
-NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt npm run dev
+git pull --ff-only
+npm run dev
 ```
 
-Keep TLS verification enabled. Do not set NODE_TLS_REJECT_UNAUTHORIZED=0 or disable strict SSL. If the OS itself does not trust the issuer, an IT-approved certificate is necessary.
-
-After a successful initial staging, offline development on Linux/macOS:
-
-```sh
-FACILITY_OFFLINE=1 npm run dev
-```
-
-Or run npm run facility:offline to verify/restore assets without any network request. On a fresh machine without models, npm run dev:canvas opens the explicit 2D fallback for layout work; it is not the full 3D experience. It does not silently change production.
+All 21 locked facility GLB/HDR files (7,571,663 bytes at this revision) are included in ordinary Git under `assets/vendor/facility/`. No Git LFS, model-provider access, special environment variables or additional model download is required. The default predev/prebuild stage checks each byte length and SHA-256 against the original locks and restores missing or corrupt generated files using the local verified cache or bundled files. Generated `public/models/` and cache remain ignored, avoiding conflicts with previous local staging. Three.js decoders and typeface are copied from installed npm dependencies. An initial npm install (and subsequent dependency updates) still requires npm registry access or a populated package cache.
 
 ## Verification
 
@@ -39,15 +30,6 @@ npx playwright install chromium
 npm run test:smoke
 ```
 
-Production build remains strict: incomplete or mismatched assets fail staging. Cached bytes are always verified against the repository locks. Preserve .cache/facility/ for offline recovery. No generated models, cache files or certificate secrets are committed. See docs/visual-roadmap.md for cinematic review and docs/industrial-art.md for historical design studies. Experimental noindex, not a commercial launch.
+A missing or invalid bundle fails closed; do not disable TLS or integrity checks. To explicitly refresh model bytes during maintenance only, use `FACILITY_SOURCE=upstream npm run facility:stage` or `FACILITY_SOURCE=published npm run facility:stage`. Update the bundled files and locks together after verifying provenance, licenses and integrity. See `assets/vendor/README.md`. No credentials, certificate secrets, dependency directories or cache are committed. `npm run dev:canvas` remains an explicit 2D fallback.
 
-### Recover already published assets
-
-If the publisher host is unavailable but your authorized network allows the Zolvency Labs deployment, explicitly choose the published source:
-
-```sh
-FACILITY_SOURCE=published npm run facility:stage
-FACILITY_OFFLINE=1 npm run dev
-```
-
-This is not a TLS bypass: HTTPS, original byte length and SHA-256 are still required, and redirects are rejected. The deployment must contain the exact locked files. If the deployment is unavailable, differs from the current locks, or its certificate is untrusted, recovery fails closed. Follow organizational network policy; ask IT for an approved CA or approved transfer of the verified assets if required. No automatic fallback or production build policy change.
+Production build remains strict; no external model network requests by default. See docs/visual-roadmap.md and docs/industrial-art.md. Experimental noindex, not a commercial launch.
