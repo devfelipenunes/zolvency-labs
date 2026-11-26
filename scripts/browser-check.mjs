@@ -23,13 +23,13 @@ try{
  return pose();
  };
  const start=await scroll(0);const initialGeo=await page.locator('#stage').getAttribute('data-geometries');
- const readouts=[];const stages=await page.locator('.chapter').evaluateAll(es=>es.map((e,i)=>{const r=e.querySelector('.copy').getBoundingClientRect(),top=e.getBoundingClientRect().top+scrollY;return Math.min(1,Math.max(0,(i===0?0:top+r.top-e.getBoundingClientRect().top-innerHeight*.26)/(document.documentElement.scrollHeight-innerHeight)));}));
+ const readouts=[];const stages=await page.locator('.chapter').evaluateAll(es=>es.map((e,i)=>{const top=e.getBoundingClientRect().top+scrollY,max=document.documentElement.scrollHeight-innerHeight;const next=i===es.length-1?max:es[i+1].getBoundingClientRect().top+scrollY;return i===0?0:Math.min(1,Math.max(0,(top+(next-top)*.46)/max));}));
  for(let i=0;i<stages.length;i++){await scroll(stages[i]);const name=await page.locator('.chapter').nth(i).getAttribute('data-name');await page.screenshot({path:'artifacts/'+label+'-'+name.toLowerCase()+'.png'});readouts.push(await page.locator('#stage').evaluate(e=>({...e.dataset}))); }
  const middle=await scroll(.43),end=await scroll(1);assert.notEqual(start,middle);assert.notEqual(middle,end);assert.equal(await scroll(.43),middle);assert.equal(await scroll(0),start);
  if(mode==='three'){assert.equal(await page.locator('#stage').getAttribute('data-geometries'),initialGeo);assert.ok(readouts.every(r=>Number(r.drawCalls)<=8));}
  await page.keyboard.press('End');await page.waitForFunction(()=>Number(document.querySelector('#stage')?.dataset.progress)===1);assert.equal(await pose(),end);
  await page.keyboard.press('Home');await page.waitForFunction(()=>Number(document.querySelector('#stage')?.dataset.progress)===0);
- assert.equal(await page.locator('main section').count(),6);assert.match(await page.locator('main').innerText(),/Stellar/);assert.equal(await page.locator('h1').count(),1);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ assert.equal(await page.locator('main section').count(),7);assert.match(await page.locator('main').innerText(),/Stellar/);assert.match(await page.locator('main').innerText(),/Post-quantum cryptography/);assert.equal(await page.locator('h1').count(),1);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  // Layout reflow at half-size viewport approximates 200% desktop zoom, not physical browser zoom.
  await page.setViewportSize({width:Math.max(320,viewport.width/2),height:Math.max(420,viewport.height/2)});await page.waitForTimeout(400);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.setViewportSize(viewport);await page.waitForTimeout(400);
  let lostContext='not available';
