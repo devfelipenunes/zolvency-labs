@@ -39,3 +39,6 @@ export function pacedStoryProgress(scroll,starts,max,pacing){
  const a=starts[index],b=starts[index+1]??max;
  return {index,progress:pacing.progress(index,b>a?clamp((y-a)/(b-a)):1)};
 }
+
+const pacingCache=new Map();
+export function getPacing(mobile=false){if(!pacingCache.has(mobile))pacingCache.set(mobile,createPacing({mobile}));return pacingCache.get(mobile);}
