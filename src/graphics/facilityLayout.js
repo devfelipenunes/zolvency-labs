@@ -1,4 +1,4 @@
-import refined from '../../assets/refinement-lock.json';
+import refined from '../../assets/refinement-lock.json' with {type:'json'};
 const approved=new Set(refined.map(r=>r.file));
 const low=(file)=>approved.has(file)?file:undefined;
 // All renderable geometry comes from external CC0 models; no substitute boxes, spheres or floor props.
