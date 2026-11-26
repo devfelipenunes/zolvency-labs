@@ -69,12 +69,12 @@ export function auditSuspension(roots){
  }
 
  // Directed editorial cuts; all fallback endpoints are existing collision-audited poses.
- const edits=[{a:.415,b:.51,z:.59,name:'server-to-security',zoom:34},{a:.755,b:.81,z:.865,name:'operations-to-quantum',zoom:40}];
+ const edits=[{a:.415,b:.51,z:.59,name:'server-to-security',zoom:34},{a:.755,b:.81,z:.865,name:'operations-to-quantum',zoom:40},{a:.95,b:.965,z:.985,name:'quantum-to-origin',zoom:44}];
  export function directedCut(p,mobile=false,wall=null,poseFor=spatialPose){
   const e=edits.find(s=>p>=s.a&&p<=s.z);
   if(!e){wall?.leave?.();return {pose:poseFor(p,mobile),mask:0,active:false};}
   const source=p<e.b,q=source?e.a:e.z,k=source?ramp(p,e.a,e.b):1-ramp(p,e.b,e.z),pose=poseFor(q,mobile);
-  const mask=ramp(p,e.b-.024,e.b-.005)*(1-ramp(p,e.b+.005,e.b+.024));
+  const width=Math.min(.024,(e.b-e.a)*.8,(e.z-e.b)*.8);const plateau=Math.min(.005,width*.25);const mask=ramp(p,e.b-width,e.b-plateau)*(1-ramp(p,e.b+plateau,e.b+width));
   if(e.name!=='server-to-security')wall?.leave?.();
   if(e.name==='server-to-security'&&wall){
    const candidate=wall.pose(p,mobile);
