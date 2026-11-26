@@ -11,7 +11,7 @@ let browser;const rows=[];
 try{
  let ready=false;for(let i=0;i<80;i++){try{if((await fetch(base)).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,250));}assert.ok(ready);
  browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
- for(const variant of ['control','refined']){
+ for(const variant of ['control','refined','local','floor']){
   const page=await browser.newPage({viewport,deviceScaleFactor:1}),errors=[];page.on('pageerror',e=>errors.push(e.message));
   try{
    await page.goto(base+'/?experience=editorial&profile=economy&direction=staged&lighting='+variant,{waitUntil:'domcontentloaded'});
@@ -26,12 +26,12 @@ try{
     const screenshot=await page.screenshot({path:out+'/'+variant+'-'+p+'.png',timeout:120000,animations:'disabled'});
     // Whole-image luminance distribution is only a reproducible composition proxy, not subject visibility.
     const luminance=await page.evaluate(async uri=>{const img=new Image();img.src=uri;await img.decode();const c=document.createElement('canvas');c.width=160;c.height=Math.round(160*img.height/img.width);const ctx=c.getContext('2d');ctx.drawImage(img,0,0,c.width,c.height);const data=ctx.getImageData(0,0,c.width,c.height).data,v=[];for(let i=0;i<data.length;i+=4)v.push((.2126*data[i]+.7152*data[i+1]+.0722*data[i+2])/255);v.sort((a,b)=>a-b);const q=p=>v[Math.ceil(p*v.length)-1];return {p10:q(.1),p50:q(.5),p90:q(.9),darkFraction:v.filter(x=>x<.08).length/v.length,brightFraction:v.filter(x=>x>.8).length/v.length};},'data:image/png;base64,'+screenshot.toString('base64'));
-    rows.push({variant,p,luminance,drawCalls:Number(data.drawCalls),floorFaces:Number(data.floorFaces),floorReason:data.floorReason,pose:JSON.parse(data.pose),exposure:Number(data.exposure)});
+    assert.equal(data.overlapPrepared,'true');rows.push({variant,p,luminance,removedOverlap:Number(data.removedOverlap),drawCalls:Number(data.drawCalls),floorFaces:Number(data.floorFaces),floorReason:data.floorReason,pose:JSON.parse(data.pose),exposure:Number(data.exposure)});
     await writeFile(out+'/comparison.json',JSON.stringify({viewport,rows,errors,note:'Software-rendered screenshot proxies; visual review required.'},null,2));
    }assert.deepEqual(errors,[]);
   }finally{await page.close();}
  }
- assert.equal(rows.length,14);
- for(const p of holds){const [a,b]=rows.filter(r=>r.p===p);for(const key of ['position','target'])for(let i=0;i<3;i++)assert.ok(Math.abs(a.pose[key][i]-b.pose[key][i])<.02);assert.ok(Math.abs(a.pose.fov-b.pose.fov)<.02);}
- assert.ok(rows.some(r=>r.variant==='refined'&&r.floorFaces>0),'No hangar floor isolated');
+ assert.equal(rows.length,28);
+ for(const p of holds){const [a,...candidates]=rows.filter(r=>r.p===p);for(const b of candidates){for(const key of ['position','target'])for(let i=0;i<3;i++)assert.ok(Math.abs(a.pose[key][i]-b.pose[key][i])<.02);assert.ok(Math.abs(a.pose.fov-b.pose.fov)<.02);assert.equal(b.removedOverlap,a.removedOverlap,'material partition must not prevent overlap removal');}}
+ for(const variant of ['refined','floor'])assert.ok(rows.some(r=>r.variant===variant&&r.floorFaces>0),'No hangar floor isolated: '+variant);
 }finally{await browser?.close();server.kill();}
