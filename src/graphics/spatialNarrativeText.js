@@ -4,7 +4,7 @@ import {FontLoader} from 'three/addons/loaders/FontLoader.js';
 import {TextGeometry} from 'three/addons/geometries/TextGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {ramp,windows} from './facilityCamera.js';
-import {brandPlane,isStudy} from './compositionStudy.js';
+import {brandPlane,isStudy,studyModes} from './compositionStudy.js';
 import {brandSurfaces,artEnvelope} from './artDirection.js';
 import {shotCards,shotAnimation,shotLayout} from './shotCards.js';
 
@@ -104,7 +104,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
    const [rx,ry,rs,depth]=chosenLayout[i];
    const mobileY=e.card.name==='QUANTUM'?(['quantum-copy','selected','composition-first','brand-hero','final-hero','ops-hero'].includes(composition)?[.75,-.50,-.71,-.91]:[.75,-.64,-.84,-.91]):[.35,-.18,-.59,-.84];
    const x=mobile?0:rx,y=mobile?mobileY[i]:ry,span=mobile?Math.min(.80,rs*1.8):rs;
-   let anchor=null;if(art&&i===0&&e.card.brand){if(e.card.name==='ORIGIN'&&['mid','close','selected'].includes(composition))anchor=midBrand(m,cam,all);const candidate=brandPlane(e.card.name,mobile,composition);if(candidate)anchor=midBrand(m,cam,all,candidate);if(!anchor)anchor=mountedBrand(e,m,cam,mobile,roots);}
+   let anchor=null;if(art&&i===0&&e.card.brand){if(e.card.name==='ORIGIN'&&(['mid','close','selected'].includes(composition)||studyModes.includes(composition)))anchor=midBrand(m,cam,all);const candidate=brandPlane(e.card.name,mobile,composition);if(candidate)anchor=midBrand(m,cam,all,candidate)??anchor;if(!anchor)anchor=mountedBrand(e,m,cam,mobile,roots);}
    for(const d of [depth,depth*.76,depth*.55,depth*.36,.72,.48,.30]){
     if(anchor)break;
     const h=d*Math.tan(THREE.MathUtils.degToRad(cam.fov/2)),w=h*a;
