@@ -17,7 +17,7 @@ try{
  const mode=await page.locator('#stage').getAttribute('data-renderer');console.log(label,'renderer:',mode,'WebGL2 probe:',webgl);
  const pose=()=>page.locator('#stage').getAttribute('data-pose');
  const scroll=async fraction=>{
- const state=await page.evaluate(f=>{scrollTo(0,Math.round((document.documentElement.scrollHeight-innerHeight)*f));return {y:scrollY,max:document.documentElement.scrollHeight-innerHeight,anchors:[...document.querySelectorAll('main section')].map(e=>e.offsetTop),reduced:matchMedia('(prefers-reduced-motion: reduce)').matches};},fraction);
+ const state=await page.evaluate(f=>{scrollTo(0,Math.round((document.documentElement.scrollHeight-innerHeight)*f));return {y:scrollY,max:document.documentElement.scrollHeight-innerHeight,anchors:[...document.querySelectorAll('main section')].map((e,i)=>i===0?0:e.getBoundingClientRect().top+scrollY),reduced:matchMedia('(prefers-reduced-motion: reduce)').matches};},fraction);
  const expected=state.reduced?0:storyProgress(state.y,state.anchors,state.max).progress;
  await page.waitForFunction(p=>Math.abs(Number(document.querySelector('#stage')?.dataset.progress)-p)<1e-8,expected,{timeout:20000});
  return pose();
