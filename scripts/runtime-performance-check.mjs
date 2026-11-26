@@ -8,7 +8,7 @@ import {windows} from '../src/graphics/facilityCamera.js';
 const mobile=process.env.DEVICE_VIEW==='mobile';
 const software=process.env.DEVICE_SOFTWARE==='1';
 const profile=process.env.DEVICE_PROFILE??'economy';
-const candidate=process.env.RUNTIME_VARIANT??'bounded';assert.ok(['lean','bounded','combined','motion-scale'].includes(candidate));
+const candidate=process.env.RUNTIME_VARIANT??'bounded';assert.ok(['lean','bounded','combined','motion-scale','motion-hysteresis'].includes(candidate));
 const order=mobile?[candidate,'control']:['control',candidate];
 const viewport=mobile?{width:390,height:844}:{width:1280,height:720};
 const base='http://127.0.0.1:4196',out='artifacts/runtime-performance';
@@ -47,7 +47,7 @@ try{
     window.__motionTrial={active:false,frames:[],last:'',started:0,first:null};
     function frame(now){const q=window.__motionTrial,d=document.querySelector('#stage').dataset;
      if(q.active&&d.renderCount!==q.last){q.last=d.renderCount;const n=k=>d[k]===''||d[k]==null?null:Number(d[k]);const p=n('progress');if(q.first===null&&p!==null&&p!==q.startProgress)q.first=Math.max(0,now-q.started);
-      q.frames.push({now,progress:p,target:n('targetProgress'),interval:n('activeFrameIntervalMs'),cpu:n('cpuFrameMs'),gpu:n('gpuMs'),gpuSerial:d.gpuSampleSerial,draws:n('drawCalls'),triangles:n('triangles'),scale:n('resolutionScale'),motionScale:n('motionScale')});
+      q.frames.push({now,progress:p,target:n('targetProgress'),interval:n('activeFrameIntervalMs'),cpu:n('cpuFrameMs'),gpu:n('gpuMs'),gpuSerial:d.gpuSampleSerial,draws:n('drawCalls'),triangles:n('triangles'),scale:n('resolutionScale'),motionScale:n('motionScale'),resizeMs:n('bufferResizeMs'),resizeCount:n('bufferResizeCount')});
      }requestAnimationFrame(frame);
     }requestAnimationFrame(frame);
    });
@@ -56,7 +56,9 @@ try{
     for(const p of points){
      await page.evaluate(y=>{const q=window.__motionTrial,d=document.querySelector('#stage').dataset;q.frames=[];q.first=null;q.startProgress=Number(d.progress);q.last=d.renderCount;q.started=performance.now();q.active=true;window.scrollTo({top:y,behavior:'instant'});},scrollAt(p));
      await page.waitForFunction(p=>{const d=document.querySelector('#stage').dataset;return Math.abs(Number(d.progress)-p)<.003&&d.motionPending==='false';},p,{timeout:120000});
-     const result=await page.evaluate(()=>{const q=window.__motionTrial;q.active=false;return {frames:q.frames,firstMotionMs:q.first,settleMs:performance.now()-q.started};});
+     const settled=await page.evaluate(()=>performance.now());
+     await page.waitForFunction(()=>Number(document.querySelector('#stage').dataset.motionScale??1)===1,null,{timeout:120000});
+     const result=await page.evaluate(settled=>{const q=window.__motionTrial;q.active=false;return {frames:q.frames,firstMotionMs:q.first,settleMs:settled-q.started,restoreMs:performance.now()-settled};},settled);
      assert.ok(result.frames.length>0,'No observed frames');
      trials.push({direction,p,...result});
     }
@@ -64,7 +66,7 @@ try{
    const moving=trials.flatMap(x=>x.frames.filter((f,i,a)=>i===0?Number.isFinite(f.interval):f.progress!==a[i-1].progress));
    const seen=new Set(),gpu=moving.filter(f=>{if(!f.gpuSerial||seen.has(f.gpuSerial))return false;seen.add(f.gpuSerial);return true;});
    const gate=await page.locator('#stage').evaluate(s=>JSON.parse(s.dataset.submissionGate??'null'));
-   const report={runtime,profile,viewport,startup,gate,trialCount:trials.length,activeSamples:moving.length,frameInterval:summary(moving.map(f=>f.interval)),cpu:summary(moving.map(f=>f.cpu)),gpu:summary(gpu.map(f=>f.gpu)),draws:summary(moving.map(f=>f.draws)),triangles:summary(moving.map(f=>f.triangles)),resolutionScale:summary(moving.map(f=>f.scale)),motionScale:summary(moving.map(f=>f.motionScale)),firstMotionMs:summary(trials.map(t=>t.firstMotionMs)),settleMs:summary(trials.map(t=>t.settleMs)),gapsOver50ms:moving.filter(f=>f.interval>50).length,gapsOver250ms:moving.filter(f=>f.interval>250).length,errors};
+   const allFrames=trials.flatMap(x=>x.frames),resizeFrames=allFrames.filter(f=>f.resizeMs>0);const report={allCpu:summary(allFrames.map(f=>f.cpu)),resizeCost:summary(resizeFrames.map(f=>f.resizeMs)),qualityRestoreMs:summary(trials.map(t=>t.restoreMs)),runtime,profile,viewport,startup,gate,trialCount:trials.length,activeSamples:moving.length,frameInterval:summary(moving.map(f=>f.interval)),cpu:summary(moving.map(f=>f.cpu)),gpu:summary(gpu.map(f=>f.gpu)),draws:summary(moving.map(f=>f.draws)),triangles:summary(moving.map(f=>f.triangles)),resolutionScale:summary(moving.map(f=>f.scale)),motionScale:summary(moving.map(f=>f.motionScale)),firstMotionMs:summary(trials.map(t=>t.firstMotionMs)),settleMs:summary(trials.map(t=>t.settleMs)),gapsOver50ms:moving.filter(f=>f.interval>50).length,gapsOver250ms:moving.filter(f=>f.interval>250).length,errors};
    await writeFile(out+'/'+runtime+'-trials.json',JSON.stringify(trials));
    await writeFile(out+'/'+runtime+'-report.json',JSON.stringify(report,null,2));
    assert.deepEqual(errors,[]);assert.ok(moving.length>0);

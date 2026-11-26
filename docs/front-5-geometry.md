@@ -1,0 +1,2 @@
+# Front 5 — geometry and choreography (#70 #114)
+Expand existing real decoded mesh 648-sample crane collision audit with interior floor/clearance diagnostics and security/operations transition screenshots. Existing intended contacts are reported; no continuous collision claim. No geometry or public choreography changed. Review actual frames, preserve reverse and cut masking; current test is evidence gathering.

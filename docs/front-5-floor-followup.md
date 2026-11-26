@@ -1,0 +1,2 @@
+# R44 geometry follow-up
+Previous 648 crane samples passed but six floor probes returned null. Independent barycentric intersection of actual decoded office export (artifact 15152126772) found upward floor at approximately y=0 for all six points (portal/corridor-extension/bridge). Replace debug-only material-dependent raycast with projected triangle intersection in world coordinates; reject null, require abs(y)<.08 and 41 route samples >.06. No geometry change. This is sampled clearance, not continuous collision certification.
