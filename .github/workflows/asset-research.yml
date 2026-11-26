@@ -1,0 +1,131 @@
+name: Asset research and authoring
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: Research task to run
+        type: choice
+        options:
+          - all
+          - blender
+          - assets
+          - environments
+          - composition
+          - interiors
+          - refinement
+        default: all
+  pull_request:
+    branches: [main]
+    paths:
+      - 'assets/**'
+      - 'scripts/audition-*.mjs'
+      - 'scripts/audition-*.py'
+      - 'scripts/stage-facility.mjs'
+      - 'scripts/stage-decoders.mjs'
+      - '.github/workflows/asset-research.yml'
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  blender-library:
+    if: github.event_name == 'workflow_dispatch' && (inputs.scope == 'all' || inputs.scope == 'blender')
+    timeout-minutes: 12
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm run export:models
+      - run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends blender python3-numpy python3-pil
+      - run: blender -b -t 2 --python-exit-code 1 --python scripts/blender-library.py -- artifacts/authoring/catalog.json artifacts/blender
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: industrial-blender-library
+          path: artifacts/blender/
+  asset-audition:
+    if: github.event_name == 'pull_request' || inputs.scope == 'all' || inputs.scope == 'assets'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: node scripts/audition-assets.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: external-asset-audition
+          path: artifacts/asset-audition/
+  environment-audition:
+    if: github.event_name == 'pull_request' || inputs.scope == 'all' || inputs.scope == 'environments'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - run: python3 scripts/audition-environments.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: environment-asset-audition
+          path: artifacts/environment-audition/
+  composition-audition:
+    if: github.event_name == 'pull_request' || inputs.scope == 'all' || inputs.scope == 'composition'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: node scripts/audition-composition.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: curated-composition-assets
+          path: artifacts/composition-audition/
+  interior-audition:
+    if: github.event_name == 'pull_request' || inputs.scope == 'all' || inputs.scope == 'interiors'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: node scripts/audition-interiors.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: interior-audition
+          path: artifacts/interior-audition/
+  refinement-audition:
+    if: github.event_name == 'pull_request' || inputs.scope == 'all' || inputs.scope == 'refinement'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: node scripts/audition-refinement.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: refinement-audition
+          path: artifacts/refinement-audition/
