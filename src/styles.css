@@ -191,3 +191,27 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
   #stage[data-experience="editorial"][data-renderer="three"] ~ main .chapter[data-side] :is(.tag,.endnote){display:none}
  }
 }
+
+/* Editorial refinement — compact, quiet caption band, preserve scene visibility. */
+@media(prefers-reduced-motion:no-preference){
+ #stage[data-experience="editorial"][data-renderer="three"] ~ main .chapter[data-side] .copy{
+  border:0;border-radius:2px;box-shadow:none;background:rgba(7,15,20,.88);
+  padding:14px 18px 16px;width:min(395px,calc(100vw - 2 * var(--gutter)));
+ }
+ #stage[data-experience="editorial"][data-renderer="three"] ~ main .chapter[data-side] :is(h1,h2){font-size:clamp(28px,2.9vw,42px);margin-bottom:8px;font-weight:500;letter-spacing:-.04em}
+ #stage[data-experience="editorial"][data-renderer="three"] ~ main .chapter[data-side] p{line-height:1.45}
+ #stage[data-experience="editorial"][data-renderer="three"] ~ main .chapter[data-side] .eyebrow{margin-bottom:7px}
+ #stage[data-experience="editorial"][data-renderer="three"] ~ main :is(.chapter[data-name="ORIGIN"],.chapter[data-name="CONVERGENCE"]) .copy{width:min(540px,calc(100vw - 2 * var(--gutter)));border:0}
+ #stage[data-experience="editorial"][data-renderer="three"] ~ main .chapter[data-name="CRYPTOGRAPHY"] .copy{left:auto;right:var(--gutter)}
+ @media(max-width:720px){
+  #stage[data-experience="editorial"][data-renderer="three"] ~ main .chapter[data-side] .copy{left:var(--gutter);right:auto;transform:none;text-align:left;width:calc(100vw - 2 * var(--gutter));padding:10px 13px 12px;bottom:58px}
+  #stage[data-experience="editorial"][data-renderer="three"] ~ main .chapter[data-side] :is(h1,h2){font-size:clamp(25px,6.4vw,30px);line-height:1.12;margin-bottom:7px}
+  #stage[data-experience="editorial"][data-renderer="three"] ~ main .chapter[data-side] p{font-size:15px;line-height:1.42}
+  #stage[data-experience="editorial"][data-renderer="three"] ~ main .chapter[data-side] .eyebrow{letter-spacing:.08em;margin-bottom:6px}
+ }
+ @media(max-height:470px){
+  #stage[data-experience="editorial"][data-renderer="three"] ~ main .chapter[data-side] .copy{width:min(340px,48vw);bottom:15px;padding:9px 12px}
+  #stage[data-experience="editorial"][data-renderer="three"] ~ main .chapter[data-side] :is(h1,h2){font-size:clamp(20px,3vw,27px)}
+  #stage[data-experience="editorial"][data-renderer="three"] ~ main .chapter[data-side] p{font-size:13px}
+ }
+}
