@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { cameraPose } from './camera.js';
-import { makeWorld } from './world.js';
+import { makeScene } from './world.js';
 
 // Elliptical sweep (the long radius bounds the clearance calculation).
 function ribbon(path){
@@ -21,27 +21,28 @@ function ribbon(path){
 }
 export function createThreeScene(host,onLost){
  const r=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
- r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.24;
- const scene=new THREE.Scene();scene.background=new THREE.Color(0x11191b);scene.fog=new THREE.FogExp2(0x11191b,.023);
- const camera=new THREE.PerspectiveCamera(42,1,.12,140);
- const ceramic=new THREE.MeshStandardMaterial({color:0xc9d0c8,metalness:.12,roughness:.45,side:THREE.DoubleSide});
+ r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.38;
+ const scene=new THREE.Scene();scene.background=new THREE.Color(0x11191b);scene.fog=new THREE.FogExp2(0x11191b,.018);
+ const camera=new THREE.PerspectiveCamera(42,1,.12,210);
+ const porcelain=new THREE.MeshStandardMaterial({color:0xc9d0c8,metalness:.12,roughness:.45,side:THREE.DoubleSide});
  const metal=new THREE.MeshStandardMaterial({color:0x778c8d,metalness:.64,roughness:.3,side:THREE.DoubleSide});
  const accent=new THREE.MeshStandardMaterial({color:0xb4efc7,emissive:0x76c98c,emissiveIntensity:.8,roughness:.36,side:THREE.DoubleSide});
  const pulse={value:0};
  accent.onBeforeCompile=shader=>{
   shader.uniforms.uStory=pulse;
   shader.vertexShader='varying vec3 vScenePosition;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvScenePosition = position;');
-  shader.fragmentShader='uniform float uStory; varying vec3 vScenePosition;\n'+shader.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\nfloat distanceToPulse = (vScenePosition.z-(20.0-95.0*uStory))/5.5; float wave = exp(-distanceToPulse*distanceToPulse); totalEmissiveRadiance *= 0.65 + wave*1.6;');
+  shader.fragmentShader='uniform float uStory; varying vec3 vScenePosition;\n'+shader.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\nfloat distanceToPulse = (vScenePosition.z-(12.0-172.0*uStory))/5.5; float wave = exp(-distanceToPulse*distanceToPulse); totalEmissiveRadiance *= 0.65 + wave*1.6;');
  };
  accent.customProgramCacheKey=()=> 'woven-story-pulse-v1';
- const mats={ceramic,metal,accent};
- const world=makeWorld();
+ const mats={porcelain,metal,accent};
+ const world=makeScene();
  // Batch immutable meshes by material to reduce draw calls.
  for(const [kind,mat] of Object.entries(mats)){
-  const gs=world.filter(p=>p.kind===kind).map(ribbon);const combined=mergeGeometries(gs,false);gs.forEach(g=>g.dispose());if(!combined)throw Error('Geometry merge failed');scene.add(new THREE.Mesh(combined,mat));
+  const gs=world.paths.filter(p=>p.kind===kind).map(ribbon);
+  for(const o of world.objects.filter(p=>p.kind===kind)){const g=o.shape==='box'?new THREE.BoxGeometry(...o.size):new THREE.SphereGeometry(o.radius,12,8);g.translate(...o.position);gs.push(g);}const combined=mergeGeometries(gs,false);gs.forEach(g=>g.dispose());if(!combined)throw Error('Geometry merge failed');scene.add(new THREE.Mesh(combined,mat));
  }
  const floorMat=new THREE.MeshStandardMaterial({color:0x293538,roughness:.83,metalness:.2});
- const floor=new THREE.Mesh(new THREE.PlaneGeometry(130,135),floorMat);floor.rotation.x=-Math.PI/2;floor.position.set(0,-3,-32);scene.add(floor);
+ const floor=new THREE.Mesh(new THREE.PlaneGeometry(100,230),floorMat);floor.rotation.x=-Math.PI/2;floor.position.set(0,-3,-78);scene.add(floor);
  // Procedural studio reflection: a few soft light panels, no licensed HDRI.
  const studio=new THREE.Scene();studio.background=new THREE.Color(0x425052);
  const panelMat=new THREE.MeshBasicMaterial({color:0xffffff});const panelGeo=new THREE.PlaneGeometry(12,8);
@@ -50,13 +51,13 @@ export function createThreeScene(host,onLost){
  scene.add(new THREE.HemisphereLight(0xe9f0e6,0x27393d,1.5));
  const key=new THREE.DirectionalLight(0xfff5df,2.7);key.position.set(-8,11,8);scene.add(key);
  const rim=new THREE.DirectionalLight(0xa4c1dd,1.9);rim.position.set(8,6,-35);scene.add(rim);
- const atrium=new THREE.PointLight(0xb1e1bd,120,34,2);atrium.position.set(1,5,-17);scene.add(atrium);
- const horizon=new THREE.PointLight(0xdde5ca,160,45,2);horizon.position.set(0,8,-62);scene.add(horizon);
+ const atrium=new THREE.PointLight(0xb1e1bd,120,34,2);atrium.position.set(0,8,-45);scene.add(atrium);
+ const horizon=new THREE.PointLight(0xdde5ca,160,45,2);horizon.position.set(0,12,-125);scene.add(horizon);
  let mobile=false,disposed=false;
  function resize(){if(disposed)return;const w=innerWidth,h=innerHeight;mobile=w<720;r.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.25:1.65));r.setSize(w,h);camera.aspect=w/Math.max(1,h);camera.updateProjectionMatrix();}
  function draw(p){if(disposed)return;const start=performance.now(),pose=cameraPose(p,mobile);camera.position.set(...pose.position);camera.up.set(0,1,0);camera.lookAt(...pose.target);if(camera.fov!==pose.fov){camera.fov=pose.fov;camera.updateProjectionMatrix();}
  pulse.value=p;r.render(scene,camera);host.dataset.pose=JSON.stringify(pose);host.dataset.geometries='4';host.dataset.gpuGeometries=String(r.info.memory.geometries);host.dataset.drawCalls=String(r.info.render.calls);host.dataset.triangles=String(r.info.render.triangles);host.dataset.submitMs=String(performance.now()-start);host.dataset.progress=String(p);}
  function lost(e){e.preventDefault();onLost();}
- function dispose(){if(disposed)return;disposed=true;r.domElement.removeEventListener('webglcontextlost',lost);scene.traverse(o=>o.geometry?.dispose());[ceramic,metal,accent,floorMat].forEach(m=>m.dispose());env.dispose();r.dispose();r.domElement.remove();}
+ function dispose(){if(disposed)return;disposed=true;r.domElement.removeEventListener('webglcontextlost',lost);scene.traverse(o=>o.geometry?.dispose());[porcelain,metal,accent,floorMat].forEach(m=>m.dispose());env.dispose();r.dispose();r.domElement.remove();}
  r.domElement.id='three-scene';r.domElement.addEventListener('webglcontextlost',lost);host.insertBefore(r.domElement,host.querySelector('.veil'));return {resize,draw,dispose};
 }
