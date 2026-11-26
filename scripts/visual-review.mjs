@@ -62,13 +62,14 @@ try{
    const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/shader|THREE.WebGLProgram/i.test(m.text()))errors.push(m.text());});
    try{
     await open(page,item.params,!item.motion);
-    if(item.group==='narrative'||item.motion)await page.waitForSelector('#stage[data-narrative-ready="true"]',{timeout:120000});
+    if(item.group==='narrative'||item.motion||item.group==='composition'&&!item.params.includes('plate=1'))await page.waitForSelector('#stage[data-narrative-ready="true"]',{timeout:120000});
+    if(item.group==='composition'&&['composition-brand','composition-combined','composition-control'].includes(item.name)){const rows=await page.evaluate(()=>document.querySelector('#stage').inspectOpeningClearance());await writeFile(out+'/'+label+'-'+item.name+'-opening-clearance.json',JSON.stringify(rows,null,2));assert.ok(rows.every(x=>x.distance>.06),'opening clearance failure');}
     if(item.name==='world'){await page.waitForSelector('#stage[data-narrative-ready="true"]',{timeout:120000});const clearance=await page.evaluate(()=>document.querySelector('#stage').inspectServerClearance());await writeFile(out+'/'+label+'-server-clearance.json',JSON.stringify(clearance,null,2));assert.ok(clearance.every(r=>r.distance>.06),'server path clearance '+JSON.stringify(clearance.filter(r=>r.distance<=.06)));}
     if(item.motion){
      assert.equal(await page.locator('.build-version').count(),0);
      for(const [direction,targets] of Object.entries(scrollTargets)){for(const p of targets){const scroll=await scrollTo(page,p);await capture(page,label,item.name,p,false,direction);reports.at(-1).scroll=scroll;await save();}}
     }else{
-     for(const p of item.poses){await capture(page,label,item.name,p,true);if(item.name==='floor-geometry-matte')assert.ok(reports.at(-1).floorFaces>0&&reports.at(-1).floorArea>0,'actual floor faces required '+JSON.stringify(reports.at(-1)));if(item.group==='effects'){const samples=await page.evaluate(async p=>{const s=document.querySelector('#stage'),next=()=>new Promise(r=>requestAnimationFrame(r));await next();s.benchmarkFrame(p);let previous=await next();const rows=[];for(let i=0;i<5;i++){const now=await next();rows.push({...s.benchmarkFrame(p),rafMs:now-previous});previous=now;}return rows;},p);reports.at(-1).effectSamples=samples;await save();}}
+     for(const p of item.poses){await capture(page,label,item.name,p,true);if(item.name==='floor-geometry-matte')assert.ok(reports.at(-1).floorFaces>0&&reports.at(-1).floorArea>0,'actual floor faces required '+JSON.stringify(reports.at(-1)));if(item.group==='effects'||item.group==='composition'&&[.055,.73,.935,.992].includes(p)){const samples=await page.evaluate(async p=>{const s=document.querySelector('#stage'),next=()=>new Promise(r=>requestAnimationFrame(r));await next();s.benchmarkFrame(p);let previous=await next();const rows=[];for(let i=0;i<5;i++){const now=await next();rows.push({...s.benchmarkFrame(p),rafMs:now-previous});previous=now;}return rows;},p);reports.at(-1).effectSamples=samples;await save();}}
     }
     assert.deepEqual(errors,[]);
    }catch(e){failures.push({label,mode:item.name,error:String(e),pageErrors:errors});await save();}
