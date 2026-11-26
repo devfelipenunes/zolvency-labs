@@ -68,7 +68,7 @@ try{
    await writeFile(out+'/'+runtime+'-trials.json',JSON.stringify(trials));
    await writeFile(out+'/'+runtime+'-report.json',JSON.stringify(report,null,2));
    assert.deepEqual(errors,[]);assert.ok(moving.length>0);
-   if(gate){assert.ok(gate.maxPending<=2);assert.ok(gate.submitted>0,'no fenced submissions');}reports.push(report);console.log(JSON.stringify(report,null,2));
+   if(gate){assert.ok(gate.maxPending<=2);assert.ok(gate.submitted>0,'no fenced submissions');assert.equal(gate.failure,null,'candidate submission gate failed open');}reports.push(report);console.log(JSON.stringify(report,null,2));
   }finally{await context.close();}
  }
  await writeFile(out+'/comparison.json',JSON.stringify({order,softwareRequested:software,reports,note:'No screenshots/video or intercepted requests during timing. Identical selected camera, transmission, preflight and lighting per viewport. A gate failure is explicitly recorded and invalidates the candidate as a success, even if it safely falls back. Gate stats count submission fences, not display presentations. Cold browser contexts; repeat AB/BA to assess ordering. Mobile viewport is not a physical phone. First observed motion is a RAF proxy, not input-to-photon. GPU timers are asynchronous and optional. Reported non-software is not proof of physical GPU. All observed active intervals including stalls are reported; sampling may miss renders.'},null,2));

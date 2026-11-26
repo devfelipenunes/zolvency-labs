@@ -3,6 +3,8 @@ import prepared from './generatedPacing.json' with {type:'json'};
 import {reviewPose} from './visualReview.js';
 import {stabilizedPose} from './editorialCamera.js';
 import {directedCut} from './cinematicCut.js';
+import {redistributeReading} from './readingPacing.js';
+import {editorialEditions} from '../editorialStory.js';
 const length=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]));
 const direction=pose=>{const d=pose.target.map((x,i)=>x-pose.position[i]),n=Math.hypot(...d);return d.map(x=>x/Math.max(n,1e-9));};
 export function angularDistance(a,b){const x=direction(a),y=direction(b);return Math.acos(Math.max(-1,Math.min(1,x.reduce((s,v,i)=>s+v*y[i],0))))*180/Math.PI;}
@@ -45,4 +47,4 @@ export function pacedStoryProgress(scroll,starts,max,pacing){
 }
 
 const pacingCache=new Map();
-export function getPacing(mobile=false){if(!pacingCache.has(mobile)){const table=prepared[mobile?'mobile':'desktop'];pacingCache.set(mobile,Array.isArray(table)&&table.length===windows.length-1?pacingFromChapters(table):createPacing({mobile}));}return pacingCache.get(mobile);}
+export function getPacing(mobile=false,edition='control'){edition=editorialEditions.includes(edition)?edition:'control';const key=(mobile?'mobile':'desktop')+':'+edition;if(!pacingCache.has(key)){const table=prepared[mobile?'mobile':'desktop'],base=Array.isArray(table)&&table.length===windows.length-1?table:createPacing({mobile}).chapters;pacingCache.set(key,pacingFromChapters(redistributeReading(base,edition)));}return pacingCache.get(key);}

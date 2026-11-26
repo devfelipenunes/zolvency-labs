@@ -292,3 +292,53 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
  #stage[data-framing="portrait"][data-direction="staged"][data-renderer="three"] ~ main :is(.chapter[data-name="ORIGIN"],.chapter[data-name="CONVERGENCE"],.chapter[data-name="STELLAR"],.chapter[data-name="CRYPTOGRAPHY"],.chapter[data-name="INTELLIGENCE"],.chapter[data-name="QUANTUM"]) .copy{bottom:calc(62px + env(safe-area-inset-bottom,0px))}
  #stage[data-framing="portrait"][data-direction="staged"] ~ .track{bottom:calc(16px + env(safe-area-inset-bottom,0px))}
 }
+
+/* Editorial audition — scoped to explicit copy editions, no new font downloads.
+   Real HTML text, one local contrast surface, no panel borders or UI decoration. */
+@media(prefers-reduced-motion:no-preference){
+ #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] .copy{
+  --reading-width:min(450px,36vw);--reading-surface:rgba(5,12,17,.88);
+  bottom:clamp(76px,14svh,126px);color:#f3f7f5;text-shadow:0 2px 14px #03080c;
+ }
+ #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] .copy::before{
+  inset:-38px -55px -34px;background:linear-gradient(90deg,transparent 0,var(--reading-surface) 12%,var(--reading-surface) 88%,transparent);
+  mask-image:linear-gradient(0deg,transparent,#000 13%,#000 87%,transparent);
+ }
+ #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] :is(h1,h2){
+  font-family:Arial,Helvetica,sans-serif;font-size:clamp(34px,4vw,57px);font-weight:600;line-height:.99;letter-spacing:-.045em;margin:0 0 15px;transform:none;text-wrap:balance;
+ }
+ #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] p{
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:17px;line-height:1.48;font-weight:400;max-width:36ch;color:#dce6e3;transform:none;
+ }
+ #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] .eyebrow{
+  font-size:10px;letter-spacing:.14em;margin-bottom:14px;color:#addbc9;
+ }
+ #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] .eyebrow::before{display:none}
+ #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main :is(.chapter[data-name="ORIGIN"],.chapter[data-name="CONVERGENCE"]) .copy{
+  width:min(690px,58vw);bottom:clamp(67px,11svh,106px);
+ }
+ #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main :is(.chapter[data-name="ORIGIN"],.chapter[data-name="CONVERGENCE"]) :is(h1,h2){font-size:clamp(38px,4.5vw,65px)}
+ #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main .chapter[data-name="STELLAR"] .copy{bottom:clamp(84px,19svh,160px);--reading-width:min(400px,32vw)}
+ #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main .chapter[data-name="QUANTUM"] .copy{--reading-width:min(370px,30vw)}
+ #stage[data-copy-style="precision"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] :is(h1,h2){font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:clamp(31px,3.4vw,48px);font-weight:500;letter-spacing:-.04em;line-height:1.06}
+ #stage[data-copy-style="exploration"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] :is(h1,h2){font-weight:500;letter-spacing:-.025em;font-size:clamp(35px,4.1vw,58px)}
+ @media(max-width:719px) and (orientation:portrait){
+  #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] .copy,
+  #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main :is(.chapter[data-name="ORIGIN"],.chapter[data-name="CONVERGENCE"],.chapter[data-name="STELLAR"],.chapter[data-name="CRYPTOGRAPHY"],.chapter[data-name="INTELLIGENCE"],.chapter[data-name="QUANTUM"]) .copy{
+   left:var(--gutter);right:auto;width:calc(100vw - 2 * var(--gutter));bottom:calc(65px + env(safe-area-inset-bottom,0px));text-align:left;transform:none;
+  }
+  #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] .copy::before{inset:-26px -30px -25px}
+  #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] :is(h1,h2),
+  #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main :is(.chapter[data-name="ORIGIN"],.chapter[data-name="CONVERGENCE"]) :is(h1,h2){font-size:clamp(30px,8.4vw,40px);line-height:1.05;margin-bottom:11px}
+  #stage[data-copy-style="precision"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] :is(h1,h2){font-size:clamp(28px,7.5vw,35px)}
+  #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] p{font-size:16px;line-height:1.42;margin-inline:0}
+  #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] .eyebrow{justify-content:flex-start;margin-bottom:10px}
+ }
+ @media(max-height:470px){
+  #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] .copy,
+  #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main :is(.chapter[data-name="ORIGIN"],.chapter[data-name="CONVERGENCE"],.chapter[data-name="STELLAR"],.chapter[data-name="CRYPTOGRAPHY"],.chapter[data-name="INTELLIGENCE"],.chapter[data-name="QUANTUM"]) .copy{left:var(--gutter);right:auto;transform:none;bottom:20px;width:min(330px,46vw);text-align:left}
+  #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] :is(h1,h2),
+  #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main :is(.chapter[data-name="ORIGIN"],.chapter[data-name="CONVERGENCE"]) :is(h1,h2){font-size:clamp(23px,3vw,30px);margin-bottom:6px}
+  #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] p{font-size:15px;line-height:1.35}
+ }
+}
