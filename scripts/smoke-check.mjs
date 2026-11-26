@@ -17,12 +17,12 @@ try{
    await page.goto(base+'/?diagnostics=1&benchmark=1');
    await page.waitForSelector('#stage[data-renderer="three"][data-lighting="photographic"]',{timeout:90000});
    await page.waitForFunction(n=>Number(document.querySelector('#stage')?.dataset.assets)===n,expectedAssets,{timeout:90000});
-   assert.equal(await page.locator('#stage').getAttribute('data-failures'),'');
+   assert.equal(await page.locator('#stage').getAttribute('data-failures'),'');assert.ok((await page.locator('#stage').getAttribute('data-facility')).split(',').includes('corridor-extension'));
    assert.equal(await page.locator('#stage').getAttribute('data-practical-slots'),'3');
    if(name==='desktop')assert.equal(await page.locator('#stage').getAttribute('data-effects'),'photographic');
    assert.ok(await page.getByRole('img',{name:'Zolvency',exact:true}).evaluate(e=>e.complete&&e.naturalWidth>0));
    assert.equal(await page.locator('#stage .veil').evaluate(e=>getComputedStyle(e).backgroundImage),'none');
-   const frames=await page.evaluate(()=>{const s=document.querySelector('#stage');return [.055,.205,.615,.72,.935].map(p=>{const metrics=s.benchmarkFrame(p);return {p,metrics,chapter:s.dataset.visualChapter,cut:s.dataset.wallCut};});});
+   const frames=await page.evaluate(()=>{const s=document.querySelector('#stage');return [.055,.205,.615,.68,.695,.715,.72,.935].map(p=>{const metrics=s.benchmarkFrame(p);return {p,metrics,chapter:s.dataset.visualChapter,cut:s.dataset.wallCut,interiorSet:s.dataset.interiorSet,hangarVisible:s.dataset.hangarVisible};});});assert.ok(frames.filter(f=>f.p>=.51&&f.p<.81).every(f=>f.interiorSet==='security-wing'&&f.hangarVisible==='false'));assert.equal(frames.at(-1).hangarVisible,'true');const interior=await page.evaluate(()=>{const s=document.querySelector('#stage');s.benchmarkFrame(.72);return {floor:s.inspectInteriorFloor(),hits:s.inspectSpatialFrame(),route:s.inspectInteriorClearance()};});assert.equal(interior.hits.hangar??0,0);assert.ok(interior.route.every(r=>r.distance>.06),'extended interior clearance '+JSON.stringify(interior.route.filter(r=>r.distance<=.06)));await page.screenshot({path:'artifacts/smoke/'+name+'-interior.png',timeout:90000,animations:'disabled'});
    assert.ok(frames.every(f=>f.metrics.drawCalls>0&&f.metrics.triangles>0&&f.metrics.slots===3));
    assert.notEqual(frames[0].chapter,frames[4].chapter);
    await page.evaluate(()=>document.querySelector('#stage').benchmarkFrame(.81));
@@ -34,7 +34,7 @@ try{
    await page.waitForSelector('#stage[data-renderer="canvas"][data-pose]');
    assert.equal(await page.locator('main section').count(),7);
    assert.deepEqual(errors,[]);
-   results.push({name,frames});await writeFile('artifacts/smoke/results.json',JSON.stringify(results,null,2));
+   results.push({name,frames,interior});await writeFile('artifacts/smoke/results.json',JSON.stringify(results,null,2));
   }finally{await page.close();}
  }
 }finally{await browser?.close();server.kill();}
