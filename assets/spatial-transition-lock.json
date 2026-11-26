@@ -1,0 +1,50 @@
+[
+  {
+    "file": "cleanroom-airlock-lod1.glb",
+    "url": "https://tevy.dev/models/cleanroom-airlock/v1/lod1.glb",
+    "bytes": 820884,
+    "sha256": "77339b34a76b96f90c35833b18c6c0185d9e3e83a7d16f2b375eaa9ec1f4b7a6",
+    "license": "CC0-1.0",
+    "source": "https://tevy.dev/models/cleanroom-airlock"
+  },
+  {
+    "file": "cleanroom-airlock-lod2.glb",
+    "url": "https://tevy.dev/models/cleanroom-airlock/v1/lod2.glb",
+    "bytes": 261296,
+    "sha256": "30bb8800d8c9c49741606152fa9caeae5273dd9a47700325d0ffbe927b0b29a8",
+    "license": "CC0-1.0",
+    "source": "https://tevy.dev/models/cleanroom-airlock"
+  },
+  {
+    "file": "rooftop-cable-tray-lod1.glb",
+    "url": "https://tevy.dev/models/rooftop-cable-tray/v1/lod1.glb",
+    "bytes": 19040,
+    "sha256": "37c8872c2c51478ca981a2e26c9df7e410d8a91215ebb996d7d4d9328fa12c96",
+    "license": "CC0-1.0",
+    "source": "https://tevy.dev/models/rooftop-cable-tray"
+  },
+  {
+    "file": "rooftop-cable-tray-lod2.glb",
+    "url": "https://tevy.dev/models/rooftop-cable-tray/v1/lod2.glb",
+    "bytes": 13532,
+    "sha256": "dcdd9f59cc33921bd254772205c1534377348cc01df88c980df4bbc9a5fdcde3",
+    "license": "CC0-1.0",
+    "source": "https://tevy.dev/models/rooftop-cable-tray"
+  },
+  {
+    "file": "lab-drawer-bench-lod1.glb",
+    "url": "https://tevy.dev/models/lab-drawer-bench/v1/lod1.glb",
+    "bytes": 141632,
+    "sha256": "6b8eda997b7759b04b63bfad714ac2a37e13aa4c79de96607cc165ed0b208500",
+    "license": "CC0-1.0",
+    "source": "https://tevy.dev/models/lab-drawer-bench"
+  },
+  {
+    "file": "lab-drawer-bench-lod2.glb",
+    "url": "https://tevy.dev/models/lab-drawer-bench/v1/lod2.glb",
+    "bytes": 41180,
+    "sha256": "c843e7da09814a507f07f645072fa2fa8b1224469e226768e7eb923afdb33e15",
+    "license": "CC0-1.0",
+    "source": "https://tevy.dev/models/lab-drawer-bench"
+  }
+]
