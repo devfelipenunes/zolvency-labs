@@ -20,4 +20,4 @@ export function extendedPose(p,mobile=false){
 export const interiorSet=p=>p>=.51&&p<.81?'security-wing':p>=.81&&p<.965?'quantum-wing':'facility';
 const wing=new Set(['corridor','portal','access-panel','corridor-extension','bridge']);
 const hall=new Set(['hangar','servers','rooftop-cable-tray','cable']);
-export function setMember(id,p){const set=interiorSet(p);return set==='security-wing'?wing.has(id):set==='quantum-wing'?id==='hangar'||id==='quantum':hall.has(id);}
+export function setMember(id,p,reactor=false){const set=interiorSet(p);return set==='security-wing'?wing.has(id):set==='quantum-wing'?(reactor?id==='reactor-room':id==='hangar'||id==='quantum'):hall.has(id);}
