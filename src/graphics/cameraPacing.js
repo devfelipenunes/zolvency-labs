@@ -19,7 +19,7 @@ export function createPacing({mobile=false,samples=400,poseFor=(p)=>directedCut(
   const weights=cost.map((v,j)=>Math.max(v,((cost[j-1]??v)+2*v+(cost[j+1]??v))/4)+floor);
   const cumulative=[0];for(const w of weights)cumulative.push(cumulative.at(-1)+w);
   const sum=cumulative.at(-1),curve=cumulative.map(v=>v/sum);
-  const vh=Math.max(i===6?1.65:1.8,Math.min(7,sum*1.35));
+  const vh=Math.max(i===6?1.65:1.6,Math.min(4.5,sum*.65));
   chapters.push({lo,hi,curve,vh,cost:total});
  }
  function progress(index,local){
