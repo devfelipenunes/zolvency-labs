@@ -22,7 +22,7 @@ async function scrollTo(page,p){
 }
 async function frame(page,p,diagnostic){
  return page.evaluate(({p,diagnostic})=>{const s=document.querySelector('#stage');const metrics=diagnostic?s.benchmarkFrame(p):null;
- const data={...s.dataset};return {p,actualProgress:Number(data.progress),scrollY:window.scrollY,viewport:{width:innerWidth,height:innerHeight},pose:JSON.parse(data.pose),metrics,subject:diagnostic?s.inspectSubject():null,hits:diagnostic?s.inspectSpatialFrame():null,text:diagnostic?s.inspectKineticFrame():null,ready:data.narrativeReady,renderer:data.renderer,angle:data.stellarAngle,glass:data.glassVariant,effects:data.effects,effectVariant:data.effectVariant,composition:data.composition,floorVariant:data.floorVariant,lightVariant:data.lightVariant,realism:data.realism,fogDensity:Number(data.fogDensity),pixelRatio:Number(data.pixelRatio),drawingBuffer:{width:document.querySelector('#three-scene')?.width,height:document.querySelector('#three-scene')?.height},assets:data.facility,assetFailures:data.failures,versionVisible:!!document.querySelector('.build-version')};},{p,diagnostic});
+ const data={...s.dataset};return {p,actualProgress:Number(data.progress),scrollY:window.scrollY,viewport:{width:innerWidth,height:innerHeight},pose:JSON.parse(data.pose),metrics,subject:diagnostic?s.inspectSubject():null,hits:diagnostic?s.inspectSpatialFrame():null,text:diagnostic?s.inspectKineticFrame():null,ready:data.narrativeReady,renderer:data.renderer,angle:data.stellarAngle,glass:data.glassVariant,effects:data.effects,effectVariant:data.effectVariant,composition:data.composition,floorVariant:data.floorVariant,lightVariant:data.lightVariant,realism:data.realism,fogDensity:Number(data.fogDensity),probeCount:Number(data.probeCount),probeMs:Number(data.probeMs),probeFailures:data.probeFailures,reflectedMaterials:Number(data.reflectedMaterials),pixelRatio:Number(data.pixelRatio),drawingBuffer:{width:document.querySelector('#three-scene')?.width,height:document.querySelector('#three-scene')?.height},assets:data.facility,assetFailures:data.failures,versionVisible:!!document.querySelector('.build-version')};},{p,diagnostic});
 }
 async function capture(page,label,mode,p,diagnostic,direction='fixed'){
  const f=await frame(page,p,diagnostic);const file=label+'-'+mode+'-'+direction+'-'+Math.round(p*1000)+'.png';
@@ -37,7 +37,7 @@ try{
    const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/shader|THREE.WebGLProgram/i.test(m.text()))errors.push(m.text());});
    try{
     await open(page,item.params,!item.motion);
-    if(item.group==='narrative'||item.motion)await page.waitForSelector('#stage[data-narrative-ready="true"]',{timeout:120000});
+    if(item.group==='narrative'||item.motion||item.name==='hero-brand')await page.waitForSelector('#stage[data-narrative-ready="true"]',{timeout:120000});
     if(item.name==='world'){await page.waitForSelector('#stage[data-narrative-ready="true"]',{timeout:120000});const clearance=await page.evaluate(()=>document.querySelector('#stage').inspectServerClearance());await writeFile(out+'/'+label+'-server-clearance.json',JSON.stringify(clearance,null,2));assert.ok(clearance.every(r=>r.distance>.06),'server path clearance '+JSON.stringify(clearance.filter(r=>r.distance<=.06)));}
     if(item.motion){
      assert.equal(await page.locator('.build-version').count(),0);
@@ -51,6 +51,6 @@ try{
    finally{await context.close();}
   }
  }
- if(group==='realism'){for(const item of reports){const baseline=reports.find(x=>x.label===item.label&&x.mode==='realism-baseline'&&x.p===item.p);assert.ok(baseline);assert.deepEqual(item.pose,baseline.pose);assert.equal(item.assets,baseline.assets);assert.equal(item.drawingBuffer.width,baseline.drawingBuffer.width);assert.equal(item.drawingBuffer.height,baseline.drawingBuffer.height);}}
+ if(group==='realism'){for(const item of reports.filter(x=>x.mode.startsWith('realism-'))){const baseline=reports.find(x=>x.label===item.label&&x.mode==='realism-baseline'&&x.p===item.p);assert.ok(baseline);assert.deepEqual(item.pose,baseline.pose);assert.equal(item.assets,baseline.assets);assert.equal(item.drawingBuffer.width,baseline.drawingBuffer.width);assert.equal(item.drawingBuffer.height,baseline.drawingBuffer.height);assert.equal(item.probeFailures,'');if(item.label==='desktop'&&['realism-reflection','realism-combined'].includes(item.mode)&&item.p===.992)assert.equal(item.probeCount,3);}}
  await save();assert.deepEqual(failures,[]);
 }finally{await browser?.close();server.kill();}
