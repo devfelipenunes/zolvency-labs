@@ -26,9 +26,21 @@ const practicals=[
  {name:'quantum-key',color:0xffe1b0,power:6,w:2.8,h:4,pos:[2.2,4.5,-6.7],aim:[4.7,2.8,-8.6],center:.935,width:.12},
  {name:'quantum-rim',color:0xb1d6f2,power:5,w:2,h:3,pos:[7.4,4.7,-10],aim:[4.7,2.8,-8.6],center:.935,width:.12}
 ];
-export function createPhotography(scene){
+// Reuse a fixed number of light slots. A zero-intensity RectAreaLight still
+// contributes a loop iteration to WebGL's generated material shader.
+export function activePracticals(p){
+ return practicals.flatMap(s=>{const d=Math.abs(p-s.center);const intensity=d>=s.width?0:s.power*(1-ramp(d,0,s.width));return intensity>0?[{s,intensity}]:[];});
+}
+const edges=[0,1,...practicals.flatMap(s=>[Math.max(0,s.center-s.width),Math.min(1,s.center+s.width)])].sort((a,b)=>a-b);
+export const practicalSlots=Math.max(...edges.map(p=>activePracticals(p).length),...edges.slice(1).map((p,i)=>activePracticals((p+edges[i])/2).length));
+export function createPhotography(scene,{pooled=true}={}){
  RectAreaLightUniformsLib.init();
- const lights=practicals.map(s=>{const l=new THREE.RectAreaLight(s.color,0,s.w,s.h);l.name=s.name;l.position.set(...s.pos);l.lookAt(...s.aim);scene.add(l);return {l,s};});
+ const lights=Array.from({length:pooled?practicalSlots:practicals.length},(_,i)=>{const l=new THREE.RectAreaLight(0xffffff,0,1,1);l.name='practical-slot-'+i;scene.add(l);return {l,s:null};});
  const rim=new THREE.SpotLight(0xe9c28c,0,12,Math.PI/5,.65,2);rim.position.set(7.3,6.7,-10);rim.target.position.set(4.7,2.4,-8.6);scene.add(rim,rim.target);
- return {update(p){for(const {l,s} of lights){const d=Math.abs(p-s.center);l.intensity=s.power*(1-ramp(d,0,s.width));}rim.intensity=55*(1-ramp(Math.abs(p-.935),.02,.12));return photographicLook(p);},dispose(){for(const {l} of lights)l.removeFromParent();rim.removeFromParent();rim.target.removeFromParent();}};
+ function configure(slot,s,intensity){const {l}=slot;if(slot.s!==s){l.color.setHex(s.color);l.width=s.w;l.height=s.h;l.position.set(...s.pos);l.lookAt(...s.aim);slot.s=s;}l.intensity=intensity;}
+ return {slots:lights.length,update(p){
+  if(pooled){const active=activePracticals(p);for(const [i,slot] of lights.entries()){const a=active[i];if(a)configure(slot,a.s,a.intensity);else slot.l.intensity=0;}}
+  else for(const [i,slot] of lights.entries()){const s=practicals[i],d=Math.abs(p-s.center);configure(slot,s,s.power*(1-ramp(d,0,s.width)));}
+  rim.intensity=55*(1-ramp(Math.abs(p-.935),.02,.12));return photographicLook(p);
+ },dispose(){for(const {l} of lights)l.removeFromParent();rim.removeFromParent();rim.target.removeFromParent();}};
 }
