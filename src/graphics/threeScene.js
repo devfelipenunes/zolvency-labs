@@ -1,3 +1,4 @@
+import {finaleLight} from './finaleLight.js';
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {KTX2Loader} from 'three/addons/loaders/KTX2Loader.js';
@@ -37,7 +38,6 @@ import {createMeshAudit} from './meshAudit.js';
 import {stabilizedPose} from './editorialCamera.js';
 import {getPacing} from './cameraPacing.js';
 import {getEditorialEdition} from '../editorialStory.js';
-import {finaleLight} from './finaleLight.js';
 import {createTravelMotion} from './travelMotion.js';
 import {directedNarrative} from './directedNarrative.js';
 import {createMotionDriver} from './editorialMotion.js';
