@@ -342,3 +342,6 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
   #stage[data-copy-style]:not([data-copy-style="control"])[data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] p{font-size:15px;line-height:1.35}
  }
 }
+
+/* Keyboard-only navigation, no permanent menu or CTA. */
+.skip-story{position:fixed;z-index:1000;top:12px;left:12px;padding:12px 16px;color:#f5fff9;background:#132522;border:1px solid #9ce4cd;border-radius:4px;transform:translateY(-150%);text-decoration:none}.skip-story:focus{transform:none;outline:2px solid #fff;outline-offset:3px}#story:focus{outline:none}
