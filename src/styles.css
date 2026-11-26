@@ -56,3 +56,14 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
 #stage[data-renderer="three"][data-surface-readable="true"][data-surface-title="CONVERGENCE"] ~ main .chapter[data-name="CONVERGENCE"] :is(p,.tag,.endnote){opacity:calc(1 - var(--scene-sign-alpha,0))}
 /* Avoid the broad left-hand mask even when a fallback is needed; retain local contrast. */
 @media(min-width:721px){#stage[data-renderer="three"]:not([data-typography-mode="html"]) .veil{background:linear-gradient(0deg,#050a1050,transparent 18%)}#stage[data-renderer="three"][data-surface-readable="true"] .veil{background:transparent}}
+
+/* Editorial text follows the visible scene, not the adjacent scrolling section. */
+@media (prefers-reduced-motion:no-preference){
+ #stage[data-renderer="three"]:not([data-space-mode="baseline"])[data-visual-chapter="0"] ~ main .chapter:not(:nth-child(1)) .copy{opacity:0;pointer-events:none;}
+ #stage[data-renderer="three"]:not([data-space-mode="baseline"])[data-visual-chapter="1"] ~ main .chapter:not(:nth-child(2)) .copy{opacity:0;pointer-events:none;}
+ #stage[data-renderer="three"]:not([data-space-mode="baseline"])[data-visual-chapter="2"] ~ main .chapter:not(:nth-child(3)) .copy{opacity:0;pointer-events:none;}
+ #stage[data-renderer="three"]:not([data-space-mode="baseline"])[data-visual-chapter="3"] ~ main .chapter:not(:nth-child(4)) .copy{opacity:0;pointer-events:none;}
+ #stage[data-renderer="three"]:not([data-space-mode="baseline"])[data-visual-chapter="4"] ~ main .chapter:not(:nth-child(5)) .copy{opacity:0;pointer-events:none;}
+ #stage[data-renderer="three"]:not([data-space-mode="baseline"])[data-visual-chapter="5"] ~ main .chapter:not(:nth-child(6)) .copy{opacity:0;pointer-events:none;}
+ #stage[data-renderer="three"]:not([data-space-mode="baseline"])[data-visual-chapter="6"] ~ main .chapter:not(:nth-child(7)) .copy{opacity:0;pointer-events:none;}
+}
