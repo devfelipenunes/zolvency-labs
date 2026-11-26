@@ -12,7 +12,8 @@ export const reviewCases=[
  {name:'world',group:'narrative',params:'',poses:[.005,.025,.055,.075,.105,.145,.17,.185,.205,.24,.31,.365,.405,.425,.625,.73,.935,.992]},
  ...['original','matte'].map(floor=>({name:'floor-'+floor,group:'variants',params:'floor='+floor+'&plate=1',poses:[.055,.992]})),
  {name:'ops-focus',group:'variants',params:'light=ops-focus&plate=1',poses:[.73]},
- ...['baseline','surface','bounce','depth','motion','combined'].map(realism=>({name:'realism-'+realism,group:'realism',params:'realism='+realism+'&plate=1',poses:[.055,.205,.405,.625,.73,.935,.992]})),
+ ...['baseline','surface','bounce','depth','motion','reflection','combined'].map(realism=>({name:'realism-'+realism,group:'realism',params:'realism='+realism+'&plate=1',poses:[.055,.205,.405,.625,.73,.935,.992],desktopOnly:realism==='reflection'})),
+ {name:'hero-brand',group:'realism',params:'composition=brand-hero',poses:[.025,.055,.075]},
  {name:'public-scroll',group:'motion',params:'',motion:true},
  ...['default','no-ao','no-bloom','neither'].map(effect=>({name:'effects-'+effect,group:'effects',params:'effects='+effect+'&plate=1',poses:[.055,.405,.935],desktopOnly:true}))
 ];
