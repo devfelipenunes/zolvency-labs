@@ -16,7 +16,9 @@ export const stellarAngles={
  diagonal:[6.75,1.75,5.35],
  opposite:[6.35,1.65,3.98]
 };
-export function artAim(name,mobile,variant='devices'){
+export function artAim(name,mobile,variant='devices',composition='default'){
+ if(name==='ORIGIN'&&['mid','close'].includes(composition))return [-1.5,3.3,2];
+ if(name==='CONVERGENCE'&&composition==='final-high')return [-4,5.8,13.7];
  if(name==='ORIGIN')return [-3.5,4.4,-14.8];
  if(name==='CONVERGENCE')return [-4,4.6,13.7];
  if(name==='STELLAR')return stellarAngles[variant]??stellarAngles.devices;
@@ -29,7 +31,7 @@ export function artEnvelope(card,p){
  const end=i===6?1:1-ramp(t,Math.max(hold+.08,.72),Math.max(hold+.16,.9));
  const hero=i===0?1:ramp(t,.12,.25);
  const headline=ramp(t,Math.max(.03,hold-.22),Math.max(.06,hold-.07));
- const body=ramp(t,Math.max(.10,hold-.02),Math.min(.96,hold+.16));
+ const body=ramp(t,Math.max(.10,hold-.065),Math.min(.96,hold));
  const cue=i===0?ramp(t,.15,.28):0;
  return {hero:hero*end,headline:headline*end,body:body*end,cue:cue*end};
 }
