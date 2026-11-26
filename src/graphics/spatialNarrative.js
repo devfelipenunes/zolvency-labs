@@ -4,8 +4,8 @@ export const environments=[
  {name:'ORIGIN',roots:['hangar'],points:[0,.015,.035,.08,.115],focus:[0,2.7,-8],fov:64,fog:.009,ambient:.72,global:1.0,accent:0xa9d4cb},
  {name:'BLOCKCHAIN',roots:['servers','cable','rooftop-cable-tray'],points:[.115,.145,.17,.24,.31],focus:[5.5,1.8,6.9],fov:52,fog:.025,ambient:.56,global:.70,accent:0x8cd9ba},
  {name:'STELLAR',roots:['servers'],points:[.31,.345,.39,.415,.49],focus:[3.3,1.85,4.66],fov:54,fog:.066,ambient:.45,global:.26,accent:0xb7e5d7},
- {name:'CRYPTOGRAPHY',roots:['corridor','portal','access-panel'],points:[.51,.565,.59,.625,.68],focus:[-5.5,1.85,-1.55],fov:52,fog:.076,ambient:.48,global:.22,accent:0xa6c9e6},
- {name:'INTELLIGENCE',roots:['bridge','portal'],points:[.68,.70,.705,.73,.80],focus:[-5.5,1.7,-7.7],fov:54,fog:.075,ambient:.51,global:.20,accent:0x9dd6e5},
+ {name:'CRYPTOGRAPHY',roots:['corridor','portal','access-panel','corridor-extension'],points:[.51,.565,.59,.625,.68],focus:[-5.5,1.85,-1.55],fov:52,fog:.076,ambient:.48,global:.22,accent:0xa6c9e6},
+ {name:'INTELLIGENCE',roots:['bridge','portal','corridor-extension'],points:[.68,.70,.705,.73,.80],focus:[-5.5,1.7,-7.7],fov:54,fog:.075,ambient:.51,global:.20,accent:0x9dd6e5},
  {name:'QUANTUM',roots:['quantum','lab-drawer-bench','cleanroom-airlock'],points:[.85,.885,.92,.945,.95],focus:[4.7,2.9,-8.6],fov:53,fog:.045,ambient:.48,global:.36,accent:0xd8c58a},
  {name:'CONVERGENCE',roots:['hangar'],points:[.95,.97,.985,.995,1],focus:null,fov:68,fog:.008,ambient:.74,global:1,accent:0xc0e8ce}
 ];
