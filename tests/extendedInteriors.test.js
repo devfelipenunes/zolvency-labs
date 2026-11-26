@@ -14,8 +14,8 @@ test('new room rail retains height, approaches through the extension, and revers
   assert.ok(extendedPose(.72,mobile).position[2]<-7.55);
   assert.equal(extendedPose(.72,mobile).position[1],spatialPose(.72,mobile).position[1]);
   assert.deepEqual(extendedPose(.935,mobile),spatialPose(.935,mobile));
-  for(const p of [.51,.81])assert.equal(directedCut(p,mobile,null,extendedPose).mask,1);
+  for(const p of [.51,.81,.965])assert.equal(directedCut(p,mobile,null,extendedPose).mask,1);
  }
- assert.equal(interiorSet(.509),'facility');assert.equal(interiorSet(.51),'security-wing');assert.equal(interiorSet(.8),'security-wing');assert.equal(interiorSet(.81),'facility');
- assert.equal(setMember('hangar',.72),false);assert.equal(setMember('corridor-extension',.72),true);assert.equal(setMember('bridge',.72),true);
+ assert.equal(interiorSet(.509),'facility');assert.equal(interiorSet(.51),'security-wing');assert.equal(interiorSet(.8),'security-wing');assert.equal(interiorSet(.81),'quantum-wing');assert.equal(interiorSet(.965),'facility');
+ assert.equal(setMember('hangar',.72),false);assert.equal(setMember('corridor-extension',.72),true);assert.equal(setMember('bridge',.72),true);for(const p of [0,.2,.4,.99])for(const id of ['quantum','portal','corridor','corridor-extension','bridge','access-panel','cleanroom-airlock','lab-drawer-bench'])assert.equal(setMember(id,p),false);assert.equal(setMember('quantum',.935),true);assert.equal(setMember('servers',.935),false);
 });
