@@ -161,7 +161,7 @@ export async function createThreeScene(host,onLost){
    mark('environmentAndType',environmentStart);status('environment',1,1);
    const uploadStart=performance.now();
    // Upload the selected route textures explicitly, yielding to the loading UI.
-   if(worldType){worldType.prepare({roots,rail,applySet});host.dataset.worldTypeInventory=JSON.stringify(worldType.report());for(const t of worldType.textures())textures.add(t);}const upload=[...textures];
+   if(worldType){worldType.prepare({roots,rail,applySet,applyMotion});host.dataset.worldTypeInventory=JSON.stringify(worldType.report());for(const t of worldType.textures())textures.add(t);}const upload=[...textures];
    for(let i=0;i<upload.length;i++){check();renderer.initTexture(upload[i]);if(i%4===3)await tick();status('textures',i+1,upload.length);}
    host.dataset.warmedTextures=String(upload.length);mark('textureSubmission',uploadStart);const warmStart=performance.now(),warmRows=[];
    resize();const diagnostic=debug&&benchmark&&params.get('warmup')==='targeted',preflightMode=params.get('preflight'),guarded=!diagnostic&&preflightMode==='guarded'&&mobile,compact=!diagnostic&&(preflightMode==='compact'||preflightMode==='guarded'),plan=diagnostic?selectWarmHolds({diagnostics:debug,benchmark,mode:'targeted'}).map(p=>({p,draw:true})):warmupPlan(compact,guarded),holds=plan.map(x=>x.p);host.dataset.warmupPlan=diagnostic?'targeted-diagnostics':'full';host.dataset.preflightPlan=diagnostic?'targeted-diagnostics':guarded?'guarded':compact?'compact':'full';
