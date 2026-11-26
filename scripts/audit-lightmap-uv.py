@@ -62,8 +62,8 @@ def audit(faces,size,padding=8):
         if not front:break
     return {'resolution':size,'faces':len(faces),'validTriangles':len(tris),'islands':islands,'invalidTriangles':invalid,'degenerateUVTriangles':degenerate,'subpixelTriangles':subpixel,'occupiedTexels':sampled,'coverage':sampled/(size*size),'overlapTexels':sum(overlap),'overlapFractionOccupied':sum(overlap)/max(1,sampled),'paddingExpansionTexels':padding,'islandPairsWithinExpandedPadding':len(conflicts),'method':'Strict pixel-centre raster; Chebyshev dilation; estimates not exact intersection certification.'}
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('mapping');parser.add_argument('output');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('mapping');parser.add_argument('output');parser.add_argument('--sizes',nargs='+',type=int,default=[512,1024]);args=parser.parse_args()
     mapping=json.load(open(args.mapping))
-    result=[audit(mapping['faces'],s) for s in (512,1024)]
+    result=[audit(mapping['faces'],s) for s in args.sizes]
     with open(args.output,'w') as f:json.dump(result,f,indent=2)
     print(json.dumps(result))
