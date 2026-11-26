@@ -4,6 +4,7 @@ import {FontLoader} from 'three/addons/loaders/FontLoader.js';
 import {TextGeometry} from 'three/addons/geometries/TextGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {ramp,windows} from './facilityCamera.js';
+import {brandPlane,isStudy,studyModes} from './compositionStudy.js';
 import {brandSurfaces,artEnvelope} from './artDirection.js';
 import {shotCards,shotAnimation,shotLayout} from './shotCards.js';
 
@@ -81,14 +82,14 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   return null;
  }
  // Audition the documented middle-distance brand plane; never claim wall support.
- function midBrand(mesh,cam,roots){
-  const b=mesh.geometry.boundingBox,center=b.getCenter(V()),size=b.getSize(V()),point=V(-1.5,3.3,2);
+ function midBrand(mesh,cam,roots,spec=null){
+  const b=mesh.geometry.boundingBox,center=b.getCenter(V()),size=b.getSize(V()),point=V(...(spec?.point??[-1.5,3.3,2]));
   const rotation=cam.quaternion.clone(),right=V(1,0,0).applyQuaternion(rotation),up=V(0,1,0).applyQuaternion(rotation);
-  for(const width of [3.6,3.0,2.5]){
+  for(const width of (spec?.widths??[3.6,3.0,2.5])){
    const scale=width/size.x,hh=size.y*scale*.5;
    const corners=[point,...[-1,-.5,0,.5,1].flatMap(u=>[-1,0,1].map(v=>point.clone().addScaledVector(right,u*width*.52).addScaledVector(up,v*hh*1.04)))];
    if(corners.some(q=>{const p=q.clone().project(cam);return Math.abs(p.x)>.94||Math.abs(p.y)>.90||Math.abs(p.z)>=1||isBlocked(cam.position,q,roots);}))continue;
-   return {point,rotation,scale,center,right,up,depth:point.distanceTo(cam.position),mount:'free-space-mid'};
+   return {point,rotation,scale,center,right,up,depth:point.distanceTo(cam.position),mount:spec?.mount??'free-space-mid'};
   }
   return null;
  }
@@ -99,10 +100,11 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   const result=[];
   for(const [i,m] of e.group.children.entries()){
    const b=m.geometry.boundingBox,center=b.getCenter(V()),size=b.getSize(V());
-   const [rx,ry,rs,depth]=layouts[e.card.name][i];
-   const mobileY=e.card.name==='QUANTUM'?(['quantum-copy','selected'].includes(composition)?[.75,-.50,-.71,-.91]:[.75,-.64,-.84,-.91]):[.35,-.18,-.59,-.84];
+   const chosenLayout=e.card.name==='INTELLIGENCE'&&composition==='ops-clear'?[[-.52,.73,.30,2.8],[-.52,-.55,.27,2.5],[-.52,-.78,.24,2.6]]:e.card.name==='INTELLIGENCE'&&isStudy(composition,'ops-hero')?[[-.45,.50,.32,2.8],[-.45,-.12,.30,2.5],[-.45,-.63,.28,2.6]]:e.card.name==='CONVERGENCE'&&isStudy(composition,'final-hero')?[[0,.42,.65,6.5],[0,-.08,.38,4.6],[0,-.43,.30,4.0]]:layouts[e.card.name];
+   const [rx,ry,rs,depth]=chosenLayout[i];
+   const mobileY=e.card.name==='INTELLIGENCE'&&composition==='ops-clear'?[.75,-.54,-.78,-.91]:e.card.name==='QUANTUM'?(['quantum-copy','selected','composition-first','brand-hero','final-hero','ops-hero','ops-clear','final-clean'].includes(composition)?[.75,-.50,-.71,-.91]:[.75,-.64,-.84,-.91]):[.35,-.18,-.59,-.84];
    const x=mobile?0:rx,y=mobile?mobileY[i]:ry,span=mobile?Math.min(.80,rs*1.8):rs;
-   let anchor=null;if(art&&i===0&&e.card.brand){if(e.card.name==='ORIGIN'&&['mid','close','selected'].includes(composition))anchor=midBrand(m,cam,all);if(!anchor)anchor=mountedBrand(e,m,cam,mobile,roots);}
+   let anchor=null;if(art&&i===0&&e.card.brand){if(e.card.name==='ORIGIN'&&(['mid','close','selected'].includes(composition)||studyModes.includes(composition)))anchor=midBrand(m,cam,all);const candidate=brandPlane(e.card.name,mobile,composition);if(candidate)anchor=midBrand(m,cam,all,candidate)??anchor;if(!anchor)anchor=mountedBrand(e,m,cam,mobile,roots);}
    for(const d of [depth,depth*.76,depth*.55,depth*.36,.72,.48,.30]){
     if(anchor)break;
     const h=d*Math.tan(THREE.MathUtils.degToRad(cam.fov/2)),w=h*a;

@@ -51,24 +51,43 @@ async function frame(page,p,diagnostic){
 }
 async function capture(page,label,mode,p,diagnostic,direction='fixed'){
  const f=await frame(page,p,diagnostic);const file=label+'-'+mode+'-'+direction+'-'+Math.round(p*1000)+'.png';
- await page.screenshot({path:out+'/'+file,timeout:120000,animations:'disabled'});reports.push({label,mode,direction,file,...f});await save();
+ const png=await page.screenshot({path:out+'/'+file,timeout:120000,animations:'disabled'});
+ const photometry=group==='composition'?await page.evaluate(async base64=>{
+  const image=new Image();image.src='data:image/png;base64,'+base64;await image.decode();
+  const canvas=document.createElement('canvas');canvas.width=256;canvas.height=Math.round(256*image.height/image.width);
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(image,0,0,canvas.width,canvas.height);
+  const {width:w,height:h}=canvas,data=ctx.getImageData(0,0,w,h).data;
+  const linear=v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;};
+  const regions={whole:[0,0,1,1],center:[.25,.25,.75,.75],left:[.05,.2,.4,.8],right:[.6,.2,.95,.8],floor:[.15,.72,.85,.98]};
+  return Object.fromEntries(Object.entries(regions).map(([key,[x0,y0,x1,y1]])=>{
+   const values=[];let clipped=0,dark=0;
+   for(let y=Math.floor(y0*h);y<Math.floor(y1*h);y++)for(let x=Math.floor(x0*w);x<Math.floor(x1*w);x++){
+    const i=(y*w+x)*4,r=data[i],g=data[i+1],b=data[i+2],l=.2126*linear(r)+.7152*linear(g)+.0722*linear(b);
+    values.push(l);if(Math.max(r,g,b)>=250)clipped++;if(l<.01)dark++;
+   }values.sort((a,b)=>a-b);const n=values.length;
+   return [key,{samples:n,mean:values.reduce((a,b)=>a+b,0)/n,p10:values[Math.floor(.1*(n-1))],p50:values[Math.floor(.5*(n-1))],p90:values[Math.floor(.9*(n-1))],nearWhiteChannelFraction:clipped/n,darkFraction:dark/n}];
+  }));
+ },png.toString('base64')):null;
+ reports.push({label,mode,direction,file,...f,photometry});await save();
 }
 try{
  await mkdir(out,{recursive:true});let ready=false;for(let i=0;i<80;i++){try{if((await fetch(base)).ok){ready=true;break;}}catch{}await pause(250);}assert.ok(ready);
  browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
- for(const [label,viewport] of Object.entries(viewports).filter(([l])=>view==='all'||l===view)){
+ for(const [label,originalViewport] of Object.entries(viewports).filter(([l])=>view==='all'||l===view)){
+  const viewport=process.env.REVIEW_WIDTH&&process.env.REVIEW_HEIGHT?{width:Number(process.env.REVIEW_WIDTH),height:Number(process.env.REVIEW_HEIGHT)}:originalViewport;
   for(const item of reviewCases.filter(c=>(group==='all'||group===c.group)&&(!c.desktopOnly||label==='desktop')&&(!c.mobileOnly||label==='mobile'))){
    const context=await browser.newContext({viewport,deviceScaleFactor:1,...(item.motion?{recordVideo:{dir:out+'/video',size:viewport}}:{})});
    const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/shader|THREE.WebGLProgram/i.test(m.text()))errors.push(m.text());});
    try{
     await open(page,item.params,!item.motion);
-    if(item.group==='narrative'||item.motion)await page.waitForSelector('#stage[data-narrative-ready="true"]',{timeout:120000});
+    if(item.group==='narrative'||item.group==='responsive'||item.motion||item.group==='composition'&&!item.params.includes('plate=1'))await page.waitForSelector('#stage[data-narrative-ready="true"]',{timeout:120000});
+    if(item.group==='composition'&&['composition-brand','composition-combined','composition-control'].includes(item.name)){const rows=await page.evaluate(()=>document.querySelector('#stage').inspectOpeningClearance());await writeFile(out+'/'+label+'-'+item.name+'-opening-clearance.json',JSON.stringify(rows,null,2));assert.ok(rows.every(x=>x.distance>.06),'opening clearance failure');}
     if(item.name==='world'){await page.waitForSelector('#stage[data-narrative-ready="true"]',{timeout:120000});const clearance=await page.evaluate(()=>document.querySelector('#stage').inspectServerClearance());await writeFile(out+'/'+label+'-server-clearance.json',JSON.stringify(clearance,null,2));assert.ok(clearance.every(r=>r.distance>.06),'server path clearance '+JSON.stringify(clearance.filter(r=>r.distance<=.06)));}
     if(item.motion){
      assert.equal(await page.locator('.build-version').count(),0);
      for(const [direction,targets] of Object.entries(scrollTargets)){for(const p of targets){const scroll=await scrollTo(page,p);await capture(page,label,item.name,p,false,direction);reports.at(-1).scroll=scroll;await save();}}
     }else{
-     for(const p of item.poses){await capture(page,label,item.name,p,true);if(item.name==='floor-geometry-matte')assert.ok(reports.at(-1).floorFaces>0&&reports.at(-1).floorArea>0,'actual floor faces required '+JSON.stringify(reports.at(-1)));if(item.group==='effects'){const samples=await page.evaluate(async p=>{const s=document.querySelector('#stage'),next=()=>new Promise(r=>requestAnimationFrame(r));await next();s.benchmarkFrame(p);let previous=await next();const rows=[];for(let i=0;i<5;i++){const now=await next();rows.push({...s.benchmarkFrame(p),rafMs:now-previous});previous=now;}return rows;},p);reports.at(-1).effectSamples=samples;await save();}}
+     for(const p of item.poses){await capture(page,label,item.name,p,true);if(item.group==='responsive'&&[.055,.205,.405,.625,.73,.935,.992].includes(p)){const entries=reports.at(-1).text??[];assert.ok(['hero','headline'].every(role=>entries.some(t=>t.role===role&&t.inside&&t.visibilityEstimate>=.85)),'responsive lettering '+JSON.stringify({viewport,p,entries}));}if(item.name==='floor-geometry-matte')assert.ok(reports.at(-1).floorFaces>0&&reports.at(-1).floorArea>0,'actual floor faces required '+JSON.stringify(reports.at(-1)));if(item.group==='effects'||item.group==='composition'&&[.055,.73,.935,.992].includes(p)){const samples=await page.evaluate(async p=>{const s=document.querySelector('#stage'),next=()=>new Promise(r=>requestAnimationFrame(r));await next();s.benchmarkFrame(p);let previous=await next();const rows=[];for(let i=0;i<5;i++){const now=await next();rows.push({...s.benchmarkFrame(p),rafMs:now-previous});previous=now;}return rows;},p);reports.at(-1).effectSamples=samples;await save();}}
     }
     assert.deepEqual(errors,[]);
    }catch(e){failures.push({label,mode:item.name,error:String(e),pageErrors:errors});await save();}

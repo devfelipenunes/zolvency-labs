@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {RectAreaLightUniformsLib} from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import {ramp} from './facilityCamera.js';
+import {opsPracticalMultiplier} from './compositionStudy.js';
 // Authored practical-light positions in world meters. Keep shadows motivated by the set.
 export const looks=[
  {p:.055,fill:.40,key:.72,head:1.2,hall:.82,env:.46,exposure:1.12,fog:.010,accent:0xb8d8ef},
@@ -33,7 +34,7 @@ export function activePracticals(p){
 }
 const edges=[0,1,...practicals.flatMap(s=>[Math.max(0,s.center-s.width),Math.min(1,s.center+s.width)])].sort((a,b)=>a-b);
 export const practicalSlots=Math.max(...edges.map(p=>activePracticals(p).length),...edges.slice(1).map((p,i)=>activePracticals((p+edges[i])/2).length));
-export function createPhotography(scene,{pooled=true,extended=false,noir=false,reactor=false,review=false}={}){
+export function createPhotography(scene,{pooled=true,extended=false,noir=false,reactor=false,review=false,subject=false}={}){
  RectAreaLightUniformsLib.init();
  const lights=Array.from({length:pooled?practicalSlots:practicals.length},(_,i)=>{const l=new THREE.RectAreaLight(0xffffff,0,1,1);l.name='practical-slot-'+i;scene.add(l);return {l,s:null};});
  const rim=new THREE.SpotLight(0xe9c28c,0,12,Math.PI/5,.65,2);rim.position.set(7.3,6.7,-10);rim.target.position.set(4.7,2.4,-8.6);if(reactor){rim.position.set(25.5,12,-4);rim.target.position.set(30,9,0);}scene.add(rim,rim.target);
@@ -41,6 +42,7 @@ export function createPhotography(scene,{pooled=true,extended=false,noir=false,r
  return {slots:lights.length,update(p){
   if(pooled){const active=activePracticals(p);for(const [i,slot] of lights.entries()){const a=active[i];if(a)configure(slot,a.s,a.intensity);else slot.l.intensity=0;}}
   else for(const [i,slot] of lights.entries()){const s=practicals[i],d=Math.abs(p-s.center);configure(slot,s,s.power*(1-ramp(d,0,s.width)));}
+  if(subject)for(const slot of lights)if(slot.s?.name==='operations-ceiling')slot.l.intensity*=opsPracticalMultiplier(p,subject);
   rim.intensity=(noir?35:55)*(1-ramp(Math.abs(p-.935),.02,.12));return photographicLook(p);
  },dispose(){for(const {l} of lights)l.removeFromParent();rim.removeFromParent();rim.target.removeFromParent();}};
 }
