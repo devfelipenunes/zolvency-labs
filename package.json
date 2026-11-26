@@ -1,6 +1,6 @@
 {
   "name": "zolvency-labs",
-  "version": "0.24.1",
+  "version": "0.25.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -17,7 +17,8 @@
     "composition:stage": "node scripts/audition-composition.mjs --stage && python3 scripts/stage-kenney.py && node scripts/stage-decoders.mjs",
     "facility:stage": "node scripts/stage-facility.mjs && node scripts/stage-decoders.mjs",
     "bench:render": "node scripts/benchmark-render.mjs",
-    "test:smoke": "node scripts/smoke-check.mjs"
+    "test:smoke": "node scripts/smoke-check.mjs",
+    "test:reactor": "node scripts/reactor-check.mjs"
   },
   "engines": {
     "node": ">=22.12.0 <23"

@@ -22,6 +22,7 @@ export function spatialFacility(mode){
  const base=[...facility.filter(s=>s.id!=='cable'),external('rooftop-cable-tray',[5.5,0,5],{mount:'server-roof',priority:1})];
  const connected=base.map(s=>s.id==='bridge'?{...s,openFront:false,aperture:{left:-6.9,right:-4.1,bottom:-.2,top:2.65}}:s);
  if(mode==='connected')return connected;
+ if(mode==='reactor')return [...spatialFacility('production').filter(s=>s.id!=='quantum'),{id:'reactor-room',file:'reactor-room.glb',position:[30,0,0],scale:1,priority:4}];
  if(mode==='production')return [...connected.map(s=>s.id==='bridge'?{...s,position:interiorLayout.roomCenter,scaleXYZ:interiorLayout.roomScale,aperture:interiorLayout.aperture}:s),{...base.find(s=>s.id==='corridor'),id:'corridor-extension',position:interiorLayout.corridorCenter,priority:2}];
  if(mode==='lab')return [...base,external('cleanroom-airlock',[0,0,-2.20],{priority:3}),external('lab-drawer-bench',[7.7,0,-9.4],{priority:5})];
  return base;
