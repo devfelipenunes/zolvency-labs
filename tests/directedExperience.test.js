@@ -4,6 +4,7 @@ import {getPacing} from '../src/graphics/cameraPacing.js';
 import {travelMapper,createTravelMotion,createBaselineTravelMotion,sceneSpeedLimit} from '../src/graphics/travelMotion.js';
 import {directedNarrative,beats} from '../src/graphics/directedNarrative.js';
 import {shotCards} from '../src/graphics/shotCards.js';
+import {createResolutionGovernor} from '../src/graphics/renderPerformance.js';
 test('all seven reading holds remain fully legible within browser sampling tolerance',()=>{
  for(const c of shotCards)for(const offset of [-.003,0,.003]){
   const n=directedNarrative(c.hold+offset);assert.equal(n.alpha,1);assert.equal(n.label,1);assert.equal(n.title,1);assert.equal(n.body,1);
@@ -36,7 +37,7 @@ test('staged motion preserves the baseline control and bounds jerk during normal
   const pacing=getPacing(mobile),map=travelMapper(pacing);
   const stats=[];
   for(const [name,create] of [['baseline',createBaselineTravelMotion],['candidate',createTravelMotion]]){
-   const d=create(pacing);let ts=0,prev=d.value,prevA=0,peak=0,peakJerk=0,reversals=0,maxStep=0;
+   const d=create(pacing,.2);let ts=0,prev=d.value,prevA=0,peak=0,peakJerk=0,reversals=0,maxStep=0;
    d.set(.92);
    for(let i=0;i<2000&&d.pending;i++){
     if(i===35)d.set(.12);
@@ -52,5 +53,26 @@ test('staged motion preserves the baseline control and bounds jerk during normal
   }
   for(let i=0;i<=1000;i++){const p=i/1000;assert.ok(sceneSpeedLimit(p,pacing)>=3.8&&sceneSpeedLimit(p,pacing)<=5.5);}
   console.log('travel comparison',JSON.stringify({mobile,stats}));
+ }
+});
+
+test('severe sustained frame cost triggers one early resolution reduction, not single-frame flicker',()=>{
+ const governor=createResolutionGovernor({budget:16.7,severeFrames:4});
+ assert.equal(governor.observe(100,0),null);
+ assert.equal(governor.observe(100,16),null);
+ assert.equal(governor.observe(100,32),null);
+ assert.equal(governor.observe(100,48),.9);
+ for(let i=0;i<10;i++)assert.equal(governor.observe(100,64+16*i),null);
+ assert.equal(governor.scale,.9);
+});
+test('motion settles after irregular frame cadence without skipping optical cuts',()=>{
+ for(const mobile of [false,true]){
+  const pacing=getPacing(mobile),map=travelMapper(pacing),d=createTravelMotion(pacing);let time=0,prev=0;const visited=[];
+  d.set(1);
+  for(let i=0;i<2000&&d.pending;i++){
+   time+=[8,16,33,100,500][i%5];const p=d.step(time);
+   assert.ok(p>=prev-1e-10);assert.ok((map.to(p)-map.to(prev))*map.total<=.350001);visited.push(p);prev=p;
+  }
+  assert.equal(d.value,1);for(const cut of [.51,.81,.965])assert.ok(visited.some(p=>Math.abs(p-cut)<1e-9));
  }
 });

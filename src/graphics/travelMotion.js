@@ -56,7 +56,7 @@ export function createBaselineTravelMotion(pacing,initial=0){
    step(now){
     const dt=last===null?1/60:clamp((now-last)/1000,0,.06);last=now;
     const delta=target-x;
-    if(Math.abs(delta)<.0008&&Math.abs(v)<.006&&Math.abs(a)<.05){x=target;v=a=0;return map.from(x/total);}
+    if(Math.abs(delta)<.002&&Math.abs(v)<.015&&Math.abs(a)<.08){x=target;v=a=0;return map.from(x/total);}
     if(!dt)return map.from(x/total);
     const limit=sceneSpeedLimit(map.from(x/total),pacing);
     const desired=Math.sign(delta)*Math.min(limit,Math.sqrt(18*Math.abs(delta)),Math.abs(delta)*2.4);

@@ -9,16 +9,16 @@ export function createRenderQueue(render,{raf=requestAnimationFrame,cancel=cance
 }
 
 // Resolution changes only after sustained load; use active frames, never idle intervals.
-export function createResolutionGovernor({budget=16.7,levels=[1,.9,.8,.7,.6]}={}){
- let index=0,slow=0,fast=0,ema=null,lastChange=-Infinity;
+export function createResolutionGovernor({budget=16.7,levels=[1,.9,.8,.7,.6],severeFrames=Infinity}={}){
+ let index=0,slow=0,fast=0,severe=0,ema=null,lastChange=-Infinity;
  return {get scale(){return levels[index];},observe(ms,now){
   if(!Number.isFinite(ms)||ms<=0)return null;
-  ema=ema===null?ms:ema*.85+ms*.15;
+  ema=ema===null?ms:ema*.85+ms*.15;severe=ms>budget*3?severe+1:0;
   if(ema>budget*1.18){slow++;fast=0;}else if(ema<budget*.72){fast++;slow=0;}else{slow=0;fast=0;}
   if(now-lastChange<1500)return null;
-  const next=slow>=12?Math.min(index+1,levels.length-1):fast>=90?Math.max(0,index-1):index;
-  if(next===index)return null;index=next;lastChange=now;slow=fast=0;ema=null;return levels[index];
- },reset(){slow=fast=0;ema=null;}};
+  const next=slow>=12||severe>=severeFrames?Math.min(index+1,levels.length-1):fast>=90?Math.max(0,index-1):index;
+  if(next===index)return null;index=next;lastChange=now;slow=fast=severe=0;ema=null;return levels[index];
+ },reset(){slow=fast=severe=0;ema=null;}};
 }
 
 // GPU timings are asynchronous and optional. Never gl.finish() or read unready results.
