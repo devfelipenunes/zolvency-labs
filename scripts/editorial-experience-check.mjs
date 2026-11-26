@@ -17,9 +17,12 @@ try{
  browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
  const page=await browser.newPage({viewport,deviceScaleFactor:1,recordVideo:{dir:out+'/video',size:viewport}});
  page.on('pageerror',e=>errors.push(e.message));
+ let releaseAsset=()=>{};let held=false;if(directed){const gate=new Promise(resolve=>{releaseAsset=resolve;});await page.route('**/models/facility/*.glb',async route=>{if(!held&&/server-room(?:-low)?\.glb$/.test(route.request().url())){held=true;await gate;}await route.continue();});}
  await page.goto(base+(legacy?'':'/?experience=editorial&profile='+profile+(directed?'&direction=staged':'')),{waitUntil:'domcontentloaded'});
+ if(directed){try{await page.waitForSelector('.experience-loader[data-phase="assets"]');await page.waitForFunction(()=>document.querySelector('main').inert);await page.waitForFunction(()=>document.querySelector('#stage').dataset.loadingPhase==='assets');await page.mouse.wheel(0,700);await page.keyboard.press('End');assert.equal(await page.evaluate(()=>scrollY),0);assert.equal(await page.locator('.experience-loader').count(),1);}finally{releaseAsset();}}
  await page.waitForSelector('#stage[data-renderer="three"]',{timeout:120000});
  await page.waitForFunction(n=>Number(document.querySelector('#stage')?.dataset.assets)===n,expectedAssets,{timeout:120000});
+ if(directed){await page.waitForSelector('.experience-loader',{state:'detached',timeout:120000});assert.equal(await page.locator('#stage').getAttribute('data-loading-phase'),'ready');assert.equal(await page.evaluate(()=>document.querySelector('main').inert),false);assert.equal(await page.locator('#stage').getAttribute('data-failures'),'');}
  if(!legacy)await page.waitForFunction(()=>!!document.querySelector('.chapter').style.getPropertyValue('--pace-height'));
  const geometry=await page.evaluate(()=>({starts:[...document.querySelectorAll('main section')].map((s,i)=>i?s.getBoundingClientRect().top+scrollY:0),max:document.documentElement.scrollHeight-innerHeight,height:innerHeight}));
  const scrollAt=p=>{const i=Math.max(0,windows.findLastIndex((v,j)=>j<7&&p>=v)),a=geometry.starts[i],b=geometry.starts[i+1]??geometry.max;return a+(b-a)*(legacy?(p-windows[i])/(windows[i+1]-windows[i]):pacing.local(i,p));};
