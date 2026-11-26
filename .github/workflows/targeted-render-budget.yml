@@ -1,0 +1,56 @@
+name: Targeted cinematic budgets
+on:
+  pull_request:
+    branches: [main, feat/v0.31-render-inventory]
+    paths:
+      - 'src/graphics/staticRackBatch.js'
+      - 'src/graphics/warmupPlan.js'
+      - 'src/graphics/frameFence.js'
+      - 'scripts/targeted-render-budget.mjs'
+      - '.github/workflows/targeted-render-budget.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: targeted-budget-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  fast:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
+  compare:
+    needs: fast
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        view: [desktop, mobile]
+    env:
+      BUDGET_VIEW: ${{ matrix.view }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/targeted-render-budget.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: targeted-budget-${{ matrix.view }}
+          path: artifacts/targeted-render-budget/
