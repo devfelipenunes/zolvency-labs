@@ -4,13 +4,14 @@ import {FontLoader} from 'three/addons/loaders/FontLoader.js';
 import {TextGeometry} from 'three/addons/geometries/TextGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {ramp,windows} from './facilityCamera.js';
+import {brandSurfaces,artEnvelope} from './artDirection.js';
 import {shotCards,shotAnimation,shotLayout} from './shotCards.js';
 
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 // All visible narrative text is triangulated, extruded glyph geometry, including body copy.
 // One merged mesh per role keeps draw calls low. The editorial rig follows the shot,
 // with controlled perspective, depth and rotation; it is not a physical wall sign.
-export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false}={}){
+export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false}={}){
  let font=null,logo=null,disposed=false,aspect=0,active=null;const entries=new Map(),ray=new THREE.Raycaster();
  new FontLoader().loadAsync(import.meta.env.BASE_URL+'models/fonts/helvetiker_regular.typeface.json').then(f=>{if(!disposed){font=f;onReady();}}).catch(()=>{});
  new SVGLoader().loadAsync(import.meta.env.BASE_URL+'brand/zolvency.svg').then(d=>{if(!disposed){logo=d.paths.flatMap(p=>SVGLoader.createShapes(p));onReady();}}).catch(()=>{});
@@ -28,7 +29,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false}
   if(!font||(card.brand&&!logo))return null;
   const group=new THREE.Group();group.name='narrative-'+card.name;group.visible=false;const align=card.brand?'center':'left',x=align==='center'?0:-.5;
   const hero=card.brand?new THREE.ExtrudeGeometry(logo,{depth:12,bevelEnabled:false}):new TextGeometry(card.hero,{font,size:1,depth:.07,curveSegments:4,bevelEnabled:false});
-  if(card.brand)hero.scale(1,-1,1);hero.computeBoundingBox();const hs=hero.boundingBox.getSize(V()),hc=hero.boundingBox.getCenter(V()),hw=card.brand?.98:Math.min(.98,Math.max(.42,card.hero.length*.071));hero.translate(-hc.x,-hero.boundingBox.max.y,-hc.z);hero.scale(hw/hs.x,hw/hs.x,.012/hs.z);hero.translate(align==='center'?0:x+hw/2,0,0);
+  if(card.brand)hero.scale(1,-1,1);hero.computeBoundingBox();const hs=hero.boundingBox.getSize(V()),hc=hero.boundingBox.getCenter(V()),hw=card.brand?.98:Math.min(.98,Math.max(.42,card.hero.length*.071));hero.translate(-hc.x,-hero.boundingBox.max.y,-hc.z);hero.scale(hw/hs.x,hw/hs.x,(art&&card.brand?.035:.012)/hs.z);hero.translate(align==='center'?0:x+hw/2,0,0);
   const heroMesh=meshFor([hero],card.brand?0x25da8d:0x9fe5d3,true);heroMesh.name='hero';group.add(heroMesh);
   let cursor=-hs.y*hw/hs.x-.036;
   const titleSize=mobile?.072:.067,bodySize=mobile?.052:.046;
@@ -57,6 +58,28 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false}
   const dir=point.clone().sub(origin),dist=dir.length();ray.set(origin,dir.normalize());ray.near=.08;ray.far=Math.max(.09,dist-.035);
   return ray.intersectObjects(roots,true).some(h=>{for(let o=h.object;o;o=o.parent)if(!o.visible)return false;const m=Array.isArray(h.object.material)?h.object.material[h.face?.materialIndex??0]:h.object.material;return (m?.transmission??0)>.05||!m?.transparent||(m?.opacity??0)>.45;});
  }
+ // Use the actual back/front wall, not the current camera plane, for a physical wordmark.
+ function mountedBrand(e,mesh,cam,mobile,roots){
+  const spec=brandSurfaces[e.card.name],hangar=roots.get('hangar');if(!spec||!hangar?.visible)return null;
+  const b=mesh.geometry.boundingBox,center=b.getCenter(V()),size=b.getSize(V());
+  const rotation=new THREE.Quaternion().setFromAxisAngle(V(0,1,0),spec.normal===1?0:Math.PI),all=[...roots.values()].filter(o=>o.visible);
+  const right=V(1,0,0).applyQuaternion(rotation),up=V(0,1,0),direction=V(0,0,-spec.normal);
+  for(const width of [spec.width,spec.width*.80,spec.width*.62]){
+   const scale=width/size.x,hh=size.y*scale*.5;
+   const support=[];
+   for(const u of [-1,-.5,0,.5,1])for(const v of [-1,0,1]){
+    ray.set(V(spec.x+u*width*.48,spec.y+v*hh,spec.z+spec.normal*2),direction);ray.near=.05;ray.far=4;
+    const h=ray.intersectObject(hangar,true).find(h=>{for(let o=h.object;o;o=o.parent)if(!o.visible)return false;return Math.abs(h.face?.normal.clone().transformDirection(h.object.matrixWorld).z??0)>.75;});
+    if(h)support.push(h.point.z);
+   }
+   if(support.length!==15||Math.max(...support)-Math.min(...support)>.17)continue;
+   const z=(spec.normal>0?Math.max(...support):Math.min(...support))+spec.normal*(size.z*scale*.5+.045),point=V(spec.x,spec.y,z);
+   const corners=[point,...[-1,-.5,0,.5,1].flatMap(u=>[-1,0,1].map(v=>point.clone().addScaledVector(right,u*width*.51).addScaledVector(up,v*hh*1.04)))];
+   if(corners.some(q=>{const p=q.clone().project(cam);return Math.abs(p.x)>.94||Math.abs(p.y)>.90||Math.abs(p.z)>=1||isBlocked(cam.position,q,all);}))continue;
+   return {point,rotation,scale,center,right,up,depth:point.distanceTo(cam.position),mount:'hangar-wall'};
+  }
+  return null;
+ }
  function placeWorld(e,mobile,a,roots){
   const pose=rail(e.card.hold,mobile),cam=new THREE.PerspectiveCamera(pose.fov,a,.075,65);
   cam.position.fromArray(pose.position);cam.lookAt(new THREE.Vector3(...pose.target));cam.updateProjectionMatrix();cam.updateMatrixWorld(true);
@@ -67,8 +90,9 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false}
    const [rx,ry,rs,depth]=layouts[e.card.name][i];
    const mobileY=e.card.name==='QUANTUM'?[.75,-.64,-.84,-.91]:[.35,-.18,-.59,-.84];
    const x=mobile?0:rx,y=mobile?mobileY[i]:ry,span=mobile?Math.min(.80,rs*1.8):rs;
-   let anchor=null;
+   let anchor=art&&i===0&&e.card.brand?mountedBrand(e,m,cam,mobile,roots):null;
    for(const d of [depth,depth*.76,depth*.55,depth*.36,.72,.48,.30]){
+    if(anchor)break;
     const h=d*Math.tan(THREE.MathUtils.degToRad(cam.fov/2)),w=h*a;
     const scale=Math.min(2*w*span/Math.max(.001,size.x),h*(i===2?.48:.40)/Math.max(.001,size.y));
     const cx=THREE.MathUtils.clamp(x,-.94+size.x*scale/(2*w),.94-size.x*scale/(2*w));
@@ -77,7 +101,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false}
     const corners=[point,...Array.from({length:13},(_,k)=>-1+k/6).flatMap(u=>[-1,-.5,0,.5,1].map(v=>point.clone().addScaledVector(right,u*size.x*scale*.53).addScaledVector(up,v*size.y*scale*.53)))];
     if(corners.some(q=>isBlocked(cam.position,q,all)))continue;
     const rotation=cam.quaternion.clone().multiply(new THREE.Quaternion().setFromAxisAngle(V(0,1,0),mobile?0:(i%2?-.09:.10)));
-    anchor={point,rotation,scale,center,right:right.clone(),up:up.clone(),depth:d};break;
+    anchor={point,rotation,scale,center,right:right.clone(),up:up.clone(),depth:d,mount:'free-space'};break;
    }
    if(!anchor)return false;result.push(anchor);
   }
@@ -92,13 +116,13 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false}
   const {group}=active;group.position.set(0,0,0);group.quaternion.identity();group.scale.setScalar(1);group.visible=anim.alpha>.02;
   const t=anim.local;
   for(const [i,m] of group.children.entries()){
-   const anchor=active.anchors[i],hold=(card.hold-windows[anim.index])/(windows[anim.index+1]-windows[anim.index]);const delayed=card.name!=='QUANTUM'&&i===2;const enter=i===0?1:delayed?ramp(t,Math.max(.12,hold-.20),Math.max(.15,hold-.025)):ramp(t,i===1?.16:i===2?.32:.05,i===1?.34:i===2?.46:.18);const exit=anim.index===6?1:1-ramp(t,Math.max(hold+.025,i===0?.69:.74),Math.max(hold+.075,i===0?.86:.88));const arrival=card.name==='BLOCKCHAIN'?ramp(p,.165,.178):1;const alpha=anim.alpha*enter*exit*arrival;
+   const anchor=active.anchors[i],hold=(card.hold-windows[anim.index])/(windows[anim.index+1]-windows[anim.index]);const delayed=card.name!=='QUANTUM'&&i===2;const enter=i===0?1:delayed?ramp(t,Math.max(.12,hold-.20),Math.max(.15,hold-.025)):ramp(t,i===1?.16:i===2?.32:.05,i===1?.34:i===2?.46:.18);const exit=anim.index===6?1:1-ramp(t,Math.max(hold+.025,i===0?.69:.74),Math.max(hold+.075,i===0?.86:.88));const arrival=card.name==='BLOCKCHAIN'?ramp(p,.165,.178):1;const roleAlpha=art&&card.name!=='QUANTUM'?artEnvelope(card,p)[m.name]:enter*exit;const alpha=anim.alpha*roleAlpha*arrival;
    m.visible=alpha>.025;m.material.opacity=alpha;
    // Put fully revealed lettering into the opaque pass so transmissive surfaces cannot erase it.
    const opaque=alpha>.995;if(m.material.transparent===opaque){m.material.transparent=!opaque;m.material.depthWrite=opaque;m.material.needsUpdate=true;}
    m.scale.setScalar(anchor.scale);m.quaternion.copy(anchor.rotation);
    m.position.copy(anchor.point).sub(anchor.center.clone().multiplyScalar(anchor.scale).applyQuaternion(anchor.rotation));
-   m.position.addScaledVector(anchor.up,(1-alpha)*.055).addScaledVector(anchor.right,Math.sin(t*Math.PI)*.045*(i%2?1:-1));
+   if(anchor.mount!=='hangar-wall')m.position.addScaledVector(anchor.up,(1-alpha)*.055).addScaledVector(anchor.right,Math.sin(t*Math.PI)*.045*(i%2?1:-1));
   }
   group.updateMatrixWorld(true);
   return {ready:true,visible:group.visible,shot:card.name,roles:active.roles,alpha:anim.alpha,focus:card.focus,intent:card.intent,bodyLines:active.bodyLines.length};
@@ -125,6 +149,6 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false}
   group.updateMatrixWorld(true);
   return {ready:true,visible:group.visible,shot:card.name,roles:active.roles,alpha:anim.alpha,focus:card.focus,intent:card.intent,span,bodyLines:active.bodyLines.length};
  }
- function inspect(camera,roots){if(!active)return [];const {group,card,roles}=active;return group.children.filter(m=>m.visible&&group.visible).map(m=>{m.updateMatrixWorld(true);const b=m.geometry.boundingBox,points=[];for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z])points.push(V(x,y,z).applyMatrix4(m.matrixWorld).project(camera));const visibleRoots=roots?[...roots.values()].filter(o=>o.visible):[],attr=m.geometry.attributes.position,samples=[];for(let j=0;j<Math.min(45,attr.count);j++){const k=Math.floor(j*attr.count/Math.min(45,attr.count));samples.push(V().fromBufferAttribute(attr,k).applyMatrix4(m.matrixWorld));}const clearSamples=samples.filter(q=>{const v=q.clone().project(camera);return Math.abs(v.x)<1&&Math.abs(v.y)<1&&Math.abs(v.z)<1&&!isBlocked(camera.position,q,visibleRoots);}).length;return {visibilityEstimate:samples.length?clearSamples/samples.length:0,sampleCount:samples.length,name:card.name,role:m.name,worldAnchor:active.anchors?.[group.children.indexOf(m)]?.point.toArray()??null,inside:points.every(q=>Math.abs(q.x)<1&&Math.abs(q.y)<1&&Math.abs(q.z)<1),span:(Math.max(...points.map(q=>q.x))-Math.min(...points.map(q=>q.x)))/2,opacity:m.material.opacity,triangles:(m.geometry.index?.count??m.geometry.attributes.position.count)/3};});}
- return {update,inspect,ready:()=>!!font&&!!logo,dispose(){disposed=true;clear();},diagnostics(){return [...entries.values()].map(e=>({name:e.card.name,roles:e.roles,bodyLines:e.bodyLines,anchors:e.anchors?.map(a=>({point:a.point.toArray(),depth:a.depth}))??[],titleLines:e.titleLines,focus:e.card.focus,intent:e.card.intent}));}};
+ function inspect(camera,roots){if(!active)return [];const {group,card,roles}=active;return group.children.filter(m=>m.visible&&group.visible).map(m=>{m.updateMatrixWorld(true);const b=m.geometry.boundingBox,points=[];for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z])points.push(V(x,y,z).applyMatrix4(m.matrixWorld).project(camera));const visibleRoots=roots?[...roots.values()].filter(o=>o.visible):[],attr=m.geometry.attributes.position,samples=[];for(let j=0;j<Math.min(45,attr.count);j++){const k=Math.floor(j*attr.count/Math.min(45,attr.count));samples.push(V().fromBufferAttribute(attr,k).applyMatrix4(m.matrixWorld));}const clearSamples=samples.filter(q=>{const v=q.clone().project(camera);return Math.abs(v.x)<1&&Math.abs(v.y)<1&&Math.abs(v.z)<1&&!isBlocked(camera.position,q,visibleRoots);}).length;return {visibilityEstimate:samples.length?clearSamples/samples.length:0,sampleCount:samples.length,name:card.name,role:m.name,worldAnchor:active.anchors?.[group.children.indexOf(m)]?.point.toArray()??null,mount:active.anchors?.[group.children.indexOf(m)]?.mount??null,inside:points.every(q=>Math.abs(q.x)<1&&Math.abs(q.y)<1&&Math.abs(q.z)<1),span:(Math.max(...points.map(q=>q.x))-Math.min(...points.map(q=>q.x)))/2,opacity:m.material.opacity,triangles:(m.geometry.index?.count??m.geometry.attributes.position.count)/3};});}
+ return {update,inspect,ready:()=>!!font&&!!logo,dispose(){disposed=true;clear();},diagnostics(){return [...entries.values()].map(e=>({name:e.card.name,roles:e.roles,bodyLines:e.bodyLines,anchors:e.anchors?.map(a=>({point:a.point.toArray(),depth:a.depth,mount:a.mount}))??[],titleLines:e.titleLines,focus:e.card.focus,intent:e.card.intent}));}};
 }
