@@ -14,3 +14,14 @@ export const facility=[
 ];
 export const facilityHDRI=approved.has('hangar.hdr')?'hangar.hdr':null;
 export const expectedAssets=facility.length;
+
+ // Independent audition modes; never change the unflagged production composition.
+ const candidate=(id,position,extra={})=>({id,file:id+'-lod1.glb',lowFile:id+'-lod2.glb',position,scale:1,priority:5,...extra});
+ export function compositionFacility(mode){
+  if(mode==='services')return [...facility.filter(s=>s.id!=='cable'),
+    candidate('rooftop-cable-tray',[5.5,0,5],{mount:'server-roof'}),
+    candidate('junction-box-cluster',[4.65,1.9,0],{mount:'server-front'})];
+  if(mode==='operations')return [...facility.filter(s=>s.id!=='bridge'),candidate('control-room',[-5.5,.17,-10.35],{priority:3})];
+  if(mode==='cleanroom')return [...facility,candidate('cleanroom-airlock',[4.7,0,-3.05],{priority:4})];
+  return facility;
+ }
