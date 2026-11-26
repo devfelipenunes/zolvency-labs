@@ -27,7 +27,7 @@ export function createThreeScene(host,onLost){
  let mobile=false,disposed=false,lastProgress=0;
  function resize(){if(disposed)return;const w=innerWidth,h=innerHeight;mobile=w<720;renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.25:1.75));renderer.setSize(w,h);camera.aspect=w/Math.max(1,h);camera.updateProjectionMatrix();}
  function draw(p){if(disposed)return;lastProgress=p;const pose=cameraPose(p,mobile);camera.position.set(...pose.position);camera.up.set(0,1,0);camera.lookAt(...pose.target);if(camera.fov!==pose.fov){camera.fov=pose.fov;camera.updateProjectionMatrix();}
- renderer.render(scene,camera);host.dataset.pose=JSON.stringify(pose);host.dataset.geometries=String(renderer.info.memory.geometries);host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.progress=String(lastProgress);}
+ renderer.render(scene,camera);host.dataset.pose=JSON.stringify(pose);host.dataset.geometries=String(world.length+1);host.dataset.gpuGeometries=String(renderer.info.memory.geometries);host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.progress=String(lastProgress);}
  function lost(e){e.preventDefault();onLost();}
  function dispose(){if(disposed)return;disposed=true;renderer.domElement.removeEventListener('webglcontextlost',lost);scene.traverse(o=>o.geometry?.dispose());[rib,accent,node,floorMat].forEach(m=>m.dispose());renderer.dispose();renderer.domElement.remove();}
  renderer.domElement.id='three-scene';renderer.domElement.addEventListener('webglcontextlost',lost);host.insertBefore(renderer.domElement,host.querySelector('.veil'));return {resize,draw,dispose};
