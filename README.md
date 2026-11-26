@@ -40,3 +40,14 @@ npm run test:smoke
 ```
 
 Production build remains strict: incomplete or mismatched assets fail staging. Cached bytes are always verified against the repository locks. Preserve .cache/facility/ for offline recovery. No generated models, cache files or certificate secrets are committed. See docs/visual-roadmap.md for cinematic review and docs/industrial-art.md for historical design studies. Experimental noindex, not a commercial launch.
+
+### Recover already published assets
+
+If the publisher host is unavailable but your authorized network allows the Zolvency Labs deployment, explicitly choose the published source:
+
+```sh
+FACILITY_SOURCE=published npm run facility:stage
+FACILITY_OFFLINE=1 npm run dev
+```
+
+This is not a TLS bypass: HTTPS, original byte length and SHA-256 are still required, and redirects are rejected. The deployment must contain the exact locked files. If the deployment is unavailable, differs from the current locks, or its certificate is untrusted, recovery fails closed. Follow organizational network policy; ask IT for an approved CA or approved transfer of the verified assets if required. No automatic fallback or production build policy change.
