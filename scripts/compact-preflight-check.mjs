@@ -2,6 +2,8 @@ import {chromium} from 'playwright';
 import {spawn} from 'node:child_process';
 import {mkdir,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
+// Load completion order is nondeterministic; compare full mechanical tuples as a multiset.
+const canonicalMechanics=rows=>rows.map(row=>JSON.stringify(row)).sort();
 import {warmupPlan} from '../src/graphics/compactPreflight.js';
 const mobile=process.env.PREFLIGHT_VIEW==='mobile',profile=process.env.PREFLIGHT_PROFILE??'economy',viewport=mobile?{width:390,height:844}:{width:1280,height:720},base='http://127.0.0.1:4202',out='artifacts/compact-preflight';
 const order=mobile?['compact','full']:['full','compact'],points=warmupPlan(true).filter(x=>!x.draw).map(x=>x.p);
@@ -34,5 +36,5 @@ try{
   }finally{await context.close();}
  }
  const a=reports.find(x=>x.mode==='full'),b=reports.find(x=>x.mode==='compact');assert.equal(a.startup.assets,b.startup.assets);assert.equal(a.startup.textures,b.startup.textures);
- for(let i=0;i<points.length;i++){assert.deepEqual(a.rows[i].pose,b.rows[i].pose);assert.deepEqual(a.rows[i].mechanical,b.rows[i].mechanical);assert.equal(a.rows[i].mask,b.rows[i].mask);}
+ for(let i=0;i<points.length;i++){assert.deepEqual(a.rows[i].pose,b.rows[i].pose);assert.deepEqual(canonicalMechanics(a.rows[i].mechanical),canonicalMechanics(b.rows[i].mechanical));assert.equal(a.rows[i].mask,b.rows[i].mask);}
 }finally{await browser?.close();server.kill();}
