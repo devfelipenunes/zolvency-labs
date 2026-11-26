@@ -1,0 +1,81 @@
+[
+  {
+    "name": "server-room",
+    "files": [
+      {
+        "file": "server-room.glb",
+        "url": "https://tevy.dev/models/server-room/v1/lod1.glb",
+        "bytes": 541680,
+        "sha256": "149938f97e85903ad8322ea857242909919b97e15d58e5a5d2d9526eaee6fccf"
+      }
+    ]
+  },
+  {
+    "name": "reactor-room",
+    "files": [
+      {
+        "file": "reactor-room.glb",
+        "url": "https://tevy.dev/models/scifi-reactor-room/v2/lod1.glb",
+        "bytes": 515568,
+        "sha256": "f3532927db362b7eef9be19e3af155913da942ae4cefb9f143fb458698913862"
+      }
+    ]
+  },
+  {
+    "name": "corridor-door",
+    "files": [
+      {
+        "file": "corridor-door.glb",
+        "url": "https://tevy.dev/models/scifi-corridor-door/v1/lod1.glb",
+        "bytes": 285432,
+        "sha256": "48adb22e86f0ddddb498153c663f052c06cc7bf21bd1373e22f881a480ad9a65"
+      }
+    ]
+  },
+  {
+    "name": "hologram-projector",
+    "files": [
+      {
+        "file": "hologram-projector.glb",
+        "url": "https://grab3d.com/dl/hologram-projector/hologram-projector.glb",
+        "bytes": 622072,
+        "sha256": "5ff721438e7f2560f1811bc2175bd14193699685decc79d6e177745c8da4052f"
+      }
+    ]
+  },
+  {
+    "name": "pcb",
+    "files": [
+      {
+        "file": "pcb/circuit_board.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/circuit_board/circuit_board_1k.gltf",
+        "bytes": 4682,
+        "sha256": "ecba88dcee1fbb42564b5f5fd6a1924af3c9fa7e6bf4f4d1c22dd2fa593b71eb"
+      },
+      {
+        "file": "pcb/circuit_board.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/circuit_board/circuit_board.bin",
+        "bytes": 671316,
+        "sha256": "66b45f7311906705cef1625085fa8413818e145773be3560bf8cee26cb5d4108"
+      },
+      {
+        "file": "pcb/textures/circuit_board_nor_gl_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/circuit_board/circuit_board_nor_gl_1k.jpg",
+        "bytes": 853499,
+        "sha256": "eeb181c69783c68e255f13294a98f63f720b43a10ca5065fc476491363057831"
+      },
+      {
+        "file": "pcb/textures/circuit_board_diff_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/circuit_board/circuit_board_diff_1k.jpg",
+        "bytes": 855935,
+        "sha256": "c0481417d7cb35b5d6f2376a93ec8c7b609499b5f57a34d28e090e3ab9094544"
+      },
+      {
+        "file": "pcb/textures/circuit_board_arm_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/circuit_board/circuit_board_arm_1k.jpg",
+        "bytes": 903261,
+        "sha256": "f6f1b9136f52dd83e37632b5458649766f7ad4b3ff4e968f70ed26361af01dc5"
+      }
+    ]
+  }
+]
