@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 // Diagnostics only. Frustum and material estimates are not occlusion queries.
+const finite=v=>Number.isFinite(v)?v:null;
+export function describeMaterial(material){
+ const maps=Object.entries(material).filter(([,v])=>v?.isTexture).map(([slot,t])=>({slot,width:finite(t.image?.width),height:finite(t.image?.height),anisotropy:finite(t.anisotropy),colorSpace:t.colorSpace??null,compressed:!!t.isCompressedTexture,mipLevels:t.mipmaps?.length??0})).sort((a,b)=>a.slot.localeCompare(b.slot));
+ return {name:material.name||'(unnamed)',type:material.type,roughness:finite(material.roughness),metalness:finite(material.metalness),transmission:finite(material.transmission),opacity:finite(material.opacity),envMapIntensity:finite(material.envMapIntensity),emissiveIntensity:finite(material.emissiveIntensity),normalScale:material.normalScale?.toArray().map(finite)??null,color:material.color?.toArray().map(finite)??null,transparent:!!material.transparent,depthWrite:!!material.depthWrite,alphaTest:finite(material.alphaTest),maps};
+}
 export function inspectRenderInventory(roots,camera,renderer){
  camera.updateMatrixWorld(true);
  const frustum=new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));
@@ -18,7 +23,7 @@ export function inspectRenderInventory(roots,camera,renderer){
    if(!visible)return;visibleMeshes++;
    if(!o.frustumCulled||frustum.intersectsObject(o)){frustumMeshes++;frustumTriangleEstimate+=count*instances;if(ms.some(m=>(m?.transmission??0)>0))transmissionMeshes++;if(ms.some(m=>m?.transparent))transparentMeshes++;}
   });
-  rows.push({id,meshes,visibleMeshes,frustumMeshes,triangleEstimate,frustumTriangleEstimate,transmissionMeshes,transparentMeshes,uniqueGeometries:geometries.size,uniqueMaterials:materials.size,uniqueTextures:textures.size,geometryBytes,repeatedGeometryMaterialGroups:[...repeated.values()].filter(x=>x>1).sort((a,b)=>b-a)});
+  rows.push({id,meshes,visibleMeshes,frustumMeshes,triangleEstimate,frustumTriangleEstimate,transmissionMeshes,transparentMeshes,uniqueGeometries:geometries.size,uniqueMaterials:materials.size,materialDetails:[...materials].map(describeMaterial).sort((a,b)=>a.name.localeCompare(b.name)||a.type.localeCompare(b.type)),uniqueTextures:textures.size,geometryBytes,repeatedGeometryMaterialGroups:[...repeated.values()].filter(x=>x>1).sort((a,b)=>b-a)});
  }
  return {roots:rows,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,renderTextures:renderer.info.memory.textures,note:'Per-root frustum/triangle and geometry-buffer estimates; not occlusion, draw-call or VRAM attribution. Shared assets may be counted across roots. Diagnostic traversal after measured frame.'};
 }
