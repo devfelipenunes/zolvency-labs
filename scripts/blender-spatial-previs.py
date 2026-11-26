@@ -29,7 +29,7 @@ cache={};allverts=[];allfaces=[];meshcount=0;skipped=0
 for row in d['meshes']:
     verts=[B(row['positions'][j:j+3]) for j in range(0,len(row['positions']),3)]
     idx=row['indices'];faces=[];mi=[]
-    for g in row['groups']:
+    for g in ([{'start':0,'count':len(idx),'materialIndex':0}] if len(row['materials'])==1 else row['groups']):
         m=row['materials'][g['materialIndex']]
         if m['transmission']>.2 or m['opacity']<.4:
             skipped+=1;continue
