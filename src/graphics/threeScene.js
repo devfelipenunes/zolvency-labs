@@ -14,7 +14,7 @@ function ribbon(path){
    const theta=j/sides*Math.PI*2;
    const v=center.clone().addScaledVector(a,Math.cos(theta)*path.radius).addScaledVector(b,Math.sin(theta)*path.radius*path.profile);
    positions.push(v.x,v.y,v.z);uv.push(i/n,j/sides);
-   if(i<n&&j<sides){const k=i*(sides+1)+j,l=k+sides+1;indices.push(k,l,k+1,l,l+1,k+1);}
+   if(i<n&&j<sides){const k=i*(sides+1)+j,l=k+sides+1;indices.push(k,k+1,l,l,k+1,l+1);}
   }
  }
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();return g;
@@ -31,7 +31,7 @@ export function createThreeScene(host,onLost){
  accent.onBeforeCompile=shader=>{
   shader.uniforms.uStory=pulse;
   shader.vertexShader='varying vec3 vScenePosition;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvScenePosition = position;');
-  shader.fragmentShader='uniform float uStory; varying vec3 vScenePosition;\n'+shader.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\nfloat wave = exp(-pow((vScenePosition.z-(20.0-95.0*uStory))/5.5,2.0)); totalEmissiveRadiance *= 0.65 + wave*1.6;');
+  shader.fragmentShader='uniform float uStory; varying vec3 vScenePosition;\n'+shader.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\nfloat distanceToPulse = (vScenePosition.z-(20.0-95.0*uStory))/5.5; float wave = exp(-distanceToPulse*distanceToPulse); totalEmissiveRadiance *= 0.65 + wave*1.6;');
  };
  accent.customProgramCacheKey=()=> 'woven-story-pulse-v1';
  const mats={ceramic,metal,accent};
