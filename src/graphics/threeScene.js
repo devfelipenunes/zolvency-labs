@@ -96,6 +96,6 @@ export async function createThreeScene(host,onLost){
  function lost(e){e.preventDefault();onLost();}
  function disposeCollected(){for(const g of geometries)g.dispose();for(const m of materials)m.dispose();for(const t of textures)t.dispose();}
  function dispose(){if(disposed)return;disposed=true;typography?.dispose();delete host.dataset.surfaceTitle;delete host.dataset.surfaceReadable;host.parentElement?.style.removeProperty('--scene-sign-alpha');cancelAnimationFrame(frame);delete host.auditRoute;delete host.inspectLayout;delete host.inspectSpatialFrame;renderer.domElement.removeEventListener('webglcontextlost',lost);disposeCollected();audit?.dispose();for(const p of effects?.passes??[])p.dispose?.();effects?.dispose();ktx.dispose();pmrem.dispose();environment.dispose();renderer.dispose();renderer.domElement.remove();}
- if(typographyMode!=='html')typography=createDiegeticTypography(scene,typographyMode,()=>{if(!disposed)draw(last);});host.dataset.typographyMode=typographyMode;
+ if(typographyMode!=='html')typography=createDiegeticTypography(scene,typographyMode,()=>{if(!disposed)draw(last);},spatialEnabled?spatialPose:cameraPose);host.dataset.typographyMode=typographyMode;
  renderer.domElement.id='three-scene';renderer.domElement.addEventListener('webglcontextlost',lost);host.insertBefore(renderer.domElement,host.querySelector('.veil'));return {resize,draw,dispose};
 }
