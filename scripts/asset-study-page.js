@@ -42,3 +42,28 @@ window.exportStaticShell=()=>{
  if(!meshes.length)throw Error('no static meshes');
  return {file,meshes,coordinates:'Three.js world metres, Y-up'};
 };
+
+window.applyFloorBake=async()=>{
+ if(file!=='hangar.glb')throw Error('hangar only');
+ const base='/models/asset-study/floor-bake/';
+ const [mapping,audits,manifest]=await Promise.all(['uv-mapping.json','uv-audit.json','report.json'].map(async name=>{const r=await fetch(base+name);if(!r.ok)throw Error(name);return r.json();}));
+ const bytes=await (await fetch('/models/asset-study/facility/'+file)).arrayBuffer();
+ const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),x=>x.toString(16).padStart(2,'0')).join('');
+ if(hash!==manifest.sourceSHA256)throw Error('bake source mismatch');
+ const audit=audits.find(a=>a.resolution===mapping.resolution);
+ const {transferFloorLightmap}=await import('../src/graphics/floorLightmapTransfer.js');
+ const {EXRLoader}=await import('three/addons/loaders/EXRLoader.js');
+ const texture=await new EXRLoader().loadAsync(base+'floor-indirect.exr');
+ texture.colorSpace=THREE.LinearSRGBColorSpace;texture.channel=1;
+ texture.generateMipmaps=false;texture.minFilter=THREE.LinearFilter;texture.magFilter=THREE.LinearFilter;texture.wrapS=texture.wrapT=THREE.ClampToEdgeWrapping;
+ const modified=[];const shell=root.getObjectByName('hangar_bay');const targets=new Set(mapping.sourceFaces.map(f=>f.node+'|'+f.material));
+ shell.traverse(o=>{
+  if(!o.isMesh||Array.isArray(o.material)||!targets.has(o.name+'|'+o.material.name))return;
+  const result=transferFloorLightmap(o.geometry,{node:o.name,material:o.material.name,assetSHA256:hash,mapping,audit});
+  const material=o.material.clone();material.lightMap=texture;material.lightMapIntensity=.5;material.needsUpdate=true;
+  o.geometry=result.geometry;o.material=[o.material,material];modified.push({node:o.name,...result,geometry:undefined,material});
+ });
+ if(modified.reduce((sum,o)=>sum+o.floorTriangles,0)!==mapping.faces.length)throw Error('not all receiver triangles mapped');
+ window.setFloorLightmapIntensity=v=>{for(const m of modified)m.material.lightMapIntensity=v;};
+ return {sourceSHA256:hash,triangles:modified.map(({node,floorTriangles,sourceTriangles})=>({node,floorTriangles,sourceTriangles})),texture:{width:texture.image.width,height:texture.image.height,mipmaps:texture.generateMipmaps,channel:texture.channel},note:'Isolated material A/B, uncalibrated indirect lighting; no production integration.'};
+};
