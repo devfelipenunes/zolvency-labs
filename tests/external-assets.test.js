@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {mechanicalPose} from '../src/graphics/externalAssets.js';
+test('mechanical choreography is deterministic and bounded',()=>{assert.deepEqual(mechanicalPose(.76),mechanicalPose(.76));assert.notEqual(mechanicalPose(.71).rotor,mechanicalPose(.76).rotor);assert.equal(mechanicalPose(0).door,0);assert.ok(Math.abs(mechanicalPose(.5).door)<Math.PI/2);assert.ok(mechanicalPose(.85).quantum>mechanicalPose(.80).quantum);});

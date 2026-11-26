@@ -1,0 +1,42 @@
+{
+  "publisher": "Grab3D",
+  "license": "CC0-1.0",
+  "assets": [
+    {
+      "name": "graphics-card",
+      "sha256": "8d6c2a72d0c6d4391150d0b013826b055867bd539c1ab4f845d07f07a202ec74",
+      "bytes": 891448,
+      "triangles": 12644,
+      "nodes": [
+        "graphics-card_fan_1_rotor",
+        "graphics-card_fan_2_rotor",
+        "graphics-card_fan_3_rotor"
+      ],
+      "source": "https://grab3d.com/models/electronics/graphics-card/",
+      "url": "https://grab3d.com/dl/graphics-card/graphics-card-light.glb"
+    },
+    {
+      "name": "server-rack",
+      "sha256": "246602b854778930ea71fd612e91de6b71b809f8d31de9d261c44a94223c2139",
+      "bytes": 977100,
+      "triangles": 14851,
+      "nodes": [
+        "server-rack_door",
+        "server-rack_door_glass"
+      ],
+      "source": "https://grab3d.com/models/electronics/server-rack/",
+      "url": "https://grab3d.com/dl/server-rack/server-rack-light.glb"
+    },
+    {
+      "name": "quantum-computer",
+      "sha256": "ae08d86c1ceb5d182358041196fa036289e16cc69dd07e86cf1ad846376a3238",
+      "bytes": 947244,
+      "triangles": 19338,
+      "nodes": [
+        "quantum-computer_body"
+      ],
+      "source": "https://grab3d.com/models/electronics/quantum-computer/",
+      "url": "https://grab3d.com/dl/quantum-computer/quantum-computer-light.glb"
+    }
+  ]
+}

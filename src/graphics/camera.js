@@ -1,10 +1,11 @@
 // Explicit cinematic blocking in a shared three-dimensional world. Scroll is the only clock.
 export const clamp=(x)=>Math.min(1,Math.max(0,x));
 export const ease=t=>{t=clamp(t);return t*t*(3-2*t)};
-export const windows=[0,.115,.235,.435,.575,.73,.865,1];
+export const windows=[0,.115,.435,.575,.68,.80,.91,1];
+export function legacyProgress(p){if(p<=.575)return p;if(p<=.68)return .575;if(p<=.80)return .575+(p-.68)*.155/.12;if(p<=.91)return .73+(p-.80)*.135/.11;return .865+(p-.91)*.135/.09;}
 const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
 // progress, position, optical target, vertical lens FOV, desktop composition (-1 left copy, +1 right)
-export const shots=[
+const originalShots=[
  [0,[12,7,22],[0,2,0],47,-1,'Establishing'],
  [.055,[7,4.5,11],[0,2,0],35,-1,'Dolly'],
  [.115,[15,8,-8],[18,4,-24],53,1,'Reveal'],
@@ -32,6 +33,14 @@ export const shots=[
  [.98,[27,15,-131],[10,4,-153],54,0,'Dolly out'],
  [1,[27,15,-131],[10,4,-153],54,0,'Hold']
 ];
+const remap=p=>p<=.575?p:p<=.73?.68+(p-.575)*.12/.155:p<=.865?.80+(p-.73)*.11/.135:.91+(p-.865)*.09/.135;
+export const shots=[...originalShots.filter(k=>k[0]<=.575),
+ [.59,[-15,10,-94],[-4,4,-86],51,-1,'Proof chamber reveal'],
+ [.615,[-4,11,-97],[-4,4,-86],45,-1,'Verifier overhead'],
+ [.64,[7,9,-94],[-4,4,-86],42,1,'Proof orbit'],
+ [.66,[10,12,-91],[0,4,-92],55,1,'Arithmetic exit'],
+ [.68,[8,13,-88],[12,3,-100],58,-1,'Intelligence reveal'],
+ ...originalShots.filter(k=>k[0]>.575).map(k=>[remap(k[0]),...k.slice(1)])];
 // Mobile uses separate framing and wider lens, plus higher approach points at select shots.
 const mobile=shots.map(([p,pos,target,fov,align,name])=>[p,[pos[0],pos[1]+(name==='Between blocks'?0:.55),pos[2]],[...target],Math.min(74,fov+13),0,name]);
 export const sub=(a,b)=>a.map((v,i)=>v-b[i]);
