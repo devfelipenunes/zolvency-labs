@@ -11,7 +11,7 @@ let browser;const rows=[];
 try{
  let ready=false;for(let i=0;i<80;i++){try{if((await fetch(base)).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,250));}assert.ok(ready);
  browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
- for(const variant of ['control','bounded']){
+ for(const variant of ['control','surface']){
   const page=await browser.newPage({viewport,deviceScaleFactor:1}),errors=[];page.on('pageerror',e=>errors.push(e.message));
   try{
    await page.goto(base+'/?experience=editorial&profile=economy&direction=staged&lighting=local&travel=responsive&framing=portrait&transmission=threequarter&preflight='+(mobile?'full':'compact')+'&finale-light='+variant,{waitUntil:'domcontentloaded'});
@@ -31,7 +31,7 @@ try{
    }assert.deepEqual(errors,[]);
   }finally{await page.close();}
  }
- assert.equal(rows.length,14);
+ assert.equal(rows.length,14);assert.ok(rows.filter(r=>r.variant==='surface').every(r=>r.floorFaces>0),'No actual floor surfaces isolated');
  for(const p of holds){const [a,...candidates]=rows.filter(r=>r.p===p);for(const b of candidates){for(const key of ['position','target'])for(let i=0;i<3;i++)assert.ok(Math.abs(a.pose[key][i]-b.pose[key][i])<.02);assert.ok(Math.abs(a.pose.fov-b.pose.fov)<.02);assert.equal(b.removedOverlap,a.removedOverlap,'material partition must not prevent overlap removal');}}
 
 }finally{await browser?.close();server.kill();}
