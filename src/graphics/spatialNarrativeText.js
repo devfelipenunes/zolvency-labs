@@ -11,7 +11,7 @@ const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 // All visible narrative text is triangulated, extruded glyph geometry, including body copy.
 // One merged mesh per role keeps draw calls low. The editorial rig follows the shot,
 // with controlled perspective, depth and rotation; it is not a physical wall sign.
-export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false}={}){
+export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default'}={}){
  let font=null,logo=null,disposed=false,aspect=0,active=null;const entries=new Map(),ray=new THREE.Raycaster();
  new FontLoader().loadAsync(import.meta.env.BASE_URL+'models/fonts/helvetiker_regular.typeface.json').then(f=>{if(!disposed){font=f;onReady();}}).catch(()=>{});
  new SVGLoader().loadAsync(import.meta.env.BASE_URL+'brand/zolvency.svg').then(d=>{if(!disposed){logo=d.paths.flatMap(p=>SVGLoader.createShapes(p));onReady();}}).catch(()=>{});
@@ -80,6 +80,18 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   }
   return null;
  }
+ // Audition the documented middle-distance brand plane; never claim wall support.
+ function midBrand(mesh,cam,roots){
+  const b=mesh.geometry.boundingBox,center=b.getCenter(V()),size=b.getSize(V()),point=V(-1.5,3.3,2);
+  const rotation=cam.quaternion.clone(),right=V(1,0,0).applyQuaternion(rotation),up=V(0,1,0).applyQuaternion(rotation);
+  for(const width of [3.6,3.0,2.5]){
+   const scale=width/size.x,hh=size.y*scale*.5;
+   const corners=[point,...[-1,-.5,0,.5,1].flatMap(u=>[-1,0,1].map(v=>point.clone().addScaledVector(right,u*width*.52).addScaledVector(up,v*hh*1.04)))];
+   if(corners.some(q=>{const p=q.clone().project(cam);return Math.abs(p.x)>.94||Math.abs(p.y)>.90||Math.abs(p.z)>=1||isBlocked(cam.position,q,roots);}))continue;
+   return {point,rotation,scale,center,right,up,depth:point.distanceTo(cam.position),mount:'free-space-mid'};
+  }
+  return null;
+ }
  function placeWorld(e,mobile,a,roots){
   const pose=rail(e.card.hold,mobile),cam=new THREE.PerspectiveCamera(pose.fov,a,.075,65);
   cam.position.fromArray(pose.position);cam.lookAt(new THREE.Vector3(...pose.target));cam.updateProjectionMatrix();cam.updateMatrixWorld(true);
@@ -88,9 +100,9 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   for(const [i,m] of e.group.children.entries()){
    const b=m.geometry.boundingBox,center=b.getCenter(V()),size=b.getSize(V());
    const [rx,ry,rs,depth]=layouts[e.card.name][i];
-   const mobileY=e.card.name==='QUANTUM'?[.75,-.64,-.84,-.91]:[.35,-.18,-.59,-.84];
+   const mobileY=e.card.name==='QUANTUM'?(['quantum-copy','selected'].includes(composition)?[.75,-.50,-.71,-.91]:[.75,-.64,-.84,-.91]):[.35,-.18,-.59,-.84];
    const x=mobile?0:rx,y=mobile?mobileY[i]:ry,span=mobile?Math.min(.80,rs*1.8):rs;
-   let anchor=art&&i===0&&e.card.brand?mountedBrand(e,m,cam,mobile,roots):null;
+   let anchor=null;if(art&&i===0&&e.card.brand){if(e.card.name==='ORIGIN'&&['mid','close','selected'].includes(composition))anchor=midBrand(m,cam,all);if(!anchor)anchor=mountedBrand(e,m,cam,mobile,roots);}
    for(const d of [depth,depth*.76,depth*.55,depth*.36,.72,.48,.30]){
     if(anchor)break;
     const h=d*Math.tan(THREE.MathUtils.degToRad(cam.fov/2)),w=h*a;
@@ -112,7 +124,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   if(!entries.has(card.name))build(card,mobile);
   for(const e of entries.values())e.group.visible=false;active=entries.get(card.name)??null;
   if(!active)return {ready:false,visible:false,shot:card.name};
-  if(!active.anchors){if(roots.size<8)return {ready:false,visible:false,shot:card.name};if(active.attemptedSize===roots.size)return {ready:false,visible:false,shot:card.name};active.attemptedSize=roots.size;if(!placeWorld(active,mobile,a,roots))return {ready:false,visible:false,shot:card.name};}
+  if(!active.anchors){if(roots.size<8)return {ready:false,visible:false,shot:card.name};const signature=[...roots.entries()].filter(([,o])=>o.visible).map(([id])=>id).sort().join(',')+'|'+roots.size;if(active.attemptedSignature===signature)return {ready:false,visible:false,shot:card.name};active.attemptedSignature=signature;if(!placeWorld(active,mobile,a,roots))return {ready:false,visible:false,shot:card.name};}
   const {group}=active;group.position.set(0,0,0);group.quaternion.identity();group.scale.setScalar(1);group.visible=anim.alpha>.02;
   const t=anim.local;
   for(const [i,m] of group.children.entries()){
