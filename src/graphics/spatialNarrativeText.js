@@ -3,7 +3,7 @@ import {SVGLoader} from 'three/addons/loaders/SVGLoader.js';
 import {FontLoader} from 'three/addons/loaders/FontLoader.js';
 import {TextGeometry} from 'three/addons/geometries/TextGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {ramp} from './facilityCamera.js';
+import {ramp,windows} from './facilityCamera.js';
 import {shotCards,shotAnimation,shotLayout} from './shotCards.js';
 
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
@@ -92,7 +92,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false}
   const {group}=active;group.position.set(0,0,0);group.quaternion.identity();group.scale.setScalar(1);group.visible=anim.alpha>.02;
   const t=anim.local;
   for(const [i,m] of group.children.entries()){
-   const anchor=active.anchors[i],enter=i===0?1:ramp(t,i===1?.16:i===2?.32:.05,i===1?.34:i===2?.46:.18);const exit=anim.index===6?1:1-ramp(t,i===0?.69:.74,i===0?.86:.88);const alpha=anim.alpha*enter*exit;
+   const anchor=active.anchors[i],enter=i===0?1:ramp(t,i===1?.16:i===2?.32:.05,i===1?.34:i===2?.46:.18);const hold=(card.hold-windows[anim.index])/(windows[anim.index+1]-windows[anim.index]);const exit=anim.index===6?1:1-ramp(t,Math.max(hold+.025,i===0?.69:.74),Math.max(hold+.075,i===0?.86:.88));const alpha=anim.alpha*enter*exit;
    m.visible=alpha>.025;m.material.opacity=alpha;
    // Put fully revealed lettering into the opaque pass so transmissive surfaces cannot erase it.
    const opaque=alpha>.995;if(m.material.transparent===opaque){m.material.transparent=!opaque;m.material.depthWrite=opaque;m.material.needsUpdate=true;}
