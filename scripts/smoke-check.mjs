@@ -10,7 +10,7 @@ try{
  await mkdir('artifacts/smoke',{recursive:true});
  let ready=false;for(let i=0;i<80;i++){try{if((await fetch(base)).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,250));}assert.ok(ready,'preview server unavailable');
  browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
- for(const [name,viewport] of [['desktop',{width:640,height:400}],['mobile',{width:320,height:640}]]){
+ for(const [name,viewport] of [['desktop',{width:800,height:450}],['mobile',{width:320,height:640}]]){
   const page=await browser.newPage({viewport,deviceScaleFactor:1}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/shader|THREE.WebGLProgram/i.test(m.text()))errors.push(m.text());});
   try{
