@@ -4,7 +4,7 @@ import {KTX2Loader} from 'three/addons/loaders/KTX2Loader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 const file=new URLSearchParams(location.search).get('file');
-if(!['bridge.glb','control-room.glb','server-rack.glb'].includes(file))throw Error('unknown audition asset');
+if(!['bridge.glb','control-room.glb','server-rack.glb','hangar.glb'].includes(file))throw Error('unknown audition asset');
 const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
 renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(1);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;document.body.appendChild(renderer.domElement);
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x141c21);
@@ -26,3 +26,19 @@ window.renderAngle=(angle,interior=false)=>{
  else{camera.fov=50;camera.position.copy(center).add(new THREE.Vector3(Math.sin(theta)*diameter*1.55,diameter*.8,Math.cos(theta)*diameter*1.55));camera.lookAt(center);}
  camera.updateProjectionMatrix();renderer.render(scene,camera);
 };window.renderAngle(40);document.body.dataset.ready='true';
+
+window.exportStaticShell=()=>{
+ if(file!=='hangar.glb')throw Error('hangar only');
+ const shell=root.getObjectByName('hangar_bay');if(!shell)throw Error('source hangar_bay missing');
+ const meshes=[],v=new THREE.Vector3();
+ shell.traverse(o=>{
+  if(!o.isMesh||Array.isArray(o.material)||o.material.transparent||(o.material.transmission??0)>.001||/glass|light|led|screen|glow|holo/i.test(o.material.name??''))return;
+  const g=o.geometry,attr=g.attributes.position,positions=[];
+  for(let i=0;i<attr.count;i++)positions.push(...v.fromBufferAttribute(attr,i).applyMatrix4(o.matrixWorld).toArray());
+  const indices=g.index?Array.from(g.index.array):Array.from({length:attr.count},(_,i)=>i);
+  if(indices.length%3)throw Error('nontriangle geometry');
+  meshes.push({node:o.name,material:o.material.name,positions,indices});
+ });
+ if(!meshes.length)throw Error('no static meshes');
+ return {file,meshes,coordinates:'Three.js world metres, Y-up'};
+};
