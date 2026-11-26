@@ -1,6 +1,6 @@
 """Offline proof only, no production material changes."""
 import bpy,sys,os,json,math,importlib.util
-import numpy as np
+from array import array
 from mathutils import Vector
 src,out=sys.argv[sys.argv.index('--')+1:][:2]
 os.makedirs(out,exist_ok=True)
@@ -55,11 +55,16 @@ area('rim',(-7,9,6),(0,5,2),900,(1,.82,.62),4)
 bpy.ops.object.select_all(action='DESELECT');receiver.select_set(True);bpy.context.view_layer.objects.active=receiver
 scene.render.bake.margin=8
 result=bpy.ops.object.bake(type='DIFFUSE',pass_filter={'INDIRECT'},margin=8,margin_type='EXTEND')
-pixels=np.empty(len(image.pixels),dtype=np.float32);image.pixels.foreach_get(pixels)
-rgb=pixels.reshape(-1,image.channels)[:,:3];finite=np.isfinite(rgb)
-report={'operator':sorted(result),'sourceSHA256':data['sha256'],'resolution':size,'receiverTriangles':len(rows),'occluderTriangles':len(occ_faces),'excluded':excluded,'chartCount':mapping['chartCount'],'paddingTexels':mapping['paddingTexels'],'sourceArea':mapping['sourceArea'],'scaleTexelsPerMeter':mapping['scaleTexelsPerMeter'],'finiteValues':int(finite.sum()),'rgbValues':int(rgb.size),'positiveValues':int((rgb>0).sum()),'rgbMax':float(np.nanmax(rgb)),'rgbMean':float(np.nanmean(rgb)),'pass':'INDIRECT','warning':'Neutral diffuse indirect-light proof; not yet integrated or calibrated to production PBR.'}
+pixels=array('f',[0])*len(image.pixels);image.pixels.foreach_get(pixels)
+channels=image.channels;rgb_count=finite_count=positive_count=0;total=0.;maximum=0.
+for i in range(0,len(pixels),channels):
+    for j in range(min(3,channels)):
+        v=pixels[i+j];rgb_count+=1
+        if not math.isfinite(v):continue
+        finite_count+=1;positive_count+=int(v>0);total+=v;maximum=max(maximum,v)
+report={'operator':sorted(result),'sourceSHA256':data['sha256'],'resolution':size,'receiverTriangles':len(rows),'occluderTriangles':len(occ_faces),'excluded':excluded,'chartCount':mapping['chartCount'],'paddingTexels':mapping['paddingTexels'],'sourceArea':mapping['sourceArea'],'scaleTexelsPerMeter':mapping['scaleTexelsPerMeter'],'finiteValues':finite_count,'rgbValues':rgb_count,'positiveValues':positive_count,'rgbMax':maximum,'rgbMean':total/max(1,finite_count),'pass':'INDIRECT','warning':'Neutral diffuse indirect-light proof; not yet integrated or calibrated to production PBR.'}
 json.dump(report,open(os.path.join(out,'report.json'),'w'),indent=2);print('FLOOR_BAKE',json.dumps(report),flush=True)
-assert 'FINISHED' in result and finite.all() and report['positiveValues']>0
+assert 'FINISHED' in result and finite_count==rgb_count and rgb_count>0 and report['positiveValues']>0
 image.filepath_raw=os.path.abspath(os.path.join(out,'floor-indirect.exr'));image.file_format='OPEN_EXR';image.save()
 scene.render.image_settings.file_format='PNG';scene.render.image_settings.color_mode='RGB';image.save_render(os.path.abspath(os.path.join(out,'floor-indirect.png')),scene=scene)
 bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(os.path.join(out,'floor-indirect.blend')))
