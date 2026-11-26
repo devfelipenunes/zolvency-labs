@@ -1,7 +1,7 @@
 name: Targeted cinematic budgets
 on:
   pull_request:
-    branches: [main, feat/v0.31-render-inventory]
+    branches: [main, feat/v0.31-directed-experience, feat/v0.31-render-inventory]
     paths:
       - 'src/graphics/staticRackBatch.js'
       - 'src/graphics/warmupPlan.js'
