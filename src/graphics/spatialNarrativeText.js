@@ -81,10 +81,10 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   return null;
  }
  // Audition the documented middle-distance brand plane; never claim wall support.
- function midBrand(mesh,cam,roots){
-  const b=mesh.geometry.boundingBox,center=b.getCenter(V()),size=b.getSize(V()),point=V(-1.5,3.3,2);
+ function midBrand(mesh,cam,roots,mobile,hero){
+  const b=mesh.geometry.boundingBox,center=b.getCenter(V()),size=b.getSize(V()),point=V(-1.5,hero?4.2:3.3,2);
   const rotation=cam.quaternion.clone(),right=V(1,0,0).applyQuaternion(rotation),up=V(0,1,0).applyQuaternion(rotation);
-  for(const width of [3.6,3.0,2.5]){
+  for(const width of (hero&&!mobile?[5.2,4.6,3.6]:[3.6,3.0,2.5])){
    const scale=width/size.x,hh=size.y*scale*.5;
    const corners=[point,...[-1,-.5,0,.5,1].flatMap(u=>[-1,0,1].map(v=>point.clone().addScaledVector(right,u*width*.52).addScaledVector(up,v*hh*1.04)))];
    if(corners.some(q=>{const p=q.clone().project(cam);return Math.abs(p.x)>.94||Math.abs(p.y)>.90||Math.abs(p.z)>=1||isBlocked(cam.position,q,roots);}))continue;
@@ -102,7 +102,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
    const [rx,ry,rs,depth]=layouts[e.card.name][i];
    const mobileY=e.card.name==='QUANTUM'?(composition==='quantum-copy'?[.75,-.50,-.71,-.91]:[.75,-.64,-.84,-.91]):[.35,-.18,-.59,-.84];
    const x=mobile?0:rx,y=mobile?mobileY[i]:ry,span=mobile?Math.min(.80,rs*1.8):rs;
-   let anchor=null;if(art&&i===0&&e.card.brand){if(e.card.name==='ORIGIN'&&['mid','close'].includes(composition))anchor=midBrand(m,cam,all);if(!anchor)anchor=mountedBrand(e,m,cam,mobile,roots);}
+   let anchor=null;if(art&&i===0&&e.card.brand){if(e.card.name==='ORIGIN'&&['mid','close','brand-hero'].includes(composition))anchor=midBrand(m,cam,all,mobile,composition==='brand-hero');if(!anchor)anchor=mountedBrand(e,m,cam,mobile,roots);}
    for(const d of [depth,depth*.76,depth*.55,depth*.36,.72,.48,.30]){
     if(anchor)break;
     const h=d*Math.tan(THREE.MathUtils.degToRad(cam.fov/2)),w=h*a;
