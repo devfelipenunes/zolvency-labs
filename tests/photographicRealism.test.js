@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {realismModes,realismMode,enables,localLightWeights,photographicRefinement,refineSurface,depthAtmosphere,equipmentAccent,reflectionSpec,assignReflection} from '../src/graphics/photographicRealism.js';
-test('independent candidates are opt-in and combined enables all four',()=>{
+import {realismModes,realismMode,enables,localLightWeights,photographicRefinement,refineSurface,depthAtmosphere,equipmentAccent,reflectionSpec,assignReflection,craneTravel} from '../src/graphics/photographicRealism.js';
+test('independent candidates are opt-in and combined enables all five',()=>{
  assert.equal(realismMode('bad'),'baseline');
  assert.equal(new Set(realismModes).size,7);
  for(const k of ['surface','bounce','depth','motion','reflection']){assert.equal(enables('baseline',k),false);assert.equal(enables('combined',k),true);}
@@ -30,3 +30,5 @@ test('equipment changes are scroll deterministic, slow and localized',()=>{
 });
 
 test('probes target three rooms, not Quantum; assign only eligible opaque surfaces',()=>{assert.equal(reflectionSpec(.935),null);assert.deepEqual([.055,.205,.73].map(p=>reflectionSpec(p).id),['hangar','servers','bridge']);const root=new THREE.Group(),a=new THREE.MeshStandardMaterial(),b=new THREE.MeshPhysicalMaterial({transmission:1}),t=new THREE.Texture(),g=new THREE.BoxGeometry();root.add(new THREE.Mesh(g,a),new THREE.Mesh(g,b));assert.equal(assignReflection(root,t,.2),1);assert.equal(a.envMap,t);assert.equal(b.envMap,null);assert.equal(assignReflection(root,t,.2),0);a.dispose();b.dispose();g.dispose();t.dispose();});
+
+test('crane retiming remains within existing path and is reversible',()=>{assert.equal(craneTravel(0),0);assert.equal(craneTravel(.40),1);let last=0;for(let i=0;i<=1000;i++){const p=i/1000,v=craneTravel(p);assert.ok(v>=last&&v<=1);last=v;assert.equal(v,craneTravel(p));}});
