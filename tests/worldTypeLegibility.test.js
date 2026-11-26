@@ -1,0 +1,1 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {bodyHeightProxy} from '../src/graphics/worldType.js';test('rejects unreadably small projected body at reference hold',()=>{assert.ok(bodyHeightProxy({spanY:.142},38)<16);assert.ok(bodyHeightProxy({spanY:.32},44)>16);});
