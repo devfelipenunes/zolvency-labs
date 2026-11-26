@@ -27,7 +27,7 @@ export function createKineticTitles(scene,rail,onReady){
   const geom=d.brand?new THREE.ExtrudeGeometry(logo,{depth:16,bevelEnabled:false}):new TextGeometry(d.label,{font,size:1,depth:.09,curveSegments:5,bevelEnabled:false});
   if(d.brand)geom.scale(1,-1,1);geom.computeBoundingBox();const size=geom.boundingBox.getSize(new THREE.Vector3()),center=geom.boundingBox.getCenter(new THREE.Vector3());geom.translate(-center.x,-center.y,-center.z);
   const cam=cameraAt(d,mobile,a),all=[...roots.values()],dir=new THREE.Vector3();cam.getWorldDirection(dir);const right=new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld,0),up=new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld,1);let patch=null;
-  for(const distance of [d.brand?3.8:2.6,1.8,1.1,.65]){
+  for(const distance of [d.brand?3.8:2.6,1.8,1.1,.65,.42]){
    const halfH=distance*Math.tan(THREE.MathUtils.degToRad(cam.fov/2)),halfW=halfH*a;
    const width=Math.min(2*halfW*d.span,2*halfH*.24*(size.x/size.y)),height=width*size.y/size.x;
    const point=cam.position.clone().addScaledVector(dir,distance).addScaledVector(right,d.x*halfW).addScaledVector(up,d.y*halfH);
@@ -44,7 +44,7 @@ export function createKineticTitles(scene,rail,onReady){
  function update(p,roots,mobile,a,mask,ambient=0){
   if(Math.abs(a-aspect)>.1){clear();aspect=a;}
   const current=cues.find(d=>p>=d.range[0]&&p<=d.range[3]);
-  if(current&&!attempted.has(current.name)&&roots.size>=1)build(current,roots,mobile,a);
+  const required={ORIGIN:['hangar','servers'],BLOCKCHAIN:['servers'],STELLAR:['servers'],CRYPTOGRAPHY:['corridor','portal'],INTELLIGENCE:['bridge'],QUANTUM:['reactor-room','quantum'],CONVERGENCE:['hangar','servers']};if(current&&!attempted.has(current.name)&&required[current.name].every(id=>roots.has(id)))build(current,roots,mobile,a);
   let active=null;for(const e of entries.values()){
    const {d,mesh,patch}=e,[s,b,c,z]=d.range,t=ramp(p,s,z),alpha=cueEnvelope(d,p)*(1-mask);
    mesh.visible=alpha>.025;mesh.material.opacity=alpha;
@@ -57,5 +57,6 @@ export function createKineticTitles(scene,rail,onReady){
   return active?{name:active.d.name,anchor:'world-space',brand:!!active.d.brand,point:active.mesh.position.toArray(),width:active.patch.width,span:active.d.span}:null;
  }
  function openingPose(p,pose){const e=entries.get('ORIGIN');if(!e||p>.075)return pose;const t=1-ramp(p,0,.075);return {...pose,target:v(pose.target).lerp(e.patch.point,t*.85).toArray(),fov:pose.fov*(1-.15*t)};}
- return {update,openingPose,dispose(){disposed=true;clear();},diagnostics(){return [...entries.values()].map(e=>({name:e.d.name,anchor:'world-space',width:e.patch.width,span:e.d.span,point:e.patch.point.toArray()}));}};
+ function inspectFrame(camera,roots){camera.updateMatrixWorld(true);return [...entries.values()].filter(e=>e.mesh.visible).map(e=>{e.mesh.updateMatrixWorld(true);const box=e.mesh.geometry.boundingBox??(e.mesh.geometry.computeBoundingBox(),e.mesh.geometry.boundingBox),points=[];for(const x of [box.min.x,box.max.x])for(const y of [box.min.y,box.max.y])for(const z of [box.min.z,box.max.z])points.push(new THREE.Vector3(x,y,z).applyMatrix4(e.mesh.matrixWorld));const projected=points.map(p=>p.clone().project(camera));return {name:e.d.name,inside:projected.every(p=>Math.abs(p.x)<1&&Math.abs(p.y)<1&&Math.abs(p.z)<1),span:(Math.max(...projected.map(p=>p.x))-Math.min(...projected.map(p=>p.x)))/2,clear:points.filter(p=>!blocked(camera,p,[...roots.values()])).length,opacity:e.mesh.material.opacity};});}
+ return {update,openingPose,inspectFrame,dispose(){disposed=true;clear();},diagnostics(){return [...entries.values()].map(e=>({name:e.d.name,anchor:'world-space',width:e.patch.width,span:e.d.span,point:e.patch.point.toArray()}));}};
 }
