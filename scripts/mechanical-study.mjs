@@ -13,7 +13,7 @@ try{
  browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
  for(const viewport of [{width:1280,height:720},{width:390,height:844}]){
   for(const candidate of [false,true]){
-   const page=await browser.newPage({viewport,deviceScaleFactor:1}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+   const page=await browser.newPage({viewport,deviceScaleFactor:1,recordVideo:{dir:out+'/video',size:viewport}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.goto(base+'/?diagnostics=1'+(candidate?'&motion=crane':''));
    await page.waitForSelector('#stage[data-renderer="three"]',{timeout:120000});
    await page.waitForFunction(n=>Number(document.querySelector('#stage')?.dataset.assets)===n,expectedAssets,{timeout:120000});
@@ -27,6 +27,7 @@ try{
    assert.ok(clearance.every(r=>r.distance>.06));
    const name=viewport.width+'-'+(candidate?'candidate':'control');
    for(const p of [0,.025,.055,.075,.105]){await page.evaluate(p=>document.querySelector('#stage').benchmarkFrame(p),p);await page.screenshot({path:out+'/'+name+'-'+p+'.png'});}
+   for(const direction of ['forward','reverse'])for(let i=0;i<=12;i++){const p=.115*(direction==='forward'?i:12-i)/12;await page.evaluate(p=>document.querySelector('#stage').benchmarkFrame(p),p);await page.waitForTimeout(90);}
    assert.deepEqual(errors,[]);reports.push({viewport,...report,clearance});await writeFile(out+'/report.json',JSON.stringify(reports,null,2));await page.close();
   }
  }
