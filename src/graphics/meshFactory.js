@@ -1,22 +1,12 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-export function materials(){
- return {titanium:new THREE.MeshStandardMaterial({color:0xc6cfce,metalness:.78,roughness:.28}),gold:new THREE.MeshStandardMaterial({color:0xb5a278,metalness:.83,roughness:.27}),dark:new THREE.MeshStandardMaterial({color:0x243237,metalness:.55,roughness:.43}),accent:new THREE.MeshStandardMaterial({color:0xbcebd3,metalness:.26,roughness:.25,emissive:0x68a58a,emissiveIntensity:1.15})};
-}
-export function geometries(){
- const ring=new THREE.TorusGeometry(.43,.07,6,32);ring.rotateX(Math.PI/2);
- return {box:new RoundedBoxGeometry(1,1,1,1,.075),sphere:new THREE.SphereGeometry(.5,12,8),cylinder:new THREE.CylinderGeometry(.5,.5,1,24,1),torus:ring};
-}
-export function partMatrix(part,position=part.position,rotation=[0,0,0]){
- const scale=[...part.size];if(part.shape==='torus')scale[1]/=.14;
- return new THREE.Matrix4().compose(new THREE.Vector3(...position),new THREE.Quaternion().setFromEuler(new THREE.Euler(...rotation)),new THREE.Vector3(...scale));
-}
-// Bake per material into reusable real meshes, retaining independent authoring blueprints.
-export function bakedModel(parts,geo,mats){
- const root=new THREE.Group();
- for(const [kind,material] of Object.entries(mats)){
- const gs=parts.filter(o=>o.kind===kind).map(o=>{const g=geo[o.shape].clone();g.applyMatrix4(partMatrix(o));if(g.index){const n=g.toNonIndexed();g.dispose();return n;}return g;});
- if(!gs.length)continue;const g=mergeGeometries(gs,false);gs.forEach(x=>x.dispose());if(!g)throw Error('Asset geometry merge failed');const mesh=new THREE.Mesh(g,material);mesh.name=kind;root.add(mesh);
- }return root;
-}
+import { mergeGeometries,mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+import {palette} from './models.js';
+function surfaceMaps(){const n=64,norm=new Uint8Array(n*n*4),rough=new Uint8Array(n*n*4);for(let y=0;y<n;y++)for(let x=0;x<n;x++){const i=(y*n+x)*4,v=Math.sin(y*Math.PI/4)*.65+Math.sin((x+y)*Math.PI/8)*.35;norm.set([128+Math.round(v*4),128+Math.round(v*16),253,255],i);const r=180+Math.round(v*34);rough.set([r,r,r,255],i);}const make=bytes=>{const t=new THREE.DataTexture(bytes,n,n,THREE.RGBAFormat);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(4,4);t.magFilter=THREE.LinearFilter;t.minFilter=THREE.LinearMipmapLinearFilter;t.generateMipmaps=true;t.needsUpdate=true;return t;};return {normal:make(norm),rough:make(rough)};}
+export function materials(detail=false){const maps=detail?surfaceMaps():null;return Object.fromEntries(Object.entries(palette).map(([name,p])=>{const mat=new THREE.MeshPhysicalMaterial(p);mat.name=name;if(maps&&['titanium','gold','copper','dark'].includes(name)){mat.normalMap=maps.normal;mat.normalScale.set(.24,.24);mat.roughnessMap=maps.rough;}return [name,mat];}));}
+export function geometries(){const ring=new THREE.TorusGeometry(.43,.07,6,32);ring.rotateX(Math.PI/2);
+ const sh=new THREE.Shape();for(const [i,[x,z]] of [[-.36,-.5],[.36,-.5],[.5,-.36],[.5,.36],[.36,.5],[-.36,.5],[-.5,.36],[-.5,-.36]].entries())i?sh.lineTo(x,z):sh.moveTo(x,z);sh.closePath();
+ const chamfer=new THREE.ExtrudeGeometry(sh,{depth:.78,bevelEnabled:true,bevelThickness:.11,bevelSize:.035,bevelSegments:1,steps:1});chamfer.translate(0,0,-.39);chamfer.rotateX(Math.PI/2);chamfer.computeBoundingBox();const size=new THREE.Vector3();chamfer.boundingBox.getSize(size);chamfer.scale(1/size.x,1/size.y,1/size.z);
+ return {box:new RoundedBoxGeometry(1,1,1,1,.055),chamfer,sphere:new THREE.SphereGeometry(.5,12,8),cylinder:new THREE.CylinderGeometry(.5,.5,1,20,1),hex:new THREE.CylinderGeometry(.5,.5,1,6,1),torus:ring};}
+export function partMatrix(part,position=part.position,rotation=[0,0,0]){const scale=[...part.size];if(part.shape==='torus')scale[1]/=.14;return new THREE.Matrix4().compose(new THREE.Vector3(...position),new THREE.Quaternion().setFromEuler(new THREE.Euler(...rotation)),new THREE.Vector3(...scale));}
+export function bakedModel(parts,geo,mats){const root=new THREE.Group();for(const [kind,material] of Object.entries(mats)){const gs=parts.filter(o=>o.kind===kind).map(o=>{const g=geo[o.shape].clone();g.applyMatrix4(partMatrix(o));if(g.index){const n=g.toNonIndexed();g.dispose();return n;}return g;});if(!gs.length)continue;const g=mergeGeometries(gs,false);gs.forEach(x=>x.dispose());if(!g)throw Error('Asset geometry merge failed');const indexed=mergeVertices(g,1e-5);g.dispose();const mesh=new THREE.Mesh(indexed,material);mesh.name=kind;root.add(mesh);}return root;}

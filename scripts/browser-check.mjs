@@ -5,7 +5,7 @@ try{for(let i=0;i<80;i++){try{if((await fetch(base)).ok)break;}catch{}await new 
  for(const [label,viewport] of [['desktop',{width:1440,height:900}],['mobile',{width:390,height:844}]]){
  const page=await browser.newPage({viewport});const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/shader|THREE.WebGLProgram/i.test(m.text()))errors.push(m.text())});
  await page.goto(base);await page.waitForSelector('#stage[data-pose]');const webgl=await page.evaluate(()=>!!document.createElement('canvas').getContext('webgl2'));
- if(webgl){await page.waitForSelector('#stage[data-renderer="three"][data-assets="2"]',{timeout:45000});}
+ if(webgl){await page.waitForSelector('#stage[data-renderer="three"]',{timeout:45000});}
  const mode=await page.locator('#stage').getAttribute('data-renderer');console.log(label,'renderer',mode,'WebGL2',webgl);
  const pose=()=>page.locator('#stage').getAttribute('data-pose');
  const layout=()=>page.evaluate(()=>({max:document.documentElement.scrollHeight-innerHeight,anchors:[...document.querySelectorAll('main section')].map((e,i)=>i===0?0:e.getBoundingClientRect().top+scrollY)}));
@@ -13,6 +13,7 @@ try{for(let i=0;i<80;i++){try{if((await fetch(base)).ok)break;}catch{}await new 
  const start=await go(0),firstGeo=await page.locator('#stage').getAttribute('data-geometries');const readouts=[];
  const frames=label==='desktop'?shots.filter((_,i)=>i!==shots.length-1).map(k=>k[0]):[0,.18,.28,.36,.395,.49,.67,.785,.825,.98];
  for(let i=0;i<frames.length;i++){await go(frames[i]);await page.screenshot({path:'artifacts/'+label+'-'+String(i).padStart(2,'0')+'.png'});readouts.push(await page.locator('#stage').evaluate(e=>({...e.dataset})));}
+ if(mode==='three')await page.waitForSelector('#stage[data-assets="2"]',{timeout:45000});
  const mid=await go(.36),end=await go(1);assert.notEqual(start,mid);assert.notEqual(mid,end);assert.equal(await go(.36),mid);assert.equal(await go(0),start);
  if(mode==='three'){assert.equal(await page.locator('#stage').getAttribute('data-geometries'),firstGeo);assert.ok(readouts.every(r=>Number(r.drawCalls)<160));assert.ok(readouts.every(r=>Number(r.triangles)>0));}
  await page.keyboard.press('End');await page.waitForFunction(()=>Number(document.querySelector('#stage')?.dataset.progress)===1,null,{timeout:20000});assert.equal(await pose(),end);await page.keyboard.press('Home');await page.waitForFunction(()=>Number(document.querySelector('#stage')?.dataset.progress)===0);
