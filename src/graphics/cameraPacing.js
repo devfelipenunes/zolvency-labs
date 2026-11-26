@@ -1,10 +1,11 @@
 import {windows,clamp} from './facilityCamera.js';
 import {reviewPose} from './visualReview.js';
+import {stabilizedPose} from './editorialCamera.js';
 import {directedCut} from './cinematicCut.js';
 const length=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]));
 const direction=pose=>{const d=pose.target.map((x,i)=>x-pose.position[i]),n=Math.hypot(...d);return d.map(x=>x/Math.max(n,1e-9));};
 export function angularDistance(a,b){const x=direction(a),y=direction(b);return Math.acos(Math.max(-1,Math.min(1,x.reduce((s,v,i)=>s+v*y[i],0))))*180/Math.PI;}
-export function createPacing({mobile=false,samples=1600,poseFor=(p)=>directedCut(p,mobile,null,(p,m)=>reviewPose(p,m,true,'aisle','opposite',true,'brand-hero'))}={}){
+export function createPacing({mobile=false,samples=1600,poseFor=(p)=>directedCut(p,mobile,null,(p,m)=>stabilizedPose(p,m,(q,n)=>reviewPose(q,n,true,'aisle','opposite',true,'brand-hero')))}={}){
  const chapters=[];
  for(let i=0;i<windows.length-1;i++){
   const lo=windows[i],hi=windows[i+1],poses=Array.from({length:samples+1},(_,j)=>poseFor(lo+(hi-lo)*j/samples));
