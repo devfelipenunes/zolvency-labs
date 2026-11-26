@@ -29,7 +29,7 @@ function Brand(){return <header className="brand"><svg viewBox="0 0 32 32" fill=
 export default function App(){
   const story=useRef(null);
   const {progress,index,reduced}=useScrollStory(story);
-  return <><Stage progress={progress} reduced={reduced}/><Brand/><div className="edition" aria-hidden="true">WOVEN SYSTEMS / RC 01</div>
-  <main id="story" ref={story}>{chapters.map((c,i)=>{const Heading=i===0?'h1':'h2';return <section className="chapter" data-name={c.name} key={c.name}><div className="copy"><div className="eyebrow">{String(i+1).padStart(2,'0')} / {c.label}</div><Heading>{c.title}</Heading><p>{c.body}</p>{i===0&&<span className="tag">SCROLL TO EXPLORE ↓</span>}{i===chapters.length-1&&<div className="endnote">ZOLVENCY LABS / EXPERIMENTAL PREVIEW / 0.9</div>}</div></section>})}</main>
+  return <><Stage progress={progress} reduced={reduced}/><Brand/><div className="edition" aria-hidden="true">TECHNOLOGICAL CONVERGENCE / 01</div>
+  <main id="story" ref={story}>{chapters.map((c,i)=>{const Heading=i===0?'h1':'h2';return <section className="chapter" data-name={c.name} key={c.name}><div className="copy"><div className="eyebrow">{String(i+1).padStart(2,'0')} / {c.label}</div><Heading>{c.title}</Heading><p>{c.body}</p>{i===2&&<div className="micro-label">BLOCKS / COMMITMENTS / SHARED STATE</div>}{i===4&&<div className="micro-label">AGENTS / AUTHORIZATION / VERIFICATION</div>}{i===5&&<div className="micro-label">QUANTUM COMPUTING ≠ POST-QUANTUM CRYPTOGRAPHY</div>}{i===0&&<span className="tag">SCROLL TO EXPLORE ↓</span>}{i===chapters.length-1&&<div className="endnote">ZOLVENCY LABS / EXPERIMENTAL PREVIEW / 0.10</div>}</div></section>})}</main>
   <div className="track" aria-hidden="true"><span>{String(index+1).padStart(2,'0')} / {chapters[index].name}</span><i><b style={{width:(progress*100)+'%'}}/></i><span>{String(Math.round(progress*100)).padStart(3,'0')}%</span></div></>;
 }
