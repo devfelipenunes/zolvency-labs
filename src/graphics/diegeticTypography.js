@@ -53,7 +53,7 @@ export function createDiegeticTypography(scene,mode,onReady,poseFn=cameraPose){
     if(!box.inside||box.width<(mobile?135:175)||!supports(patch))continue;
     // Discard a patch before ranking if any corner is hidden by foreground geometry at its reading pose.
     if([patch.point,...pts].some(q=>{const v=q.clone().addScaledVector(n,.014).sub(cam.position),dist=v.length();return !!hit(cam.position,v.normalize(),all,Math.max(.001,dist-.035));}))continue;
-    const style=mode==='signage'?(station.style==='display'?'display':'stencil'):mode==='panel'?'display':mode==='projection'?'projection':station.style;
+    const style=mode==='labels'?'stencil':mode==='signage'?(station.style==='display'?'display':'stencil'):mode==='panel'?'display':mode==='projection'?'projection':station.style;
     const name=(matOf(h)?.name??'')+' '+h.object.name;
     const match=style==='glass'?looksGlass(h):style==='display'?/screen|panel|console|rack/i.test(name):/wall|panel|bay|frame/i.test(name);
     options.push({...patch,style,score:box.width*(match?1.3:1)*n.dot(toward),name:h.object.name,material:matOf(h)?.name??''});break;
@@ -66,11 +66,11 @@ export function createDiegeticTypography(scene,mode,onReady,poseFn=cameraPose){
   const style=patch.style,solid=['display','plate'].includes(style);
   if(solid){ctx.fillStyle='#102328';ctx.fillRect(0,0,c.width,c.height);ctx.strokeStyle=station.accent;ctx.lineWidth=3;ctx.strokeRect(8,8,c.width-16,c.height-16);}
   ctx.fillStyle=station.accent;ctx.font='500 35px monospace';ctx.fillText(station.sector,46,61);ctx.fillRect(46,85,132,4);
-  const raised=mode!=='signage'&&style==='raised'&&font;
+  const raised=mode!=='labels'&&mode!=='signage'&&style==='raised'&&font;
   ctx.font='600 108px Arial, sans-serif';const lines=wrapWords(chapter.title,s=>ctx.measureText(s).width,1444);ctx.fillStyle=style==='projection'?'#c2f7e5':'#f1f3ec';
   ctx.shadowColor=style==='projection'?'#52c8a8':'#061015';ctx.shadowBlur=solid?0:style==='projection'?18:7;
   if(!raised)lines.forEach((s,i)=>ctx.fillText(s,46,197+i*115));
-  const titleCanvas=document.createElement('canvas');titleCanvas.width=c.width;titleCanvas.height=c.height;const tc=titleCanvas.getContext('2d');if(solid){tc.fillStyle='#102328';tc.fillRect(0,0,c.width,c.height);tc.strokeStyle=station.accent;tc.lineWidth=3;tc.strokeRect(8,8,c.width-16,c.height-16);}tc.fillStyle=station.accent;tc.font='500 48px monospace';tc.fillText(station.sector,46,76);tc.fillRect(46,102,132,4);let compact=174;let compactLines=[];do{tc.font='600 '+compact+'px Arial, sans-serif';compactLines=wrapWords(chapter.title,s=>tc.measureText(s).width,1444);if(compactLines.length<=3)break;compact-=8;}while(compact>100);if(!raised){tc.fillStyle='#f1f3ec';tc.shadowColor='#061015';tc.shadowBlur=7;compactLines.forEach((s,i)=>tc.fillText(s,46,132+compact+i*(compact+9)));}
+  const titleCanvas=document.createElement('canvas');titleCanvas.width=c.width;titleCanvas.height=c.height;const tc=titleCanvas.getContext('2d');if(solid){tc.fillStyle='#102328';tc.fillRect(0,0,c.width,c.height);tc.strokeStyle=station.accent;tc.lineWidth=3;tc.strokeRect(8,8,c.width-16,c.height-16);}tc.fillStyle=station.accent;tc.font='500 48px monospace';tc.fillText(station.sector,46,76);tc.fillRect(46,102,132,4);const label=mode==='labels'?({ORIGIN:'ZOLVENCY',BLOCKCHAIN:'BLOCKCHAIN',STELLAR:'STELLAR',CRYPTOGRAPHY:'CRYPTOGRAPHY',INTELLIGENCE:'INTELLIGENCE',QUANTUM:'QUANTUM',CONVERGENCE:'ZOLVENCY'}[station.name]):chapter.title;let compact=174;let compactLines=[];do{tc.font='600 '+compact+'px Arial, sans-serif';compactLines=wrapWords(label,s=>tc.measureText(s).width,1444);if(compactLines.length<=3)break;compact-=8;}while(compact>100);if(mode==='labels'){tc.clearRect(0,0,1536,714);tc.font='500 145px Arial, sans-serif';tc.textAlign='center';tc.fillStyle=station.accent;tc.fillText(label,768,365,1410);tc.font='30px monospace';tc.fillText(station.sector,768,430,1410);}else if(!raised){tc.fillStyle='#f1f3ec';tc.shadowColor='#061015';tc.shadowBlur=7;compactLines.forEach((s,i)=>tc.fillText(s,46,132+compact+i*(compact+9)));}
   const titleTexture=new THREE.CanvasTexture(titleCanvas);titleTexture.colorSpace=THREE.SRGBColorSpace;titleTexture.anisotropy=4;
   const bodyTop=197+(lines.length-1)*115+74;
   let bodySize=52,body=[];
@@ -114,7 +114,7 @@ export function createDiegeticTypography(scene,mode,onReady,poseFn=cameraPose){
      const dir=q.clone().sub(camera.position),dist=dir.length();if(hit(camera.position,dir.normalize(),all,Math.max(.001,dist-.025))){clear=false;break;}
     }
     const legibility={...box,clear,titlePx:box.height*e.titlePx,bodyPx:box.height*e.bodyPx};
-    const readable=mode!=='signage'&&readability(legibility),titleOk=titleReadability({...legibility,titlePx:box.height*e.compactPx,mobile});
+    const readable=mode!=='labels'&&mode!=='signage'&&readability(legibility),titleOk=titleReadability({...legibility,titlePx:box.height*(mode==='labels'?145/714:e.compactPx),mobile});
     e.anchor.visible=titleOk;e.material.opacity=alpha;for(const l of e.letters)l.material.opacity=alpha;
     const selected=readable?e.texture:e.titleTexture;if(e.material.map!==selected){e.material.map=selected;e.material.needsUpdate=true;}
     if(e.anchor.visible)result={name:e.station.name,anchor:p.name,style:p.style,readable,alpha,projected:box,extruded:e.letters.length>0};
