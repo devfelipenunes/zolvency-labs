@@ -40,5 +40,14 @@ try{
  assert.deepEqual(earlyErrors,[]);
  console.log('progressive navigation evidence',JSON.stringify(await stage.evaluate(e=>({...e.dataset}))));
 }finally{release();await early.close();}
+const labPage=await browser.newPage({viewport:{width:960,height:600}});const labErrors=[];labPage.on('pageerror',e=>labErrors.push(e.message));
+try{
+ await labPage.goto(base+'/?diagnostics=1&lab=1');
+ await labPage.waitForSelector('#stage[data-renderer="three"][data-render-lab="1"]',{timeout:90000});
+ await labPage.waitForFunction(n=>Number(document.querySelector('#stage')?.dataset.assets)===n,expectedAssets,{timeout:90000});
+ const labStage=labPage.locator('#stage');assert.ok(await labStage.getAttribute('data-gpu-render-ms'));assert.equal(await labStage.getAttribute('data-render-scale'),'1');
+ await labPage.screenshot({timeout:90000,path:'artifacts/desktop-render-lab.png'});
+ assert.deepEqual(labErrors,[]);
+}finally{await labPage.close();}
 await writeFile('artifacts/metrics.json',JSON.stringify({note:'SwiftShader; 481 sampled closest-triangle BVH measurements, not continuous collision proof or physical GPU benchmark.',evidence},null,2));
 }finally{await browser?.close();server.kill();}
