@@ -8,7 +8,7 @@ test('all seven chapters have distinct scene directions and windows',()=>{
  for(const [i,s] of stations.entries()){assert.ok(s.root&&s.hints.length>=3);assert.ok(s.hold>=windows[i]&&s.hold<=windows[i+1]);assert.ok(s.range.every((v,j,a)=>!j||v>a[j-1]));}
  assert.equal(new Set(stations.map(s=>s.style)).size,5);
 });
-test('modes and safe fallback',()=>{for(const mode of modes)assert.equal(typeMode(mode),mode);assert.equal(typeMode('arbitrary'),'signage');});
+test('modes and safe fallback',()=>{for(const mode of modes)assert.equal(typeMode(mode),mode);assert.equal(typeMode('arbitrary'),'labels');});
 test('word wrap preserves content',()=>{const text='Building beyond the known.';const lines=wrapWords(text,s=>s.length,15);assert.equal(lines.join(' '),text);assert.ok(lines.every(s=>s.length<=15));});
 test('do not remove HTML when sign is clipped, occluded or too small',()=>{
  const b={inside:true,clear:true,width:440,height:200,titlePx:30,bodyPx:15};
