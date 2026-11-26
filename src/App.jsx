@@ -3,16 +3,18 @@ import packageInfo from '../package.json';
 import {SoundControl} from './SoundControl.jsx';
 import {chapters} from './story.js';
 import {useScrollStory} from './useScrollStory.js';
+import {smoothProgress} from './graphics/scrollSmoothing.js';
 import {createFallback} from './graphics/fallback.js';
 const sides=['left','left','left','left','left','left','center'];
 function Stage({progress,reduced,side}){
  const host=useRef(null),fallback=useRef(null),engine=useRef(null),latest=useRef({progress,reduced});
- const [mode,setMode]=useState('canvas');
- useEffect(()=>{latest.current={progress,reduced};engine.current?.draw(reduced?0:progress)},[progress,reduced]);
+ const [mode,setMode]=useState('canvas');const shown=useRef(0);
+ useEffect(()=>{latest.current={progress,reduced};const target=reduced?0:progress;const debug=new URLSearchParams(location.search).has('diagnostics');if(reduced||debug||Math.abs(target-shown.current)>.12){shown.current=target;engine.current?.draw(target);return;}
+ let frame=0,previous=performance.now();function step(now){shown.current=smoothProgress(shown.current,target,now-previous);previous=now;engine.current?.draw(shown.current);if(shown.current!==target)frame=requestAnimationFrame(step);}frame=requestAnimationFrame(step);return()=>cancelAnimationFrame(frame);},[progress,reduced]);
  useEffect(()=>{
  const node=host.current,canvas=fallback.current,flat=createFallback(canvas);
  let active=true,gl=null,current=flat;
- function redraw(){const p=latest.current;current.resize();current.draw(p.reduced?0:p.progress);}
+ function redraw(){const p=latest.current;current.resize();current.draw(p.reduced?0:shown.current);}
  engine.current=flat;canvas.hidden=false;setMode('canvas');
  function restore(){if(!active)return;gl?.dispose();gl=null;current=flat;engine.current=flat;canvas.hidden=false;setMode('canvas');redraw();}
  redraw();addEventListener('resize',redraw,{passive:true});
