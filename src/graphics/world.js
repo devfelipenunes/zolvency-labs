@@ -5,27 +5,28 @@ const TAU=2*Math.PI,sample=(n,fn)=>Array.from({length:n+1},(_,i)=>fn(i/n));
 const add=(a,b)=>a.map((v,i)=>v+b[i]);
 export const sceneNames=['ORIGIN','BLOCKCHAIN','STELLAR','CRYPTOGRAPHY','INTELLIGENCE','QUANTUM','CONVERGENCE'];
 export const blockCenters=[-14,-7,0,7,14].map(x=>[x,2,-48]);
-export const importedModels=[{name:'processor',position:[12,3,-100]},{name:'cryostat',position:[-6,5,-124]},{name:'rack',position:[-27,2,-72]}];
+export const importedModels=[{name:'processor',position:[12,3,-100]},{name:'cryostat',position:[-6,5,-124]}];
 export function makeScene(){
  const objects=[],paths=[];
  const path=(points,radius=.035,kind='accent')=>paths.push({points,radius,kind});
  const link=(a,b,kind='accent',radius=.035,lift=.3)=>path(sample(28,t=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t+lift*Math.sin(Math.PI*t),a[2]+(b[2]-a[2])*t]),radius,kind);
  const ring=(center,rx,ry,tilt=0,kind='titanium',radius=.065)=>path(sample(80,t=>add(center,[rx*Math.cos(t*TAU),ry*Math.sin(t*TAU),tilt*Math.sin(t*TAU)])),radius,kind);
  const model=(parts,position,extra={})=>parts.forEach(o=>objects.push({...o,position:add(o.position,position),...extra}));
- // Hero: suspended dark core and multiple tilted rings.
- objects.push(sphere([0,2,0],1.35,'dark'),sphere([0,2,0],.63,'accent'));
- for(let i=0;i<6;i++)ring([0,2,0],2.8+i*.35,2.1+i*.26,Math.sin(i*1.3)*2.8,i%3===0?'accent':'titanium',.09);
- for(let i=0;i<12;i++){const a=i*TAU/12,r=4.1;objects.push(box([r*Math.cos(a),2,r*Math.sin(a)],[.27,.15,.42],i%3?'titanium':'accent',{float:.12,phase:i}));}
+ // Real scanned circuit board replaces this compact authored startup fallback.
+ model(processorParts(),[0,0,0],{asset:'pcb'});
+ // Small reference markers belong to the circuit, not floating debris.
+ for(let i=0;i<4;i++)objects.push(box([-7+i*4,-1.2,-5],[.30,.18,.5],'accent',{float:.04,phase:i}));
  // Cryptography: suspended plates with real apertures, surface tiles, and links.
- model(cryptographyParts(),[18,4,-25],{gate:true});
- for(let i=0;i<7;i++){const a=i*TAU/7;path(sample(60,t=>[18+(2.9-1.8*t)*Math.cos(a+t*1.7),4+(2.9-1.8*t)*Math.sin(a+t*1.7),-17-10*t]),.055,i%2?'accent':'gold');}
+ model(cryptographyParts(),[18,4,-25],{gate:true,asset:'entry-door'});
  // Floating blockchain, actual gaps along x. The central block opens deterministically.
  blockCenters.forEach((p,i)=>model(ledgerParts(0),p,i===2?{hero:true}:{}));
  for(let i=0;i<4;i++)for(const z of [-49.15,-46.85])link([blockCenters[i][0]+2.35,1.75,z],[blockCenters[i+1][0]-2.35,1.75,z],'accent',.10,.18);
  // Stellar: network across a volume, not actual SCP topology.
  const ns=[[-22,4,-75],[-27,2,-72],[-17,2.5,-77],[-21,7.6,-70],[-25,5.9,-80],[-18,5.5,-70],[-21,1,-80]];
- ns.forEach((p,i)=>{model(stellarParts(i),p,{station:true,phase:i,...(i===1?{asset:'rack'}:{})});ring(p,.96,.96,.55,'gold',.04);if(i)link(ns[0],p,'accent',.055,.65);});
- for(let i=1;i<ns.length-1;i++)link(ns[i],ns[i+1],'titanium',.045);
+ ns.forEach((p,i)=>{model(stellarParts(i),p,{station:true,phase:i,asset:'server-room'});});
+ // Public payment-flow visualization above the external projector; not a real payment.
+ const publicNodes=[[-13.4,3.4,-72],[-12,4.3,-71],[-14.7,4.4,-71],[-13.4,5.3,-70],[-12,3.3,-69]];
+ publicNodes.forEach((p,i)=>{objects.push(sphere(p,.17,'accent'));if(i)link(publicNodes[0],p,'accent',.04,.05);});
  // Intelligence: processor GLB and neural graph rising behind the chip.
  model(processorParts(),importedModels[0].position,{asset:'processor'});
  const nodes=[];for(let l=0;l<3;l++){const row=[];for(let j=0;j<5;j++){const p=[7.5+j*2.1,4.5+l*1.5,-105-l*2.4+Math.sin(j+l)*.4];row.push(p);objects.push(sphere(p,.20+(j===2?.10:0),l===2?'accent':'titanium'));}nodes.push(row);}
@@ -36,9 +37,9 @@ export function makeScene(){
  model(cryostatParts(),importedModels[1].position,{asset:'cryostat'});
  for(let j=0;j<12;j++){const a=j*TAU/12;path(sample(75,t=>[-6+(2.55-1.65*t)*Math.cos(a+.22*Math.sin(t*TAU*2)),8.8-7.2*t,-124+(2.55-1.65*t)*Math.sin(a+.22*Math.sin(t*TAU*2))]),.045,j%3?'gold':'accent');}
  for(let j=0;j<9;j++)path(sample(80,t=>[-10+8*t,1.0+1.1*Math.sin(t*TAU*2+j*.45)*Math.cos(t*TAU),-132-j*.48]),.037,j%3?'titanium':'accent');
- // Convergence: interlocking sculpture and smaller modules in a constellation.
- for(let i=0;i<8;i++){const a=i*TAU/8;path(sample(96,t=>[10+(4.2+.7*Math.sin(3*t*TAU))*Math.cos(t*TAU+a),4+(3.1+.4*Math.cos(2*t*TAU))*Math.sin(t*TAU+a),-153+3*Math.sin(t*TAU+a/2)]),.11,i%3===0?'accent':i%2?'gold':'titanium');}
- for(let i=0;i<3;i++)objects.push(box([10,2.8+i*.85,-153],[2.2,.57,2.2],i===1?'dark':'titanium'),box([10,3.13+i*.85,-153],[2.1,.07,2.1],'accent'));
+ // Convergence: the common ledger language returns as a connected topology.
+ for(const x of [4,10,16])model(ledgerParts(0).filter(o=>o.size[0]>.2&&o.size[2]>.2),[x,2,-153]);
+ for(const x of [4,10])link([x+2.35,2,-153],[x+3.65,2,-153],'accent',.075,.12);
  const env=makeArchitecture();objects.push(...env.objects);paths.push(...env.paths);
  return {objects,paths,plates:env.plates};
 }
