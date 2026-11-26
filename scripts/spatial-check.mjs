@@ -17,7 +17,7 @@ try{
  for(const [mode,viewport] of [['production',{width:1280,height:800}],['baseline',{width:1280,height:800}],['immersive',{width:1280,height:800}],['immersive',{width:390,height:844}],['lab',{width:1280,height:800}],['connected',{width:1280,height:800}],['wallcut',{width:1280,height:800}],['studio',{width:1280,height:800}]]){
   const page=await browser.newPage({viewport}),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/shader|THREE.WebGLProgram/i.test(m.text()))errors.push(m.text());});
   try{
-   await page.goto(base+'/?diagnostics=1'+(mode==='production'?'':'&space='+(mode==='wallcut'||mode==='studio'?'immersive':mode))+'&type=html'+(mode==='wallcut'?'&cut=wall':mode==='studio'?'&quality=studio':''));
+   await page.goto(base+'/?diagnostics=1'+(mode==='production'?'':'&space='+(mode==='wallcut'||mode==='studio'?'immersive':mode))+'&type=html'+(mode==='production'?'':mode==='wallcut'?'&cut=wall&quality=legacy':mode==='studio'?'&quality=studio':'&quality=legacy'));
    await page.waitForSelector('#stage[data-renderer="three"]',{timeout:90000});
    await page.waitForFunction(n=>Number(document.querySelector('#stage')?.dataset.assets)===n,spatialFacility(mode).length,{timeout:90000});
    const stage=page.locator('#stage'),route=await stage.evaluate(e=>e.auditRoute(480)),min=[...route].sort((a,b)=>a.distance-b.distance)[0];
