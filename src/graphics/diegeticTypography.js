@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {FontLoader} from 'three/addons/loaders/FontLoader.js';
 import {TextGeometry} from 'three/addons/geometries/TextGeometry.js';
-import {stations,wrapWords,readability} from './typographyDirection.js';
+import {stations,wrapWords,readability,titleReadability} from './typographyDirection.js';
 import {cameraPose,ramp} from './facilityCamera.js';
 import {chapters} from '../story.js';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
@@ -23,7 +23,7 @@ function pixelBox(points,camera,w,h){
 }
 export function createDiegeticTypography(scene,mode,onReady){
  const group=new THREE.Group();group.name='surface-editorial-signage';scene.add(group);
- const ray=new THREE.Raycaster(),entries=new Map(),diag=new Map();let font=null,disposed=false,lastSignature='',lastCheck=-1,lastResult={name:'',anchor:'',readable:false},builtAspect=0;
+ const ray=new THREE.Raycaster(),entries=new Map(),diag=new Map();let font=null,disposed=false,lastSignature='',lastCheck=-1,lastResult={name:'',anchor:'',readable:false,alpha:0},builtAspect=0;
  // Local, versioned font staged from the pinned npm package. Failure leaves printed titles.
  new FontLoader().loadAsync(import.meta.env.BASE_URL+'models/fonts/helvetiker_regular.typeface.json').then(f=>{if(!disposed){font=f;lastSignature='';onReady?.();}}).catch(()=>{});
  function hit(origin,dir,roots,far=65){ray.set(origin,dir);ray.near=.001;ray.far=far;return ray.intersectObjects(roots,true).find(h=>visible(h.object));}
@@ -65,9 +65,11 @@ export function createDiegeticTypography(scene,mode,onReady){
   if(solid){ctx.fillStyle='#102328';ctx.fillRect(0,0,c.width,c.height);ctx.strokeStyle=station.accent;ctx.lineWidth=3;ctx.strokeRect(8,8,c.width-16,c.height-16);}
   ctx.fillStyle=station.accent;ctx.font='500 35px monospace';ctx.fillText(station.sector,46,61);ctx.fillRect(46,85,132,4);
   const raised=style==='raised'&&font;
-  ctx.font='600 108px Arial, sans-serif';const lines=wrapWords(chapter.title,s=>ctx.measureText(s).width,1444);ctx.fillStyle='#f1f3ec';
-  ctx.shadowColor='#061015';ctx.shadowBlur=solid?0:7;
+  ctx.font='600 108px Arial, sans-serif';const lines=wrapWords(chapter.title,s=>ctx.measureText(s).width,1444);ctx.fillStyle=style==='projection'?'#c2f7e5':'#f1f3ec';
+  ctx.shadowColor=style==='projection'?'#52c8a8':'#061015';ctx.shadowBlur=solid?0:style==='projection'?18:7;
   if(!raised)lines.forEach((s,i)=>ctx.fillText(s,46,197+i*115));
+  const titleCanvas=document.createElement('canvas');titleCanvas.width=c.width;titleCanvas.height=c.height;titleCanvas.getContext('2d').drawImage(c,0,0);
+  const titleTexture=new THREE.CanvasTexture(titleCanvas);titleTexture.colorSpace=THREE.SRGBColorSpace;titleTexture.anisotropy=4;
   const bodyTop=197+(lines.length-1)*115+74;
   let bodySize=52,body=[];
   do{ctx.font='500 '+bodySize+'px Arial, sans-serif';body=wrapWords(chapter.body,s=>ctx.measureText(s).width,1444);if(bodyTop+body.length*(bodySize+12)<=690)break;bodySize-=2;}while(bodySize>=30);
@@ -85,11 +87,11 @@ export function createDiegeticTypography(scene,mode,onReady){
     const mesh=new THREE.Mesh(g,m);mesh.position.set(-patch.width/2+patch.width*46/1536,patch.height/2-patch.height*(197+i*115)/714,.008);anchor.add(mesh);letters.push(mesh);
    }
   }
-  group.add(anchor);anchor.visible=false;return {anchor,plane,material,texture,letters,patch,station,titlePx:108/714,bodyPx:bodySize/714};
+  group.add(anchor);anchor.visible=false;return {anchor,plane,material,texture,titleTexture,letters,patch,station,titlePx:108/714,bodyPx:bodySize/714};
  }
- function clear(){for(const e of entries.values()){e.anchor.removeFromParent();e.plane.geometry.dispose();e.material.dispose();e.texture.dispose();for(const l of e.letters)l.geometry.dispose();e.letters[0]?.material.dispose();}entries.clear();diag.clear();}
+ function clear(){for(const e of entries.values()){e.anchor.removeFromParent();e.plane.geometry.dispose();e.material.dispose();e.texture.dispose();e.titleTexture.dispose();for(const l of e.letters)l.geometry.dispose();e.letters[0]?.material.dispose();}entries.clear();diag.clear();}
  function rebuild(roots,mobile,camera,w,h){
-  const signature=[...roots.keys()].sort().join(',')+'|'+mobile+'|'+Boolean(font);
+  const signature=[...roots.keys()].sort().join(',')+'|'+mobile+'|'+Boolean(font)+'|'+w+'x'+h;
   if(signature===lastSignature&&Math.abs(camera.aspect-builtAspect)<.08)return;
   lastSignature=signature;builtAspect=camera.aspect;clear();
   for(const [i,s] of stations.entries()){const p=find(s,roots,mobile,camera.aspect,w,h);if(p){entries.set(s.name,renderSign(s,p,chapters[i]));diag.set(s.name,{mesh:p.name,material:p.material,style:p.style,position:p.point.toArray(),normal:p.normal.toArray(),size:[p.width,p.height],extruded:!!(p.style==='raised'&&font)});}else diag.set(s.name,{reason:'no verified visible support'});}
@@ -100,7 +102,7 @@ export function createDiegeticTypography(scene,mode,onReady){
    if(disposed)return lastResult;
    rebuild(roots,mobile,camera,w,h);
    if(Math.abs(lastCheck-progress)<.0015&&lastCheck>=0)return lastResult;
-   lastCheck=progress;let result={name:'',anchor:'',readable:false};const all=[...roots.values()];
+   lastCheck=progress;let result={name:'',anchor:'',readable:false,alpha:0};const all=[...roots.values()];
    for(const e of entries.values()){
     const [a,b,c,d]=e.station.range,alpha=ramp(progress,a,b)*(1-ramp(progress,c,d));e.anchor.visible=false;
     if(alpha<.03)continue;
@@ -109,10 +111,11 @@ export function createDiegeticTypography(scene,mode,onReady){
     if(clear)for(const q of [e.anchor.position,...pts]){
      const dir=q.clone().sub(camera.position),dist=dir.length();if(hit(camera.position,dir.normalize(),all,Math.max(.001,dist-.025))){clear=false;break;}
     }
-    const readable=readability({...box,clear,titlePx:box.height*e.titlePx,bodyPx:box.height*e.bodyPx});
-    // Do not render a second half-readable title behind its accessible HTML fallback.
-    e.anchor.visible=readable&&alpha>.8;e.material.opacity=alpha;for(const l of e.letters)l.material.opacity=alpha;
-    if(e.anchor.visible)result={name:e.station.name,anchor:p.name,style:p.style,readable:true,projected:box,extruded:e.letters.length>0};
+    const legibility={...box,clear,titlePx:box.height*e.titlePx,bodyPx:box.height*e.bodyPx};
+    const readable=readability(legibility),titleOk=titleReadability(legibility);
+    e.anchor.visible=titleOk;e.material.opacity=alpha;for(const l of e.letters)l.material.opacity=alpha;
+    const selected=readable?e.texture:e.titleTexture;if(e.material.map!==selected){e.material.map=selected;e.material.needsUpdate=true;}
+    if(e.anchor.visible)result={name:e.station.name,anchor:p.name,style:p.style,readable,alpha,projected:box,extruded:e.letters.length>0};
    }
    lastResult=result;return result;
   },
