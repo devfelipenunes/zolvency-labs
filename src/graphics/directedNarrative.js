@@ -13,6 +13,6 @@ export const beats=[
 ];
 export function directedNarrative(p,mask=0){
  const {index}=currentShot(p),[a,b,c,d,e,f]=beats[index];
- const exit=e===f?1:1-ramp(p,e,f),alpha=exit*(1-Math.max(0,Math.min(1,mask)));
+ const exit=e===f?1:1-ramp(p,e,f),alpha=ramp(p,a,b)*exit*(1-Math.max(0,Math.min(1,mask)));
  return {index,alpha, label:ramp(p,a,b),title:ramp(p,b,c),body:ramp(p,c,d),cue:ramp(p,c,d)};
 }
