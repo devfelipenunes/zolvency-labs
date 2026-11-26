@@ -33,3 +33,6 @@ export function artEnvelope(card,p){
  const cue=i===0?ramp(t,.15,.28):0;
  return {hero:hero*end,headline:headline*end,body:body*end,cue:cue*end};
 }
+
+// Motivated sources: keep the quantum set unchanged; colors describe actual lights, not a screen filter.
+export function artLighting(p){const rack=ramp(p,.115,.175)*(1-ramp(p,.42,.49)),ops=ramp(p,.68,.715)*(1-ramp(p,.74,.80)),brand=(1-ramp(p,.08,.115))+ramp(p,.97,.995);return {rack,ops,brand,headColor:rack>.5?0xb8e5db:ops>.5?0xc2d9e9:0xd3e8eb,fillColor:rack>.5?0xa2b7b9:0xc9d9e1};}
