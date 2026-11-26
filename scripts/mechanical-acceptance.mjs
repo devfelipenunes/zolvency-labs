@@ -23,11 +23,14 @@ try{
    const forward=report.rows.slice(0,81),reverse=report.rows.slice(81).reverse();
    for(let i=0;i<81;i++){assert.deepEqual(forward[i].position,reverse[i].position);assert.deepEqual(forward[i].hits,reverse[i].hits);}
    assert.ok(Math.abs(Math.max(...forward.map(r=>r.position[2]))-Math.min(...forward.map(r=>r.position[2]))-4)<1e-5);
+   const spatial=await page.evaluate(()=>document.querySelector('#stage').inspectCraneSweep({spatial:true}));
+   assert.equal(spatial.rows.length,162);assert.equal(spatial.spatial,true);
+   for(let i=0;i<81;i++){const f=spatial.rows[i],r=spatial.rows[161-i];assert.deepEqual(f.position,r.position);assert.deepEqual(f.hits,r.hits);assert.ok(Math.abs(f.position[2]-spatial.rows[0].position[2]-4*i/80)<1e-6);for(const h of f.hits)for(const key of ['movingBounds','otherBounds','overlapBounds'])assert.ok(h[key].min.every((v,j)=>Number.isFinite(v)&&Number.isFinite(h[key].max[j])&&v<=h[key].max[j]));}
    const clearance=await page.evaluate(()=>document.querySelector('#stage').inspectOpeningClearance());
    const interior=await page.evaluate(()=>{const s=document.querySelector('#stage');return {floor:s.inspectInteriorFloor(),clearance:s.inspectInteriorClearance()};});
    assert.ok(clearance.every(r=>r.distance>.06));
    // Preserve computed evidence even if subsequent screenshot/video capture fails.
-   reports.push({viewport,...report,clearance,interior});await writeFile(out+'/report.json',JSON.stringify(reports,null,2));
+   reports.push({viewport,...report,spatial,clearance,interior});await writeFile(out+'/report.json',JSON.stringify(reports,null,2));
    assert.equal(interior.floor.length,6);assert.ok(interior.floor.every(r=>r&&Number.isFinite(r.y)&&Math.abs(r.y)<.08),JSON.stringify(interior.floor));assert.equal(interior.clearance.length,41);assert.ok(interior.clearance.every(r=>r.distance>.06),JSON.stringify(interior.clearance.filter(r=>r.distance<=.06)));
    const name=viewport.width+'-'+(candidate?'candidate':'control');
    for(const p of [0,.025,.055,.075,.105,.485,.51,.535,.625,.705,.73,.755]){await page.evaluate(p=>document.querySelector('#stage').benchmarkFrame(p),p);await page.screenshot({path:out+'/'+name+'-'+p+'.png',timeout:120000,animations:'disabled'});}
@@ -38,8 +41,12 @@ try{
  const comparisons=[];
  for(let i=0;i<reports.length;i+=2){
   const control=pairs(reports[i].rows),candidate=pairs(reports[i+1].rows);
-  comparisons.push({viewport:reports[i].viewport,control:[...control],candidate:[...candidate],newPairs:[...candidate].filter(p=>!control.has(p)),note:'All sampled surface intersections reported. A matched pair is not proof of no penetration or permitted contact.'});
+  const a=reports[i].spatial.rows,b=reports[i+1].spatial.rows;
+  const differences=a.flatMap((row,j)=>JSON.stringify(row)!==JSON.stringify(b[j])?[{control:row,candidate:b[j]}]:[]);
+  const contacts=[...pairs(a)].map(pair=>{const matches=a.slice(0,81).filter(r=>r.hits.some(h=>h.moving+'|'+h.other===pair));return {pair,samples:matches.length,minZ:Math.min(...matches.map(r=>r.position[2])),maxZ:Math.max(...matches.map(r=>r.position[2])),classification:'unreviewed surface contact'};});
+  comparisons.push({viewport:reports[i].viewport,control:[...control],candidate:[...candidate],newPairs:[...candidate].filter(p=>!control.has(p)),spatialDifferences:differences,spatialContacts:contacts,note:'All sampled surface intersections reported. A matched pair is not proof of no penetration or permitted contact.'});
  }
  await writeFile(out+'/comparisons.json',JSON.stringify(comparisons,null,2));
  assert.ok(comparisons.every(c=>!c.newPairs.length),'new candidate mesh intersection pairs '+JSON.stringify(comparisons));
+ assert.ok(comparisons.every(c=>!c.spatialDifferences.length),'normalized travel changed geometry '+JSON.stringify(comparisons.map(c=>c.spatialDifferences.slice(0,2))));
 }finally{await browser?.close();server.kill();}
