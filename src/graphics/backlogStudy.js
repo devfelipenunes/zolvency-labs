@@ -1,7 +1,7 @@
 import {ramp,windows} from './facilityCamera.js';
-export const backlogModes=['final-copy','ops-copy','backlog-copy'];
-export const finalCopy=mode=>mode==='final-copy'||mode==='backlog-copy';
-export const opsCopy=mode=>mode==='ops-copy'||mode==='backlog-copy';
+export const backlogModes=['final-copy','ops-copy','backlog-copy','backlog-selected'];
+export const finalCopy=mode=>mode==='final-copy'||mode==='backlog-copy'||mode==='backlog-selected';
+export const opsCopy=mode=>mode==='ops-copy'||mode==='backlog-copy'||mode==='backlog-selected';
 export function backlogLayout(name,mobile,mode,layout,mobileY){
  if(name==='CONVERGENCE'&&finalCopy(mode)){
   // Keep the proven mounted/free-space logo and camera. Move only copy
