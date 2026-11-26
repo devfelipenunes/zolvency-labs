@@ -118,3 +118,16 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
  #stage[data-renderer="three"][data-typography-mode="architectural"][data-architectural-title]:not([data-architectural-title=""]) ~ main .chapter[data-side] .eyebrow{opacity:0}
  .brand,.chapter .copy :is(h1,p,.eyebrow){transition:opacity .25s ease}
 }
+
+/* V0.27 — kinetic editorial captions, no fixed wall signage or side mask. */
+@media(prefers-reduced-motion:no-preference){
+ #stage[data-renderer="three"][data-typography-mode="kinetic"] ~ main .chapter[data-side] .copy{width:min(650px,calc(100vw - 44px));bottom:clamp(52px,9svh,90px);transform:translateX(-50%) translateX(var(--kinetic-drift,0px)) scale(var(--kinetic-depth,1));text-shadow:0 2px 5px #020609,0 2px 12px #020609}
+ #stage[data-renderer="three"][data-typography-mode="kinetic"] ~ main .chapter[data-side] :is(h1,h2){font-size:clamp(24px,3.2vw,43px);font-weight:500;letter-spacing:-.045em;line-height:1.12;margin-bottom:10px}
+ #stage[data-renderer="three"][data-typography-mode="kinetic"] ~ main .kinetic-word{display:inline-block;overflow:hidden;vertical-align:bottom;padding-bottom:.06em}
+ #stage[data-renderer="three"][data-typography-mode="kinetic"] ~ main .kinetic-word>span{display:inline-block;--word-progress:clamp(0,calc(var(--kinetic-enter,1)*1.6 - var(--word-index,0)*.09),1);opacity:calc(.38 + .62*var(--word-progress));transform:translateY(calc((1 - var(--word-progress))* .65em)) rotateX(calc((1 - var(--word-progress))* -32deg));transform-origin:bottom center}
+ #stage[data-renderer="three"][data-typography-mode="kinetic"] ~ main .chapter[data-side] p{opacity:calc(.6 + .4*var(--kinetic-enter,1));font-size:clamp(13px,1.05vw,15px);line-height:1.55}
+ #stage[data-renderer="three"][data-typography-mode="kinetic"] ~ main .chapter[data-side] .eyebrow{font-size:9px;letter-spacing:.18em;color:#a8c4be}
+ #stage[data-renderer="three"][data-typography-mode="kinetic"][data-architectural-title]:not([data-architectural-title=""]) ~ main .chapter[data-side] .eyebrow{opacity:0}
+ #stage[data-renderer="three"][data-typography-mode="kinetic"][data-brand-reveal="true"] ~ main .chapter[data-name="ORIGIN"] .copy :is(h1,p,.eyebrow){opacity:0}
+ @media(max-width:720px){#stage[data-renderer="three"][data-typography-mode="kinetic"] ~ main .chapter[data-side] .copy{bottom:55px}#stage[data-renderer="three"][data-typography-mode="kinetic"] ~ main .chapter[data-side] :is(h1,h2){font-size:clamp(24px,6.8vw,32px)}}
+}
