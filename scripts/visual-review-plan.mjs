@@ -6,6 +6,8 @@ export const reviewCases=[
  {name:'default-plate',group:'plates',params:'plate=1',poses:holds},
  ...['devices','diagonal','opposite'].map(angle=>({name:'stellar-'+angle,group:'variants',params:'stellar='+angle+'&plate=1',poses:[.405]})),
  ...['split','clear','smoke','reflection'].map(glass=>({name:'glass-'+glass,group:'variants',params:'glass='+glass+'&plate=1',poses:[.205,.405]})),
+ ...['mid','close'].map(composition=>({name:'opening-'+composition,group:'narrative',params:'composition='+composition,poses:[.025,.055,.075]})),
+ {name:'final-high',group:'narrative',params:'composition=final-high',poses:[.985,.992,1]},
  {name:'world',group:'narrative',params:'',poses:[.005,.025,.055,.075,.105,.145,.17,.185,.205,.24,.31,.365,.405,.425,.625,.73,.935,.992]},
  {name:'public-scroll',group:'motion',params:'',motion:true},
  ...['default','no-ao','no-bloom','neither'].map(effect=>({name:'effects-'+effect,group:'effects',params:'effects='+effect+'&plate=1',poses:[.055,.405,.935],desktopOnly:true}))
