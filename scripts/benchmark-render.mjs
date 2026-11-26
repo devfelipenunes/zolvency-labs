@@ -18,7 +18,7 @@ try{
   try{
    await page.goto(base+'/?diagnostics=1&benchmark=1&perf='+mode);await page.waitForSelector('#stage[data-renderer="three"]',{timeout:120000});
    await page.waitForFunction(n=>Number(document.querySelector('#stage')?.dataset.assets)===n,expectedAssets,{timeout:120000});
-   if(label==='desktop')await page.waitForSelector('#stage[data-environment="hdr"]',{timeout:120000});
+   await page.waitForSelector('#stage[data-environment="studio"][data-narrative-ready="true"]',{timeout:120000});
    const result=await page.evaluate(async()=>{
     const s=document.querySelector('#stage'),poses=[.055,.205,.405,.615,.72,.935,.992],next=()=>new Promise(r=>requestAnimationFrame(r));
     const gl=document.querySelector('#three-scene').getContext('webgl2'),ext=gl.getExtension('WEBGL_debug_renderer_info');const renderer=ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):'unavailable';

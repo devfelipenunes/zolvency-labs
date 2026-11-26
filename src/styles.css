@@ -131,3 +131,10 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
  #stage[data-renderer="three"][data-typography-mode="kinetic"][data-brand-reveal="true"] ~ main .chapter[data-name="ORIGIN"] .copy :is(h1,p,.eyebrow){opacity:0}
  @media(max-width:720px){#stage[data-renderer="three"][data-typography-mode="kinetic"] ~ main .chapter[data-side] .copy{bottom:55px}#stage[data-renderer="three"][data-typography-mode="kinetic"] ~ main .chapter[data-side] :is(h1,h2){font-size:clamp(24px,6.8vw,32px)}}
 }
+
+/* Full 3D narrative: semantic HTML remains in the accessibility tree and is the failure/reduced-motion fallback. */
+@media(prefers-reduced-motion:no-preference){
+ #stage[data-renderer="three"][data-typography-mode="narrative3d"][data-narrative-ready="true"] ~ main .chapter .copy{opacity:0!important;pointer-events:none}
+ #stage[data-renderer="three"][data-typography-mode="narrative3d"][data-narrative-ready="true"] ~ .brand{opacity:0;pointer-events:none}
+ #stage[data-renderer="three"][data-typography-mode="narrative3d"][data-narrative-ready="true"] ~ .track{opacity:0;pointer-events:none}
+}
