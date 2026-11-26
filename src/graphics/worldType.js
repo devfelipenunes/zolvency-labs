@@ -38,29 +38,30 @@ function frameMetrics(camera,center,right,vertical,w,h,roots,ray){
 }
 // Conservative projected font-height proxy at the calibrated viewport; not a glyph-contrast claim.
 export const bodyHeightProxy=(metrics,bodyPixels,height=720)=>metrics.spanY*height*bodyPixels/(TEX_HEIGHT*.88);
-function anchor(spec,camera,root,roots,ray,bodyPixels){
- if(!root)return null;const candidates=[];const [x,y]=spec.screen;
+function anchor(spec,camera,root,roots,ray,bodyPixels,diagnostics){
+ if(!root){diagnostics.missingRoot=true;return null;}const candidates=[];const [x,y]=spec.screen;
  for(const dx of [0,-.12,.12,-.24,.24,-.36,.36])for(const dy of [0,-.16,.16,-.32,.32]){
   const ndc=new THREE.Vector2(THREE.MathUtils.clamp(x+dx,-.78,.78),THREE.MathUtils.clamp(y+dy,-.68,.68));
-  ray.setFromCamera(ndc,camera);ray.near=.10;ray.far=50;const hits=ray.intersectObject(root,true).filter(allowed);
-  for(const hit of hits.slice(0,3)){
+  ray.setFromCamera(ndc,camera);ray.near=.10;ray.far=50;const hits=ray.intersectObject(root,true).filter(allowed);diagnostics.rays++;diagnostics.allowedHits+=hits.length;
+  for(const hit of hits.slice(0,3)){diagnostics.consideredHits++;
    const n=hit.face.normal.clone().applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld));
-   if(Math.abs(n.y)>.25)continue;if(n.dot(camera.position.clone().sub(hit.point))<0)n.negate();
+   if(Math.abs(n.y)>.25){diagnostics.rejectedSlope++;continue;}if(n.dot(camera.position.clone().sub(hit.point))<0)n.negate();
    n.normalize();const right=up.clone().cross(n).normalize(),vertical=n.clone().cross(right).normalize(),center=hit.point.clone().addScaledVector(n,.027);
-   const facing=n.dot(camera.position.clone().sub(center).normalize());if(facing<.54)continue;
+   const facing=n.dot(camera.position.clone().sub(center).normalize());if(facing<.54){diagnostics.rejectedFacing++;continue;}
    const distance=camera.position.distanceTo(center),desired=THREE.MathUtils.clamp(2*distance*Math.tan(THREE.MathUtils.degToRad(camera.fov)/2)*camera.aspect*spec.span,spec.min,spec.max);
    for(const w of [desired,desired*.9,desired*.8,desired*.7,desired*.6]){
-    if(w<spec.min*.7)continue;
-    const h=w/2;let support=0;
+    if(w<spec.min*.7){diagnostics.rejectedWidth++;continue;}
+    diagnostics.footprints++;const h=w/2;let support=0;
     // Each sample must hit the same near-coplanar opaque architectural support.
     for(const u of [-.45,0,.45])for(const v of [-.42,0,.42]){
      const q=center.clone().addScaledVector(right,u*w).addScaledVector(vertical,v*h).addScaledVector(n,.09);
      ray.set(q,n.clone().negate());ray.near=0;ray.far=.18;
      const contact=ray.intersectObject(root,true).find(allowed);if(contact){const sn=contact.face.normal.clone().applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(contact.object.matrixWorld));if(Math.abs(sn.dot(n))>.96&&Math.abs(contact.point.clone().sub(center).dot(n))<.065)support++;}
     }
-    if(support<9)continue;
+    diagnostics.supportHistogram[support]++;if(support>diagnostics.bestSupport){diagnostics.bestSupport=support;diagnostics.bestSupportMesh=hit.object.name;diagnostics.bestSupportWidth=w;}
+    if(support<9){diagnostics.rejectedSupport++;continue;}
     const m=frameMetrics(camera,center,right,vertical,w,h,roots,ray);
-    if(m.inFrame<1||m.clear<1||m.spanX<.24||bodyHeightProxy(m,bodyPixels)<16)continue;
+    if(m.inFrame<1){diagnostics.rejectedFrame++;continue;}if(m.clear<1){diagnostics.rejectedOcclusion++;continue;}if(m.spanX<.24||bodyHeightProxy(m,bodyPixels)<16){diagnostics.rejectedReadability++;continue;}diagnostics.accepted++;
     candidates.push({center,right,vertical,normal:n,width:w,height:h,mesh:hit.object.name,metrics:m,facing,support: support/9,score:m.spanX*2+facing*.4-Math.hypot(dx,dy)*1.25});
    }
   }
@@ -94,13 +95,13 @@ export function createWorldType(scene,chapters,mode='flat'){
    const spec=worldTypeSpecs[i];applySet(spec.hold);scene.updateMatrixWorld(true);const activeRoots=[...roots.values()].filter(o=>o.visible);
    const r=atlas(chapters[i],i);
    if(r.overflow){r.tex.dispose();entries.push({spec,reason:'atlas-overflow'});continue;}
-   const cam=cameraFor(rail,spec.hold,false,16/9);let a=anchor(spec,cam,roots.get(spec.root),activeRoots,ray,r.bodyPixels);if(a)a.kind='surface-mounted';else a=spatialAnchor(spec,cam,activeRoots,ray,r.bodyPixels);
-   if(!a){r.tex.dispose();entries.push({spec,reason:'no-readable-supported-or-fixed-plane'});continue;}
+   const cam=cameraFor(rail,spec.hold,false,16/9);const anchorAudit={rays:0,allowedHits:0,consideredHits:0,rejectedSlope:0,rejectedFacing:0,rejectedWidth:0,footprints:0,supportHistogram:Array(10).fill(0),bestSupport:0,bestSupportMesh:null,bestSupportWidth:null,rejectedSupport:0,rejectedFrame:0,rejectedOcclusion:0,rejectedReadability:0,accepted:0};let a=anchor(spec,cam,roots.get(spec.root),activeRoots,ray,r.bodyPixels,anchorAudit);if(a)a.kind='surface-mounted';else a=spatialAnchor(spec,cam,activeRoots,ray,r.bodyPixels);
+   if(!a){r.tex.dispose();entries.push({spec,anchorAudit,reason:'no-readable-supported-or-fixed-plane'});continue;}
    const material=mode==='lit'?new THREE.MeshStandardMaterial({map:r.tex,emissiveMap:r.tex,emissive:0xffffff,emissiveIntensity:.65,roughness:.65,metalness:0,alphaTest:.25,transparent:true,depthWrite:true}):new THREE.MeshBasicMaterial({map:r.tex,alphaTest:.25,transparent:true,depthWrite:true,toneMapped:false});
    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(a.width,a.height),material);
    mesh.name='world-type-'+spec.name;mesh.position.copy(a.center);mesh.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(a.right,a.vertical??up,a.normal));mesh.visible=false;scene.add(mesh);
    const mobile=frameMetrics(cameraFor(rail,spec.hold,true,390/844),a.center,a.right,a.vertical??up,a.width,a.height,activeRoots,ray);
-   entries.push({spec,a,mesh,...r,mobile,reason:a.kind});
+   entries.push({spec,a,mesh,...r,mobile,anchorAudit,reason:a.kind});
   }
   applySet(0);scene.updateMatrixWorld(true);
  }
@@ -112,5 +113,5 @@ export function createWorldType(scene,chapters,mode='flat'){
   for(const x of entries)if(x.mesh){x.mesh.visible=active&&!suppress&&x===e&&b.alpha>.02;x.mesh.material.opacity=b.alpha;}
   return {active,name:e?.spec.name??'',reason:active?e.reason:mobile?'portrait-fallback':e?.reason??'unprepared'};
  }
- return {prepare,update,suppressInk(value){suppress=!!value;},textures:()=>entries.filter(e=>e.tex).map(e=>e.tex),report:()=>entries.map(e=>({name:e.spec.name,root:e.spec.root,reason:e.reason,anchor:e.a?.center.toArray(),normal:e.a?.normal.toArray(),width:e.a?.width,height:e.a?.height,support:e.a?.support,kind:e.a?.kind,hold:e.a?.metrics,mobile:e.mobile,bodyPixels:e.bodyPixels,estimatedBodyHeightPx:e.a?bodyHeightProxy(e.a.metrics,e.bodyPixels):null,mesh:e.a?.mesh,textureBytes:e.tex?TEX_WIDTH*TEX_HEIGHT*4:0})),dispose(){for(const e of entries)if(e.mesh){e.mesh.removeFromParent();e.mesh.geometry.dispose();e.mesh.material.dispose();/* textures owned by facility registry after prepare */}entries.length=0;}};
+ return {prepare,update,suppressInk(value){suppress=!!value;},textures:()=>entries.filter(e=>e.tex).map(e=>e.tex),report:()=>entries.map(e=>({name:e.spec.name,root:e.spec.root,reason:e.reason,anchorAudit:e.anchorAudit,anchor:e.a?.center.toArray(),normal:e.a?.normal.toArray(),width:e.a?.width,height:e.a?.height,support:e.a?.support,kind:e.a?.kind,hold:e.a?.metrics,mobile:e.mobile,bodyPixels:e.bodyPixels,estimatedBodyHeightPx:e.a?bodyHeightProxy(e.a.metrics,e.bodyPixels):null,mesh:e.a?.mesh,textureBytes:e.tex?TEX_WIDTH*TEX_HEIGHT*4:0})),dispose(){for(const e of entries)if(e.mesh){e.mesh.removeFromParent();e.mesh.geometry.dispose();e.mesh.material.dispose();/* textures owned by facility registry after prepare */}entries.length=0;}};
 }
