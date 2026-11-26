@@ -1,13 +1,14 @@
 {
   "name": "zolvency-labs",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test"
+    "test": "node --test",
+    "test:browser": "node scripts/browser-check.mjs"
   },
   "engines": {
     "node": ">=22.12.0"
@@ -18,6 +19,7 @@
     "three": "0.180.0"
   },
   "devDependencies": {
-    "vite": "^7.2.2"
+    "vite": "^7.2.2",
+    "playwright": "1.56.1"
   }
 }

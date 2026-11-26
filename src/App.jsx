@@ -13,10 +13,10 @@ function Stage({ progress, reduced }) {
     const flat=createFallback(canvas);
     let active=true, gl=null, current=flat;
     function redraw(){ const p=latest.current;current.resize();current.draw(p.reduced?0:p.progress); }
-    engine.current=current;
+    engine.current=current;canvas.hidden=false;setMode('canvas');
     function restore(){ if(!active)return;gl?.dispose();gl=null;current=flat;engine.current=flat;canvas.hidden=false;setMode('canvas');redraw(); }
     redraw();window.addEventListener('resize',redraw,{passive:true});
-    if(!latest.current.reduced) import('./graphics/threeScene.js').then(({createThreeScene}) => {
+    if(!latest.current.reduced && new URLSearchParams(location.search).get('renderer')!=='canvas') import('./graphics/threeScene.js').then(({createThreeScene}) => {
       if(!active || latest.current.reduced)return;
       try{gl=createThreeScene(node,restore);current=gl;engine.current=gl;redraw();canvas.hidden=true;setMode('three');}
       catch(error){console.warn('WebGL unavailable; using Canvas2D',error);restore();}
@@ -29,7 +29,7 @@ function Brand(){return <header className="brand"><svg viewBox="0 0 32 32" fill=
 export default function App(){
   const story=useRef(null);
   const {progress,index,reduced}=useScrollStory(story);
-  return <><Stage progress={progress} reduced={reduced}/><Brand/><div className="edition" aria-hidden="true">VISUAL STUDY / 01</div>
-  <main id="story" ref={story}>{chapters.map((c,i)=>{const Heading=i===0?'h1':'h2';return <section className="chapter" data-name={c.name} key={c.name}><div className="copy"><div className="eyebrow">{String(i+1).padStart(2,'0')} / {c.label}</div><Heading>{c.title}</Heading><p>{c.body}</p>{i===0&&<span className="tag">SCROLL TO EXPLORE ↓</span>}{i===chapters.length-1&&<div className="endnote">ZOLVENCY LABS / VISUAL STUDY V0.1</div>}</div></section>})}</main>
+  return <><Stage progress={progress} reduced={reduced}/><Brand/><div className="edition" aria-hidden="true">CAMERA STUDY / 02</div>
+  <main id="story" ref={story}>{chapters.map((c,i)=>{const Heading=i===0?'h1':'h2';return <section className="chapter" data-name={c.name} key={c.name}><div className="copy"><div className="eyebrow">{String(i+1).padStart(2,'0')} / {c.label}</div><Heading>{c.title}</Heading><p>{c.body}</p>{i===0&&<span className="tag">SCROLL TO EXPLORE ↓</span>}{i===chapters.length-1&&<div className="endnote">ZOLVENCY LABS / CAMERA STUDY V0.2</div>}</div></section>})}</main>
   <div className="track" aria-hidden="true"><span>{String(index+1).padStart(2,'0')} / {chapters[index].name}</span><i><b style={{width:(progress*100)+'%'}}/></i><span>{String(Math.round(progress*100)).padStart(3,'0')}%</span></div></>;
 }
