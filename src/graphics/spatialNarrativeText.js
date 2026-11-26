@@ -100,9 +100,9 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   for(const [i,m] of e.group.children.entries()){
    const b=m.geometry.boundingBox,center=b.getCenter(V()),size=b.getSize(V());
    const [rx,ry,rs,depth]=layouts[e.card.name][i];
-   const mobileY=e.card.name==='QUANTUM'?(composition==='quantum-copy'?[.75,-.50,-.71,-.91]:[.75,-.64,-.84,-.91]):[.35,-.18,-.59,-.84];
+   const mobileY=e.card.name==='QUANTUM'?(['quantum-copy','selected'].includes(composition)?[.75,-.50,-.71,-.91]:[.75,-.64,-.84,-.91]):[.35,-.18,-.59,-.84];
    const x=mobile?0:rx,y=mobile?mobileY[i]:ry,span=mobile?Math.min(.80,rs*1.8):rs;
-   let anchor=null;if(art&&i===0&&e.card.brand){if(e.card.name==='ORIGIN'&&['mid','close'].includes(composition))anchor=midBrand(m,cam,all);if(!anchor)anchor=mountedBrand(e,m,cam,mobile,roots);}
+   let anchor=null;if(art&&i===0&&e.card.brand){if(e.card.name==='ORIGIN'&&['mid','close','selected'].includes(composition))anchor=midBrand(m,cam,all);if(!anchor)anchor=mountedBrand(e,m,cam,mobile,roots);}
    for(const d of [depth,depth*.76,depth*.55,depth*.36,.72,.48,.30]){
     if(anchor)break;
     const h=d*Math.tan(THREE.MathUtils.degToRad(cam.fov/2)),w=h*a;
