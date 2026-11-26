@@ -17,7 +17,7 @@ export function createMechanicalAudit(){
   const entry={geometry:copy,bvh};cache.set(g,entry);return entry;
  }
  const valid=o=>o.isMesh&&o.geometry?.attributes.position?.count>=3;
- function inspect(root,moving){
+ function inspect(root,moving,{details=false}={}){
   if(!root||!moving)throw Error('mechanical audit requires root and moving subtree');
   const dynamic=[],fixed=[];moving.traverse(o=>{if(valid(o))dynamic.push(o);});
   const movingSet=new Set(dynamic);
@@ -32,7 +32,7 @@ export function createMechanicalAudit(){
     if(!box.intersectsBox(otherBox))continue;broadPhasePairs++;
     const a=get(mg),b=get(ng);
     relative.copy(m.matrixWorld).invert().multiply(n.matrixWorld);
-    if(a.bvh.intersectsGeometry(b.geometry,relative))hits.push({moving:m.name,other:n.name});
+    if(a.bvh.intersectsGeometry(b.geometry,relative)){const hit={moving:m.name,other:n.name};if(details){const intersection=box.clone().intersect(otherBox);const bounds=b=>({min:b.min.toArray(),max:b.max.toArray()});hit.movingBounds=bounds(box);hit.otherBounds=bounds(otherBox);hit.overlapBounds=bounds(intersection);}hits.push(hit);}
    }
   }
   return {movingMeshes:dynamic.length,otherMeshes:fixed.length,broadPhasePairs,hits:hits.sort((a,b)=>(a.moving+'|'+a.other).localeCompare(b.moving+'|'+b.other))};
