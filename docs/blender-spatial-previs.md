@@ -1,0 +1,12 @@
+# Spatial typography Blender previs
+
+Real geometry comes from decoded, visible facility roots captured by the opt-in diagnostics hook, including mesh world transforms and the current camera. No generated stand-in assets. Materials are deliberately simplified to untextured base color, emission, roughness and metalness; transmissive glass groups are omitted. Camera-relative lights are a previs approximation. Not a final-material screenshot or a production site change.
+
+Three studies: office chair reveal + desk surface (if detected by ray sampling, otherwise console vertical plane); quantum axis vs off-axis; Stellar rack-aligned vs aisle plane. Two anchored positions per room, three keyframes per position (18 renders), real depth/occlusion, no camera-parented text. Each candidate saves its own editable Blender file. Camera path is small rotation about actual measured scene hit, with straight-line collision guard; not a proof of whole-path clearance. Text bounding-box visibility is an approximate BVH sample, not per-letter readability. Final body remains native HTML for accessible reading. Compare full-size renders and scrub keyframes; reject unreadable or collision-prone results. If export/install/render fails, report the failure rather than simulating Blender.
+
+Research: Blender camera and depth of field (https://docs.blender.org/manual/en/latest/render/cameras.html), glTF (https://docs.blender.org/manual/en/latest/addons/scene_gltf2.html); Three.js text (https://threejs.org/manual/pages/creating-text.html), material depth/clipping (https://threejs.org/docs/pages/Material.html), CSS3DRenderer limitations (https://threejs.org/docs/pages/CSS3DRenderer.html). Export decoded meshes rather than relying on Blender support of meshopt/KTX2 compressed assets. Keep physical glyph planes for genuine occlusion; use DOM for long copy; CSS3D does not directly share WebGL depth. No public default or #131 change.
+
+Local after npm install/build: node scripts/export-blender-previs.mjs; blender -b --python-exit-code 1 --python scripts/blender-spatial-previs.py -- artifacts/blender-input artifacts/blender-previs office (repeat quantum, stellar).
+
+
+R36 retry: export succeeded on run 45892011208; all render jobs failed because Ubuntu Blender was built without OpenImageDenoiser. Disable denoising, increase Cycles CPU samples to 24. PR runs reuse the exact exported input from that run (only render settings changed); manual workflow dispatch regenerates input. If scene/export source changes, regenerate input rather than reusing this snapshot.
