@@ -10,7 +10,7 @@ export function createMeshAudit(){
  const item={geometry:copy,bvh:new MeshBVH(copy),box:copy.boundingBox};cache.set(g,item);return item;
  }
  function measure(roots,position,max=.8){let distance=max,object=null;
- for(const root of roots)root.traverseVisible(o=>{if(!o.isMesh||!o.geometry?.attributes.position)return;const item=get(o.geometry);scale.setFromMatrixScale(o.matrixWorld);const s=Math.min(scale.x,scale.y,scale.z);if(s<1e-8)return;local.copy(position).applyMatrix4(inverse.copy(o.matrixWorld).invert());if(item.box.distanceToPoint(local)*s>=distance)return;
+ for(const root of roots)root.traverseVisible(o=>{if(!o.isMesh||!o.geometry?.attributes.position)return;const g=o.geometry;scale.setFromMatrixScale(o.matrixWorld);const s=Math.min(scale.x,scale.y,scale.z);if(s<1e-8)return;local.copy(position).applyMatrix4(inverse.copy(o.matrixWorld).invert());if(!g.boundingBox)g.computeBoundingBox();if(g.boundingBox.distanceToPoint(local)*s>=distance)return;const item=get(g);
  const hit=item.bvh.closestPointToPoint(local,{},0,distance/s);if(hit&&hit.distance*s<distance){distance=hit.distance*s;object=root.name+'/'+o.name;}});
  return {distance,object};
  }
