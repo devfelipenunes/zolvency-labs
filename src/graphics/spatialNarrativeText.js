@@ -46,8 +46,8 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false}
  // Each role has a different depth and position. Only authored motion changes that transform.
  const layouts={
  ORIGIN:[[-.20,.25,.61,7.5],[-.28,-.28,.42,5.5],[-.28,-.59,.30,4.4],[0,-.80,.20,3.2]],
- BLOCKCHAIN:[[.37,.45,.40,2.6],[.37,-.08,.36,2.5],[.37,-.58,.29,2.5]],
- STELLAR:[[.38,.44,.37,2.5],[.39,-.08,.35,2.2],[.39,-.58,.29,2.4]],
+ BLOCKCHAIN:[[-.37,.45,.33,1.25],[-.37,-.03,.31,1.35],[-.37,-.55,.28,1.4]],
+ STELLAR:[[-.35,.52,.31,1.20],[-.35,-.03,.29,1.25],[-.35,-.52,.26,1.35]],
  CRYPTOGRAPHY:[[0,.52,.60,3.3],[-.42,.03,.38,2.4],[.37,-.53,.39,2.8]],
  INTELLIGENCE:[[.37,.47,.38,3.5],[.39,-.12,.35,3.0],[.39,-.60,.29,3.3]],
  QUANTUM:[[-.61,.42,.27,3.8],[-.60,-.13,.30,4.1],[-.58,-.60,.32,3.6]],
@@ -74,7 +74,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false}
     const cx=THREE.MathUtils.clamp(x,-.94+size.x*scale/(2*w),.94-size.x*scale/(2*w));
     const cy=THREE.MathUtils.clamp(y,-.92+size.y*scale/(2*h),.92-size.y*scale/(2*h));
     const point=cam.position.clone().addScaledVector(dir,d).addScaledVector(right,cx*w).addScaledVector(up,cy*h);
-    const corners=[point,...[-1,-.5,0,.5,1].flatMap(u=>[-1,0,1].map(v=>point.clone().addScaledVector(right,u*size.x*scale*.5).addScaledVector(up,v*size.y*scale*.5)))];
+    const corners=[point,...Array.from({length:13},(_,k)=>-1+k/6).flatMap(u=>[-1,-.5,0,.5,1].map(v=>point.clone().addScaledVector(right,u*size.x*scale*.53).addScaledVector(up,v*size.y*scale*.53)))];
     if(corners.some(q=>isBlocked(cam.position,q,all)))continue;
     const rotation=cam.quaternion.clone().multiply(new THREE.Quaternion().setFromAxisAngle(V(0,1,0),mobile?0:(i%2?-.09:.10)));
     anchor={point,rotation,scale,center,right:right.clone(),up:up.clone(),depth:d};break;
@@ -92,7 +92,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false}
   const {group}=active;group.position.set(0,0,0);group.quaternion.identity();group.scale.setScalar(1);group.visible=anim.alpha>.02;
   const t=anim.local;
   for(const [i,m] of group.children.entries()){
-   const anchor=active.anchors[i],hold=(card.hold-windows[anim.index])/(windows[anim.index+1]-windows[anim.index]);const delayed=card.name!=='QUANTUM'&&i===2;const enter=i===0?1:delayed?ramp(t,Math.max(.16,hold-.12),Math.min(.95,hold+.13)):ramp(t,i===1?.16:i===2?.32:.05,i===1?.34:i===2?.46:.18);const exit=anim.index===6?1:1-ramp(t,Math.max(hold+.025,i===0?.69:.74),Math.max(hold+.075,i===0?.86:.88));const alpha=anim.alpha*enter*exit;
+   const anchor=active.anchors[i],hold=(card.hold-windows[anim.index])/(windows[anim.index+1]-windows[anim.index]);const delayed=card.name!=='QUANTUM'&&i===2;const enter=i===0?1:delayed?ramp(t,Math.max(.12,hold-.20),Math.max(.15,hold-.025)):ramp(t,i===1?.16:i===2?.32:.05,i===1?.34:i===2?.46:.18);const exit=anim.index===6?1:1-ramp(t,Math.max(hold+.025,i===0?.69:.74),Math.max(hold+.075,i===0?.86:.88));const arrival=card.name==='BLOCKCHAIN'?ramp(p,.165,.178):1;const alpha=anim.alpha*enter*exit*arrival;
    m.visible=alpha>.025;m.material.opacity=alpha;
    // Put fully revealed lettering into the opaque pass so transmissive surfaces cannot erase it.
    const opaque=alpha>.995;if(m.material.transparent===opaque){m.material.transparent=!opaque;m.material.depthWrite=opaque;m.material.needsUpdate=true;}
