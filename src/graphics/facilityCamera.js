@@ -1,5 +1,5 @@
 // Every shot is inside the same 20 x 30m hangar, including the inserted rooms.
-export const windows=[0,.115,.31,.51,.65,.79,.92,1];
+export const windows=[0,.115,.31,.51,.65,.85,.95,1];
 export const clamp=x=>Math.min(1,Math.max(0,x));
 const ease=t=>t*t*(3-2*t);
 const rad=x=>x*Math.PI/180;
