@@ -7,7 +7,7 @@ export function useScrollStory(story,{editorial=false,onProgress}={}){
  function measure(){
   const sections=[...story.current.querySelectorAll('section')],mobile=innerWidth<720;
   if(editorial&&!media.matches&&pacingModule){
-   if(!pacing||pacing.mobile!==mobile){pacing=pacingModule.createPacing({mobile});pacing.mobile=mobile;}
+   if(!pacing||pacing.mobile!==mobile){pacing=pacingModule.getPacing(mobile);pacing.mobile=mobile;}
    for(let i=0;i<sections.length;i++)sections[i].style.setProperty('--pace-height',(pacing.chapters[i].vh+(i===6?1:0))*100+'svh');
   }else{for(const s of sections)s.style.removeProperty('--pace-height');}
   starts=sections.map((s,i)=>i===0?0:s.getBoundingClientRect().top+scrollY);max=document.documentElement.scrollHeight-innerHeight;dirty=false;
