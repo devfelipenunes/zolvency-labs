@@ -13,15 +13,15 @@ const normalOf=h=>h.face.normal.clone().applyMatrix3(new THREE.Matrix3().getNorm
 const looksGlass=h=>/glass|window/i.test((matOf(h)?.name??'')+' '+h.object.name);
 const isSupport=h=>h.face&&stable(h.object)&&!(/light|glow|emissive|led|holo/i.test(matOf(h)?.name??''));
 const corners=(center,right,up,w,h)=>[[-1,-1],[-1,1],[1,-1],[1,1]].map(([x,y])=>center.clone().addScaledVector(right,x*w/2).addScaledVector(up,y*h/2));
-function cameraAt(p,mobile,aspect){
- const a=cameraPose(p,mobile),cam=new THREE.PerspectiveCamera(a.fov,aspect,.075,65);
+function cameraAt(p,mobile,aspect,poseFn){
+ const a=poseFn(p,mobile),cam=new THREE.PerspectiveCamera(a.fov,aspect,.075,65);
  cam.position.set(...a.position);cam.lookAt(...a.target);cam.updateMatrixWorld(true);cam.updateProjectionMatrix();return cam;
 }
 function pixelBox(points,camera,w,h){
  const a=points.map(p=>p.clone().project(camera));
  return {inside:a.every(p=>Math.abs(p.x)<.95&&Math.abs(p.y)<.91&&Math.abs(p.z)<1),width:(Math.max(...a.map(p=>p.x))-Math.min(...a.map(p=>p.x)))*w/2,height:(Math.max(...a.map(p=>p.y))-Math.min(...a.map(p=>p.y)))*h/2};
 }
-export function createDiegeticTypography(scene,mode,onReady){
+export function createDiegeticTypography(scene,mode,onReady,poseFn=cameraPose){
  const group=new THREE.Group();group.name='surface-editorial-signage';scene.add(group);
  const ray=new THREE.Raycaster(),entries=new Map(),diag=new Map();let font=null,disposed=false,lastSignature='',lastCheck=-1,lastResult={name:'',anchor:'',readable:false,alpha:0},builtAspect=0;
  // Local, versioned font staged from the pinned npm package. Failure leaves printed titles.
@@ -38,19 +38,21 @@ export function createDiegeticTypography(scene,mode,onReady){
   return true;
  }
  function find(station,roots,mobile,aspect,viewW,viewH){
-  const cam=cameraAt(station.hold,mobile,aspect),all=[...roots.values()],preferred=roots.get(station.root),options=[];
-  if(!preferred)return null;
-  const hints=[...station.hints,[0,.2],[.55,.35],[-.55,.35],[.55,-.12],[-.55,-.12],[0,-.2],[0,.48]];
+  const cam=cameraAt(station.hold,mobile,aspect,poseFn),all=[...roots.values()],preferred=[station.root,...(station.name==='CRYPTOGRAPHY'?['portal']:station.name==='INTELLIGENCE'?['portal']:station.name==='QUANTUM'?['cleanroom-airlock']:[])].map(id=>roots.get(id)).filter(Boolean),options=[];
+  if(!preferred.length)return null;
+  const hints=[...station.hints,...[-.72,-.48,-.24,0,.24,.48,.72].flatMap(x=>[-.4,-.15,.1,.35,.58].map(y=>[x,y]))];
   for(const [x,y] of hints){
    const h=screenHit(cam,x,y,all);if(!h||!isSupport(h))continue;
-   let parent=h.object;while(parent&&parent!==preferred)parent=parent.parent;if(!parent)continue;
+   let parent=h.object;while(parent&&!preferred.includes(parent))parent=parent.parent;if(!parent)continue;
    const n=normalOf(h),toward=cam.position.clone().sub(h.point).normalize();if(n.dot(toward)<0)n.negate();if(n.dot(toward)<.48||Math.abs(n.y)>.35)continue;
    const right=UP.clone().cross(n).normalize(),up=n.clone().cross(right).normalize();
-   const nominal=Math.min(5.2,Math.max(.75,h.distance*1.02*aspect*.8));
-   for(const factor of [1,.82,.65,.5,.35]){
+   const nominal=Math.min(5.2,Math.max(.40,h.distance*1.02*aspect*.8));
+   for(const factor of [1,.82,.65,.5,.35,.24]){
     const width=nominal*factor,height=width/2.15,patch={point:h.point.clone(),normal:n,right,up,width,height,mesh:h.object};
     const pts=corners(patch.point,right,up,width,height),box=pixelBox(pts,cam,viewW,viewH);
-    if(!box.inside||box.width<160||!supports(patch))continue;
+    if(!box.inside||box.width<(mobile?135:175)||!supports(patch))continue;
+    // Discard a patch before ranking if any corner is hidden by foreground geometry at its reading pose.
+    if([patch.point,...pts].some(q=>{const v=q.clone().addScaledVector(n,.014).sub(cam.position),dist=v.length();return !!hit(cam.position,v.normalize(),all,Math.max(.001,dist-.035));}))continue;
     const style=mode==='panel'?'display':mode==='projection'?'projection':station.style;
     const name=(matOf(h)?.name??'')+' '+h.object.name;
     const match=style==='glass'?looksGlass(h):style==='display'?/screen|panel|console|rack/i.test(name):/wall|panel|bay|frame/i.test(name);
@@ -68,7 +70,7 @@ export function createDiegeticTypography(scene,mode,onReady){
   ctx.font='600 108px Arial, sans-serif';const lines=wrapWords(chapter.title,s=>ctx.measureText(s).width,1444);ctx.fillStyle=style==='projection'?'#c2f7e5':'#f1f3ec';
   ctx.shadowColor=style==='projection'?'#52c8a8':'#061015';ctx.shadowBlur=solid?0:style==='projection'?18:7;
   if(!raised)lines.forEach((s,i)=>ctx.fillText(s,46,197+i*115));
-  const titleCanvas=document.createElement('canvas');titleCanvas.width=c.width;titleCanvas.height=c.height;titleCanvas.getContext('2d').drawImage(c,0,0);
+  const titleCanvas=document.createElement('canvas');titleCanvas.width=c.width;titleCanvas.height=c.height;const tc=titleCanvas.getContext('2d');if(solid){tc.fillStyle='#102328';tc.fillRect(0,0,c.width,c.height);tc.strokeStyle=station.accent;tc.lineWidth=3;tc.strokeRect(8,8,c.width-16,c.height-16);}tc.fillStyle=station.accent;tc.font='500 48px monospace';tc.fillText(station.sector,46,76);tc.fillRect(46,102,132,4);let compact=174;let compactLines=[];do{tc.font='600 '+compact+'px Arial, sans-serif';compactLines=wrapWords(chapter.title,s=>tc.measureText(s).width,1444);if(compactLines.length<=3)break;compact-=8;}while(compact>100);if(!raised){tc.fillStyle='#f1f3ec';tc.shadowColor='#061015';tc.shadowBlur=7;compactLines.forEach((s,i)=>tc.fillText(s,46,132+compact+i*(compact+9)));}
   const titleTexture=new THREE.CanvasTexture(titleCanvas);titleTexture.colorSpace=THREE.SRGBColorSpace;titleTexture.anisotropy=4;
   const bodyTop=197+(lines.length-1)*115+74;
   let bodySize=52,body=[];
@@ -87,7 +89,7 @@ export function createDiegeticTypography(scene,mode,onReady){
     const mesh=new THREE.Mesh(g,m);mesh.position.set(-patch.width/2+patch.width*46/1536,patch.height/2-patch.height*(197+i*115)/714,.008);anchor.add(mesh);letters.push(mesh);
    }
   }
-  group.add(anchor);anchor.visible=false;return {anchor,plane,material,texture,titleTexture,letters,patch,station,titlePx:108/714,bodyPx:bodySize/714};
+  group.add(anchor);anchor.visible=false;return {anchor,plane,material,texture,titleTexture,letters,patch,station,titlePx:108/714,compactPx:(raised?108:compact)/714,bodyPx:bodySize/714};
  }
  function clear(){for(const e of entries.values()){e.anchor.removeFromParent();e.plane.geometry.dispose();e.material.dispose();e.texture.dispose();e.titleTexture.dispose();for(const l of e.letters)l.geometry.dispose();e.letters[0]?.material.dispose();}entries.clear();diag.clear();}
  function rebuild(roots,mobile,camera,w,h){
@@ -112,7 +114,7 @@ export function createDiegeticTypography(scene,mode,onReady){
      const dir=q.clone().sub(camera.position),dist=dir.length();if(hit(camera.position,dir.normalize(),all,Math.max(.001,dist-.025))){clear=false;break;}
     }
     const legibility={...box,clear,titlePx:box.height*e.titlePx,bodyPx:box.height*e.bodyPx};
-    const readable=readability(legibility),titleOk=titleReadability(legibility);
+    const readable=readability(legibility),titleOk=titleReadability({...legibility,titlePx:box.height*e.compactPx,mobile});
     e.anchor.visible=titleOk;e.material.opacity=alpha;for(const l of e.letters)l.material.opacity=alpha;
     const selected=readable?e.texture:e.titleTexture;if(e.material.map!==selected){e.material.map=selected;e.material.needsUpdate=true;}
     if(e.anchor.visible)result={name:e.station.name,anchor:p.name,style:p.style,readable,alpha,projected:box,extruded:e.letters.length>0};
