@@ -25,17 +25,17 @@ export function createResolutionGovernor({budget=16.7,levels=[1,.9,.8,.7,.6]}={}
 export function createGpuTimer(gl,{every=6,maxPending=4}={}){
  const ext=gl.getExtension('EXT_disjoint_timer_query_webgl2');
  let frame=0,active=null,latest=null,serial=0;const pending=[];
- function discard(){for(const q of pending)gl.deleteQuery(q);pending.length=0;latest=null;}
+ function discard(){for(const q of pending)gl.deleteQuery(q.query);pending.length=0;latest=null;}
  return {supported:!!ext,poll(){
   if(!ext)return null;
   if(gl.getParameter(ext.GPU_DISJOINT_EXT)){discard();return null;}
-  while(pending.length&&gl.getQueryParameter(pending[0],gl.QUERY_RESULT_AVAILABLE)){
-   const q=pending.shift(),ns=gl.getQueryParameter(q,gl.QUERY_RESULT);gl.deleteQuery(q);
-   if(Number.isFinite(ns)&&ns>=0)latest={ms:ns/1e6,serial:++serial,frame};
+  while(pending.length&&gl.getQueryParameter(pending[0].query,gl.QUERY_RESULT_AVAILABLE)){
+   const {query:q,submitted}=pending.shift(),ns=gl.getQueryParameter(q,gl.QUERY_RESULT);gl.deleteQuery(q);
+   if(Number.isFinite(ns)&&ns>=0)latest={ms:ns/1e6,serial:++serial,frame:submitted};
   }
   return latest;
- },begin(){frame++;if(!ext||active||pending.length>=maxPending||frame%every!==0)return;const q=gl.createQuery();if(q){gl.beginQuery(ext.TIME_ELAPSED_EXT,q);active=q;}},
+ },begin(){frame++;if(!ext||active||pending.length>=maxPending||frame%every!==0)return;const q=gl.createQuery();if(q){gl.beginQuery(ext.TIME_ELAPSED_EXT,q);active={query:q,submitted:frame};}},
  end(){if(!active)return;gl.endQuery(ext.TIME_ELAPSED_EXT);pending.push(active);active=null;},
- dispose(){if(active){gl.endQuery(ext.TIME_ELAPSED_EXT);gl.deleteQuery(active);active=null;}discard();}
+ dispose(){if(active){gl.endQuery(ext.TIME_ELAPSED_EXT);gl.deleteQuery(active.query);active=null;}discard();}
  };
 }
