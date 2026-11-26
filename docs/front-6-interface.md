@@ -1,0 +1,2 @@
+# Front 6 — interface, copy, CI (#68 #95 #118)
+Document-owned Home/End now explicitly reaches exact document boundary and schedules a snap; never intercept modified keys, focused controls, or loading dialog. Native scroll remains for wheel/touch. Add canvas and real WebGL keyboard regression with failure telemetry and semantic headings. Old desktop timeout needs independent exact-profile reproduction; heavy workflow policy and final copy review pending.
