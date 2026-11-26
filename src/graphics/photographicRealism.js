@@ -52,3 +52,6 @@ export function assignReflection(root,texture,intensity){
   m.envMap=texture;m.envMapIntensity=(m.envMapIntensity??1)*intensity;m.needsUpdate=true;count++;
  }});return count;
 }
+
+// Re-time only the existing crane along its original 4m travel; no new path.
+export function craneTravel(p){return ramp(p,.025,.40);}
