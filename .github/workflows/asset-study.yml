@@ -1,10 +1,11 @@
 name: Operations asset audition
 on:
   pull_request:
-    branches: [main]
+    branches: [main, feat/v0.30-composition-first]
     paths:
       - 'scripts/asset-study*'
       - 'scripts/bake-hangar-study.py'
+      - 'scripts/*audit-lightmap-uv.py'
       - '.github/workflows/asset-study.yml'
   workflow_dispatch:
 permissions:
@@ -21,11 +22,18 @@ jobs:
         with:
           node-version: '22'
       - run: npm install --no-audit --no-fund
+      - run: python3 scripts/test-audit-lightmap-uv.py
       - run: node scripts/stage-decoders.mjs
       - run: npx playwright install --with-deps chromium
       - run: node scripts/asset-study.mjs
       - run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends blender
       - run: blender -b -t 2 --python-exit-code 1 --python scripts/bake-hangar-study.py -- artifacts/asset-study/hangar-shell.json artifacts/bake-study
+      - name: Audit UV overlap and padding even if the bake fails
+        if: always()
+        run: |
+          if test -f artifacts/bake-study/uv-mapping.json; then
+            python3 scripts/audit-lightmap-uv.py artifacts/bake-study/uv-mapping.json artifacts/bake-study/uv-audit.json
+          fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

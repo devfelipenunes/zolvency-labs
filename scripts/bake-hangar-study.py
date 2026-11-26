@@ -44,6 +44,12 @@ image=bpy.data.images.new('hangar-lightmap',width=512,height=512,alpha=False,flo
 image.colorspace_settings.name='Non-Color'
 tex=nodes.new('ShaderNodeTexImage');tex.image=image;nodes.active=tex;obj.data.materials.append(material)
 scene=bpy.context.scene;scene.render.engine='CYCLES';scene.cycles.device='CPU';scene.cycles.samples=16;scene.cycles.max_bounces=4
+# Ubuntu Blender 4.0.2 in CI has no OpenImageDenoiser. Baking must work without it.
+scene.cycles.use_denoising=False
+if hasattr(scene.cycles,'use_preview_denoising'): scene.cycles.use_preview_denoising=False
+if hasattr(scene.cycles,'use_adaptive_sampling'): scene.cycles.use_adaptive_sampling=False
+uv.active_render=True
+nodes.active=tex;tex.select=True
 scene.world.use_nodes=True
 scene.world.node_tree.nodes.get('Background').inputs['Color'].default_value=(.45,.55,.65,1)
 scene.world.node_tree.nodes.get('Background').inputs['Strength'].default_value=.22
@@ -54,9 +60,16 @@ area('overhead',(0,-1,7.1),(0,-1,0),1800,(.78,.88,1),5)
 area('rim',(-7,9,6),(0,5,2),900,(1,.82,.62),4)
 bpy.ops.object.select_all(action='DESELECT');obj.select_set(True);bpy.context.view_layer.objects.active=obj
 scene.render.bake.margin=8
-bpy.ops.object.bake(type='DIFFUSE',pass_filter={'DIRECT','INDIRECT'},margin=8)
-pixels=list(image.pixels);rgb=[pixels[i+j] for i in range(0,len(pixels),4) for j in range(3)]
-assert rgb and all(math.isfinite(v) for v in rgb) and max(rgb)>0
+# Preserve evidence even if the bake is cancelled or has zero/nonfinite radiance.
+json.dump({'sourceRanges':source_ranges,'faces':mapping},open(os.path.join(out,'uv-mapping.json'),'w'))
+result=bpy.ops.object.bake(type='DIFFUSE',pass_filter={'DIRECT','INDIRECT'},margin=8)
+pixels=list(image.pixels);channels=image.channels
+rgb=[pixels[i+j] for i in range(0,len(pixels),channels) for j in range(min(3,channels))]
+finite=[v for v in rgb if math.isfinite(v)]
+stats={'operator':sorted(result),'blender':bpy.app.version_string,'denoising':scene.cycles.use_denoising,'channels':channels,'pixelValues':len(pixels),'finiteValues':len(finite),'rgbValues':len(rgb),'min':min(finite,default=0),'max':max(finite,default=0),'mean':sum(finite)/max(1,len(finite)),'positiveValues':sum(v>0 for v in finite),'sourceSHA256':data['sha256']}
+json.dump(stats,open(os.path.join(out,'bake-diagnostic.json'),'w'),indent=2)
+print('BAKE_DIAGNOSTIC',json.dumps(stats),flush=True)
+assert 'FINISHED' in result and rgb and len(finite)==len(rgb) and stats['max']>0 and stats['positiveValues']>0, stats
 image.filepath_raw=os.path.abspath(os.path.join(out,'hangar-lightmap.exr'));image.file_format='OPEN_EXR';image.save()
 scene.render.image_settings.file_format='PNG';scene.render.image_settings.color_mode='RGB'
 image.save_render(os.path.abspath(os.path.join(out,'hangar-lightmap.png')),scene=scene)
