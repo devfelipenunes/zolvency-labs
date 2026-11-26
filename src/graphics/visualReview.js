@@ -26,7 +26,10 @@ export function finishMaterial(m,original,id,variant='split'){
   return 'server-glass';
  }
  if(/ceiling_light/i.test(name)){
-  m.color?.setHex(0x657d86);m.emissive?.setHex(0x90b0ba);m.emissiveIntensity=id==='corridor'||id==='portal'||id==='corridor-extension'?.12:id==='servers'?.18:.24;
+  m.color?.setHex(0x657d86);m.emissive?.setHex(0x90b0ba);m.emissiveIntensity=id==='corridor'||id==='portal'||id==='corridor-extension'?.075:id==='servers'?.18:.24;
+ }else if(id==='servers'&&/led/i.test(name)){
+  m.emissive?.setHex(/amber/i.test(name)?0xffb35a:/blue/i.test(name)?0x80caff:0x69d5ab);m.emissiveIntensity=.95;
+ }else if(id==='bridge'&&/screen/i.test(name)){m.emissiveIntensity=.95;
  }else if(id==='servers'&&!/glass|light|led|glow|screen/i.test(name)){
   if(original.color)m.color?.copy(original.color).multiply(new THREE.Color(/floor|ceiling|wall/i.test(name)?0xa2b6b7:0xd0e1e0));
   m.roughness=original.roughness??.4;
@@ -41,16 +44,21 @@ export function reviewGrade(look,p){
  return {...base,fill:look.fill*(.39+.20*rack+.10*ops),key:look.key*.47,head:look.head*(.24+.08*rack+.18*ops),hall:look.hall*.40,env:look.env*(.43+.10*rack+.12*quantum),exposure:look.exposure*(.80-.025*rack+.025*ops),fog:base.fog};
 }
 export const visualShots=[
- {name:'ORIGIN',a:0,b:.035,c:.08,z:.115,hold:.055,aim:[-3.0,3.2,-8],fov:56},
- {name:'BLOCKCHAIN',a:.145,b:.17,c:.24,z:.28,hold:.205,aim:[6.35,1.65,5.0],fov:56},
- {name:'STELLAR',a:.365,b:.39,c:.415,z:.445,hold:.405,aim:[4.25,1.65,3.9],fov:58},
- {name:'CRYPTOGRAPHY',a:.59,b:.615,c:.65,z:.68,hold:.625,aim:[-5.5,1.35,-1.55],fov:55},
- {name:'INTELLIGENCE',a:.705,b:.715,c:.74,z:.755,hold:.73,aim:[-4.55,1.70,-11.7],fov:59},
+ {name:'ORIGIN',a:0,b:.035,c:.08,z:.115,hold:.055,aim:[-3.7,3.8,-8],fov:53},
+ {name:'BLOCKCHAIN',a:.145,b:.17,c:.24,z:.28,hold:.205,aim:[5.65,1.48,3.95],fov:63},
+ {name:'STELLAR',a:.365,b:.39,c:.415,z:.445,hold:.405,aim:[4.65,1.52,5.35],fov:63},
+ {name:'CRYPTOGRAPHY',a:.59,b:.615,c:.65,z:.68,hold:.625,aim:[-5.5,1.35,-1.55],fov:52},
+ {name:'INTELLIGENCE',a:.705,b:.715,c:.74,z:.755,hold:.73,aim:[-3.9,1.7,-13.4],fov:54},
  {name:'QUANTUM',a:.865,b:.91,c:.95,z:.95,hold:.935,aim:[30,8.75,0],fov:66},
- {name:'CONVERGENCE',a:.985,b:.99,c:1,z:1,hold:.992,aim:[-3.1,3.2,7.5],fov:57}
+ {name:'CONVERGENCE',a:.985,b:.99,c:1,z:1,hold:.992,aim:[5.4,4.8,9.5],fov:56}
 ];
-export function reviewPose(p,mobile=false,reactor=true){
- const pose=noirPose(p,mobile,reactor),s=visualShots.find(s=>p>=s.a&&p<=s.z);if(!s||(!reactor&&s.name==='QUANTUM'))return pose;
+// Retime only the existing door/aisle path, keeping chapter progress separate from spatial travel.
+const travelKeys=[[.115,.115],[.145,.28],[.17,.39],[.24,.39],[.31,.39],[.365,.40],[.415,.415],[.445,.445]];
+export function serverTravel(p){if(p<=.115||p>=.445)return p;const i=travelKeys.findIndex((k,i)=>i<travelKeys.length-1&&p<=travelKeys[i+1][0]);const [a,x]=travelKeys[i],[b,y]=travelKeys[i+1];return x+(y-x)*ramp(p,a,b);}
+export function reviewPose(p,mobile=false,reactor=true,route='aisle'){
+ const travel=route==='facade'?p:serverTravel(p);const pose=noirPose(travel,mobile,reactor),s=visualShots.find(s=>p>=s.a&&p<=s.z);if(!s||(!reactor&&s.name==='QUANTUM'))return pose;
  const w=(s.a===0?1:ramp(p,s.a,s.b))*(s.c===s.z?1:1-ramp(p,s.c,s.z));
- return {...pose,target:pose.target.map((x,i)=>x+(s.aim[i]-x)*w*.78),fov:pose.fov+(s.fov+(mobile?9:0)-pose.fov)*w*.8};
+ const aim=route==='facade'&&s.name==='BLOCKCHAIN'?[6.35,1.65,5]:s.aim;
+ const slide=route==='facade'?0:.58*ramp(p,.255,.365)*(1-ramp(p,.415,.445));
+ return {...pose,position:[pose.position[0]-slide,pose.position[1],pose.position[2]],target:pose.target.map((x,i)=>x+(aim[i]-x)*w*.90),fov:pose.fov+(s.fov+(mobile?9:0)-pose.fov)*w*.8};
 }
