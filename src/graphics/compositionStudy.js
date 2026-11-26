@@ -1,16 +1,18 @@
 import {ramp} from './facilityCamera.js';
-export const studyModes=['brand-hero','final-hero','ops-hero','composition-first'];
+export const studyModes=['brand-hero','final-hero','ops-hero','ops-clear','final-clean','composition-first'];
 export const isStudy=(mode,name)=>mode==='composition-first'||mode===name;
 export function studyAim(name,mobile,mode){
  if(name==='ORIGIN'&&isStudy(mode,'brand-hero'))return [-1.5,3.3,2];
+ if(name==='CONVERGENCE'&&mode==='final-clean')return [-4,4.6,13.7];
  if(name==='CONVERGENCE'&&isStudy(mode,'final-hero'))return [-4,5.1,9.5];
+ if(name==='INTELLIGENCE'&&mode==='ops-clear')return mobile?[-4.1,1.75,-13.4]:[-3.9,1.65,-13.4];
  if(name==='INTELLIGENCE'&&isStudy(mode,'ops-hero'))return mobile?[-4.1,1.7,-13.4]:[-3.9,1.65,-13.4];
  return null;
 }
 export function studyLens(name,mode,fallback){
  if(name==='ORIGIN'&&isStudy(mode,'brand-hero'))return 42;
  if(name==='CONVERGENCE'&&isStudy(mode,'final-hero'))return 42;
- if(name==='INTELLIGENCE'&&isStudy(mode,'ops-hero'))return 40;
+ if(name==='INTELLIGENCE'&&(isStudy(mode,'ops-hero')||mode==='ops-clear'))return 40;
  return fallback;
 }
 export function brandPlane(name,mobile,mode){
