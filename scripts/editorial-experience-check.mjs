@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {createPacing} from '../src/graphics/cameraPacing.js';
 import {windows} from '../src/graphics/facilityCamera.js';
 import {expectedAssets} from '../src/graphics/facilityLayout.js';
-const mobile=process.env.EDITORIAL_VIEW==='mobile',profile=process.env.EDITORIAL_PROFILE??'balanced',legacy=profile==='legacy';
+const mobile=process.env.EDITORIAL_VIEW==='mobile',profile=process.env.EDITORIAL_PROFILE??'balanced',legacy=profile==='legacy',directed=process.env.EDITORIAL_DIRECTION==='staged';
 const viewport=mobile?{width:390,height:844}:{width:1280,height:720},out='artifacts/editorial-experience',base='http://127.0.0.1:4195';
 const pacing=createPacing({mobile}),holds=[.055,.205,.405,.625,.73,.935,.992];
 await mkdir(out,{recursive:true});
@@ -17,7 +17,7 @@ try{
  browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
  const page=await browser.newPage({viewport,deviceScaleFactor:1,recordVideo:{dir:out+'/video',size:viewport}});
  page.on('pageerror',e=>errors.push(e.message));
- await page.goto(base+(legacy?'':'/?experience=editorial&profile='+profile),{waitUntil:'domcontentloaded'});
+ await page.goto(base+(legacy?'':'/?experience=editorial&profile='+profile+(directed?'&direction=staged':'')),{waitUntil:'domcontentloaded'});
  await page.waitForSelector('#stage[data-renderer="three"]',{timeout:120000});
  await page.waitForFunction(n=>Number(document.querySelector('#stage')?.dataset.assets)===n,expectedAssets,{timeout:120000});
  if(!legacy)await page.waitForFunction(()=>!!document.querySelector('.chapter').style.getPropertyValue('--pace-height'));
@@ -28,10 +28,10 @@ try{
  async function capture(p,direction){
   await page.evaluate(y=>window.scrollTo({top:y,behavior:'instant'}),scrollAt(p));
   try{await page.waitForFunction(p=>Math.abs(Number(document.querySelector('#stage')?.dataset.progress)-p)<.003,p,{timeout:180000});}catch(error){const diagnostic=await page.evaluate(()=>({data:{...document.querySelector('#stage').dataset},scrollY,frames:window.__measure?.slice(-100)}));await writeFile(out+'/timeout.json',JSON.stringify({p,direction,diagnostic,errors},null,2));throw error;}
-  await page.waitForTimeout(180);
-  const row=await page.evaluate(()=>{const stage=document.querySelector('#stage'),i=Number(stage.dataset.visualChapter),copy=document.querySelectorAll('.chapter .copy')[i],p=copy.querySelector('p'),h=copy.querySelector('h1,h2'),rect=copy.getBoundingClientRect(),s=getComputedStyle(copy);return {data:{...stage.dataset},copy:{text:copy.textContent,opacity:Number(s.opacity),background:s.backgroundColor,body:getComputedStyle(p).color,headline:getComputedStyle(h).color,bodySize:getComputedStyle(p).fontSize,rect:{x:rect.x,y:rect.y,right:rect.right,bottom:rect.bottom},scrollY}};});
+  if(!legacy)await page.waitForFunction(()=>{const stage=document.querySelector('#stage'),copy=document.querySelectorAll('.chapter .copy')[Number(stage.dataset.visualChapter)];return copy&&Number(getComputedStyle(copy).opacity)>.95;},null,{timeout:60000});
+  const row=await page.evaluate(()=>{const stage=document.querySelector('#stage'),i=Number(stage.dataset.visualChapter),copy=document.querySelectorAll('.chapter .copy')[i],p=copy.querySelector('p'),h=copy.querySelector('h1,h2'),rect=copy.getBoundingClientRect(),s=getComputedStyle(copy);return {data:{...stage.dataset},copy:{text:copy.textContent,opacity:Number(s.opacity),background:stage.dataset.direction==='staged'?s.getPropertyValue('--reading-surface').trim():s.backgroundColor,roles:[copy.querySelector('.eyebrow'),h,p].map(n=>Number(getComputedStyle(n).opacity)),body:getComputedStyle(p).color,headline:getComputedStyle(h).color,bodySize:getComputedStyle(p).fontSize,rect:{x:rect.x,y:rect.y,right:rect.right,bottom:rect.bottom},scrollY}};});
   if(!legacy){
-   assert.ok(row.copy.opacity>.95,JSON.stringify(row.copy));assert.ok(row.copy.rect.x>=-1&&row.copy.rect.y>=-1&&row.copy.rect.right<=viewport.width+1&&row.copy.rect.bottom<=viewport.height+1,JSON.stringify(row.copy));
+   assert.ok(row.copy.opacity>.95,JSON.stringify(row.copy));if(directed)assert.ok(row.copy.roles.every(v=>v>.95),JSON.stringify(row.copy));assert.ok(row.copy.rect.x>=-1&&row.copy.rect.y>=-1&&row.copy.rect.right<=viewport.width+1&&row.copy.rect.bottom<=viewport.height+1,JSON.stringify(row.copy));
    const rgba=s=>s.match(/[\d.]+/g).map(Number),bg=rgba(row.copy.background),alpha=bg[3]??1,worst=bg.slice(0,3).map(v=>v*alpha+255*(1-alpha));
    row.copy.worstWhiteContrast=contrast(rgba(row.copy.body).slice(0,3),worst);assert.ok(row.copy.worstWhiteContrast>=4.5);
    assert.ok(Number.parseFloat(row.copy.bodySize)>=15);assert.ok(!row.data.narrativeRoles?.includes('body')&&!row.data.narrativeRoles?.includes('headline'));
@@ -46,7 +46,7 @@ try{
  await page.mouse.wheel(0,Math.round(viewport.height*.85));await page.waitForFunction(()=>scrollY>10&&Number(document.querySelector('#stage').dataset.progress)>0,null,{timeout:120000});
  await page.keyboard.press('End');await page.waitForFunction(()=>Math.abs(Number(document.querySelector('#stage').dataset.progress)-1)<.002,null,{timeout:120000});
  const frames=await page.evaluate(()=>window.__measure);const active=frames.filter((f,i)=>i&&f.progress!==frames[i-1].progress),gpu=active.filter((f,i)=>f.gpuSerial&&f.gpuSerial!==active[i-1]?.gpuSerial);
- const report={profile,viewport,geometry,activeSamples:active.length,holdCaptionHeights:results.map(x=>({p:x.p,direction:x.direction,height:x.copy.rect.bottom-x.copy.rect.y,viewportFraction:(x.copy.rect.bottom-x.copy.rect.y)/viewport.height})),frameInterval:{p50:percentile(active.map(x=>x.interval),.5),p95:percentile(active.map(x=>x.interval),.95),gapsOver50ms:active.filter(x=>x.interval>50).length,gapsOver250ms:active.filter(x=>x.interval>250).length},cpu:Object.fromEntries(['cpu','pose','scene','text','submit'].map(k=>[k,{p50:percentile(active.map(x=>x[k]),.5),p95:percentile(active.map(x=>x[k]),.95)}])),gpu:{samples:gpu.length,p95:percentile(gpu.map(x=>x.gpu),.95)},draws:{p50:percentile(active.map(x=>x.draws),.5),p95:percentile(active.map(x=>x.draws),.95)},errors,note:'SwiftShader CPU software rendering; not physical GPU FPS. Contrast is conservative CSS compositing estimate over white at fully visible holds.'};
+ const report={profile,directed,viewport,geometry,activeSamples:active.length,holdCaptionHeights:results.map(x=>({p:x.p,direction:x.direction,height:x.copy.rect.bottom-x.copy.rect.y,viewportFraction:(x.copy.rect.bottom-x.copy.rect.y)/viewport.height})),frameInterval:{p50:percentile(active.map(x=>x.interval),.5),p95:percentile(active.map(x=>x.interval),.95),gapsOver50ms:active.filter(x=>x.interval>50).length,gapsOver250ms:active.filter(x=>x.interval>250).length},cpu:Object.fromEntries(['cpu','pose','scene','text','submit'].map(k=>[k,{p50:percentile(active.map(x=>x[k]),.5),p95:percentile(active.map(x=>x[k]),.95)}])),gpu:{samples:gpu.length,p95:percentile(gpu.map(x=>x.gpu),.95)},draws:{p50:percentile(active.map(x=>x.draws),.5),p95:percentile(active.map(x=>x.draws),.95)},errors,note:'SwiftShader CPU software rendering; not physical GPU FPS. Contrast is conservative CSS compositing estimate over white at fully visible holds.'};
  await writeFile(out+'/frames.json',JSON.stringify(frames));await writeFile(out+'/report.json',JSON.stringify(report,null,2));assert.deepEqual(errors,[]);assert.ok(active.length>0);
  await page.close();
 }finally{await browser?.close();server.kill();}
