@@ -13,6 +13,12 @@ export const reviewCases=[
  {name:'world',group:'narrative',params:'',poses:[.005,.025,.055,.075,.105,.145,.17,.185,.205,.24,.31,.365,.405,.425,.625,.73,.91,.935,.949,.992]},
  ...['original','matte','geometry-matte'].map(floor=>({name:'floor-'+floor,group:'variants',params:'floor='+floor+'&plate=1',poses:[.055,.992]})),
  {name:'ops-focus',group:'variants',params:'light=ops-focus&plate=1',poses:[.73]},
+ {name:'composition-control',group:'composition',params:'composition=selected',poses:[.025,.055,.075,.205,.405,.625,.73,.935,.985,.992,1]},
+ {name:'composition-brand',group:'composition',params:'composition=brand-hero',poses:[.005,.025,.055,.075,.105]},
+ {name:'composition-final',group:'composition',params:'composition=final-hero&floor=geometry-matte',poses:[.985,.992,1]},
+ {name:'composition-ops',group:'composition',params:'composition=ops-hero&light=subject',poses:[.705,.715,.73,.74,.755]},
+ {name:'composition-light',group:'composition',params:'light=subject&plate=1',poses:holds},
+ {name:'composition-combined',group:'composition',params:'composition=composition-first&light=subject&floor=geometry-matte&motion=crane',poses:[.025,.055,.075,.205,.405,.625,.73,.935,.985,.992,1]},
  {name:'public-scroll',group:'motion',params:'',motion:true},
  ...['default','no-ao','no-bloom','neither'].map(effect=>({name:'effects-'+effect,group:'effects',params:'effects='+effect+'&plate=1',poses:[.055,.405,.935],desktopOnly:true}))
 ];
