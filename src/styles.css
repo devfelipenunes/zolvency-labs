@@ -30,3 +30,5 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
 
 /* V0.17: keep copy away from the active architectural focal point. */
 @media(min-width:721px){#stage[data-side="left"] .veil{background:linear-gradient(90deg,#050a10ec 0%,#050a10b0 24%,#050a1020 51%,transparent 76%),linear-gradient(0deg,#050a1060,transparent 21%)}.copy{width:min(32vw,500px)}.track{background:transparent}.track span:last-child{display:none}.edition{letter-spacing:.18em}}
+
+.sound-control{position:fixed;z-index:4;top:clamp(20px,4vw,50px);right:var(--gutter);border:1px solid #b4d1c44d;background:#0a141bd9;color:#c7e4d6;font:10px/1.3 ui-monospace,monospace;letter-spacing:.12em;padding:10px 12px;cursor:pointer;border-radius:2px}.sound-control:focus-visible{outline:2px solid #c0e8ce;outline-offset:3px}.sound-control[aria-pressed=true]{border-color:#a8dbc2;background:#17322c}@media(max-width:720px){.sound-control{font-size:9px;padding:8px 10px}}
