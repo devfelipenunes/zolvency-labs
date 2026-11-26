@@ -1,0 +1,47 @@
+name: World type seven-act audition
+on:
+  pull_request:
+    branches: [feat/v0.31-editorial-direction]
+    paths: ['src/**','tests/worldType.test.js','scripts/world-type-check.mjs','.github/workflows/world-type.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fast:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
+  audition:
+    needs: fast
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {view: desktop, material: flat}
+          - {view: desktop, material: lit}
+          - {view: mobile, material: flat}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      TYPE_VIEW: ${{ matrix.view }}
+      TYPE_MATERIAL: ${{ matrix.material }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/world-type-check.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: world-type-${{ matrix.view }}-${{ matrix.material }}
+          path: artifacts/world-type/

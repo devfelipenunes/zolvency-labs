@@ -1,4 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
+import './world-type.css';
 import packageInfo from '../package.json';
 import {SoundControl} from './SoundControl.jsx';
 import {chapters as legacyChapters} from './story.js';

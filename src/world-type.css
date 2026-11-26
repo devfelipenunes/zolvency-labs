@@ -1,0 +1,4 @@
+/* Only hide visual duplicate, never remove semantic content. Active flag is
+set only by the experimental world renderer. Canvas/reduced-motion stay native. */
+#stage[data-renderer="three"][data-world-type-active="true"] ~ main .copy {opacity:0!important;pointer-events:none!important;}
+@media (prefers-reduced-motion: reduce) {#stage[data-renderer="three"][data-world-type-active="true"] ~ main .copy {opacity:1!important;pointer-events:auto!important;}}

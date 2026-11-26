@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {worldTypeSpecs,TEX_WIDTH,TEX_HEIGHT} from '../src/graphics/worldType.js';import {getEditorialChapters} from '../src/editorialStory.js';import {directedNarrative} from '../src/graphics/directedNarrative.js';
+test('all seven acts map to unique world-space support candidates and exact narrative hold',()=>{assert.deepEqual(worldTypeSpecs.map(x=>x.name),getEditorialChapters('manifesto').map(x=>x.name));for(const [i,s] of worldTypeSpecs.entries()){assert.equal(directedNarrative(s.hold).index,i);assert.ok(s.min>0&&s.max>=s.min);assert.ok(s.root);assert.ok(s.span<.6);}});
+test('texture budget is bounded before mipmaps',()=>{assert.ok(worldTypeSpecs.length*TEX_WIDTH*TEX_HEIGHT*4<=15*1024*1024);});
