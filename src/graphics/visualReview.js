@@ -26,9 +26,9 @@ export function finishMaterial(m,original,id,variant='split'){
   return 'server-glass';
  }
  if(/ceiling_light/i.test(name)){
-  m.color?.setHex(0x657d86);m.emissive?.setHex(0x90b0ba);m.emissiveIntensity=id==='corridor'||id==='portal'||id==='corridor-extension'?.075:id==='servers'?.18:.24;
+  m.color?.setHex(0x657d86);m.emissive?.setHex(0x90b0ba);m.emissiveIntensity=id==='corridor'||id==='portal'||id==='corridor-extension'?.075:id==='servers'?.12:.24;
  }else if(id==='servers'&&/led/i.test(name)){
-  m.emissive?.setHex(/amber/i.test(name)?0xffb35a:/blue/i.test(name)?0x80caff:0x69d5ab);m.emissiveIntensity=.95;
+  m.emissive?.setHex(/amber/i.test(name)?0xffb35a:/blue/i.test(name)?0x80caff:0x69d5ab);m.emissiveIntensity=1.8;
  }else if(id==='bridge'&&/screen/i.test(name)){m.emissiveIntensity=.95;
  }else if(id==='servers'&&!/glass|light|led|glow|screen/i.test(name)){
   if(original.color)m.color?.copy(original.color).multiply(new THREE.Color(/floor|ceiling|wall/i.test(name)?0xa2b6b7:0xd0e1e0));
@@ -46,7 +46,7 @@ export function reviewGrade(look,p){
 export const visualShots=[
  {name:'ORIGIN',a:0,b:.035,c:.08,z:.115,hold:.055,aim:[-3.7,3.8,-8],fov:53},
  {name:'BLOCKCHAIN',a:.145,b:.17,c:.24,z:.28,hold:.205,aim:[5.65,1.48,3.95],fov:63},
- {name:'STELLAR',a:.365,b:.39,c:.415,z:.445,hold:.405,aim:[4.65,1.52,5.35],fov:63},
+ {name:'STELLAR',a:.365,b:.39,c:.415,z:.445,hold:.405,aim:[6.05,1.35,5.4],fov:46},
  {name:'CRYPTOGRAPHY',a:.59,b:.615,c:.65,z:.68,hold:.625,aim:[-5.5,1.35,-1.55],fov:52},
  {name:'INTELLIGENCE',a:.705,b:.715,c:.74,z:.755,hold:.73,aim:[-3.9,1.7,-13.4],fov:54},
  {name:'QUANTUM',a:.865,b:.91,c:.95,z:.95,hold:.935,aim:[30,8.75,0],fov:66},
