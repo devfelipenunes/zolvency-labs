@@ -48,6 +48,7 @@ import {qualityProfile} from './qualityProfiles.js';
 import {createAdaptiveAO,createDeviceStudy} from './deviceStudy.js';
 import {createRenderQueue,createResolutionGovernor,createGpuTimer} from './renderPerformance.js';
 export async function createThreeScene(host,onLost){
+ host.dataset.panelDetailCount='0';
  const query=new URLSearchParams(location.search),economic=query.get('experience')==='editorial'&&(query.get('profile')??(innerWidth<720?'economy':'balanced'))==='economy';
  const renderer=new THREE.WebGLRenderer({antialias:!economic,alpha:false,powerPreference:'high-performance'});
  const transmissionScale={full:1,threequarter:.75,half:.5,quarter:.25}[query.get('transmission')];
