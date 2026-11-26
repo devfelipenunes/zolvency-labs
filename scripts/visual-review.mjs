@@ -4,7 +4,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {windows} from '../src/graphics/facilityCamera.js';
 import {expectedAssets} from '../src/graphics/facilityLayout.js';
-import {reviewCases,holds,viewports,scrollTargets} from './visual-review-plan.mjs';
+import {reviewCases,viewports,scrollTargets} from './visual-review-plan.mjs';
 const view=process.env.REVIEW_VIEW??'all',group=process.env.REVIEW_GROUP??'all';
 const out='artifacts/visual-review',base='http://127.0.0.1:4188';
 const server=spawn('npm',['run','preview','--','--host','127.0.0.1','--port','4188','--strictPort'],{stdio:'inherit'});
@@ -22,7 +22,7 @@ async function scrollTo(page,p){
 }
 async function frame(page,p,diagnostic){
  return page.evaluate(({p,diagnostic})=>{const s=document.querySelector('#stage');const metrics=diagnostic?s.benchmarkFrame(p):null;
- const data={...s.dataset};return {p,actualProgress:Number(data.progress),pose:JSON.parse(data.pose),metrics,subject:diagnostic?s.inspectSubject():null,hits:diagnostic?s.inspectSpatialFrame():null,text:diagnostic?s.inspectKineticFrame():null,ready:data.narrativeReady,renderer:data.renderer,angle:data.stellarAngle,glass:data.glassVariant,effects:data.effects,effectVariant:data.effectVariant,composition:data.composition,floorVariant:data.floorVariant,lightVariant:data.lightVariant,pixelRatio:Number(data.pixelRatio),drawingBuffer:{width:document.querySelector('#three-scene')?.width,height:document.querySelector('#three-scene')?.height},assets:data.facility,assetFailures:data.failures,versionVisible:!!document.querySelector('.build-version')};},{p,diagnostic});
+ const data={...s.dataset};return {p,actualProgress:Number(data.progress),scrollY:window.scrollY,viewport:{width:innerWidth,height:innerHeight},pose:JSON.parse(data.pose),metrics,subject:diagnostic?s.inspectSubject():null,hits:diagnostic?s.inspectSpatialFrame():null,text:diagnostic?s.inspectKineticFrame():null,ready:data.narrativeReady,renderer:data.renderer,angle:data.stellarAngle,glass:data.glassVariant,effects:data.effects,effectVariant:data.effectVariant,composition:data.composition,floorVariant:data.floorVariant,lightVariant:data.lightVariant,pixelRatio:Number(data.pixelRatio),drawingBuffer:{width:document.querySelector('#three-scene')?.width,height:document.querySelector('#three-scene')?.height},assets:data.facility,assetFailures:data.failures,versionVisible:!!document.querySelector('.build-version')};},{p,diagnostic});
 }
 async function capture(page,label,mode,p,diagnostic,direction='fixed'){
  const f=await frame(page,p,diagnostic);const file=label+'-'+mode+'-'+direction+'-'+Math.round(p*1000)+'.png';
@@ -37,6 +37,7 @@ try{
    const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
    try{
     await open(page,item.params,!item.motion);
+    if(item.group==='narrative'||item.motion)await page.waitForSelector('#stage[data-narrative-ready="true"]',{timeout:120000});
     if(item.name==='world'){await page.waitForSelector('#stage[data-narrative-ready="true"]',{timeout:120000});const clearance=await page.evaluate(()=>document.querySelector('#stage').inspectServerClearance());await writeFile(out+'/'+label+'-server-clearance.json',JSON.stringify(clearance,null,2));assert.ok(clearance.every(r=>r.distance>.06),'server path clearance '+JSON.stringify(clearance.filter(r=>r.distance<=.06)));}
     if(item.motion){
      assert.equal(await page.locator('.build-version').count(),0);
