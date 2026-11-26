@@ -21,7 +21,7 @@ export function partitionFloor(geometry,matrix,{height=.16,normalY=.85}={}){
  if(!floor.length)return null;
  return {indices:rest.concat(floor),restCount:rest.length,floorCount:floor.length,area};
 }
-export function isolateHangarFloor(root){
+export function isolateHangarFloor(root,{neutral=false}={}){
  root.updateMatrixWorld(true);
  const shell=root.getObjectByName('hangar_bay');if(!shell)return {faces:0,area:0,changed:[],reason:'hangar_bay missing'};
  const changed=[];let faces=0,area=0;
@@ -30,9 +30,9 @@ export function isolateHangarFloor(root){
   const split=partitionFloor(o.geometry,o.matrixWorld);if(!split)return;
   const original=o.material,material=original.clone(),geometry=o.geometry.clone();
   material.name='isolated-hangar-floor';
-  material.color.multiply(new THREE.Color(0x536269));
+  if(!neutral){material.color.multiply(new THREE.Color(0x536269));
   material.roughness=.88;material.envMapIntensity=(original.envMapIntensity??1)*.45;
-  material.normalScale?.multiplyScalar(.55);
+  material.normalScale?.multiplyScalar(.55);}
   geometry.setIndex(split.indices);geometry.clearGroups();
   if(split.restCount)geometry.addGroup(0,split.restCount,0);
   geometry.addGroup(split.restCount,split.floorCount,1);
