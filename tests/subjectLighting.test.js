@@ -8,3 +8,5 @@ test('local lighting changes preserve opening and quantum and remain bounded',()
   assert.ok(subjectPractical('server-front',.205,mobile)>1);assert.ok(subjectPractical('security-threshold',.625,mobile)>1);assert.ok(subjectPractical('operations-ceiling',.73,mobile)>1);assert.equal(subjectPractical('quantum-key',.935,mobile),1);assert.ok(subjectLighting(.992,mobile).hall<1);
  }
 });
+
+test('operations-only isolation retains head lighting and all other acts',()=>{for(const mobile of [false,true]){for(let i=0;i<=1000;i++){const p=i/1000,a=subjectLighting(p,mobile),b=subjectLighting(p,mobile,'ops-balanced');for(const k of ['head','hall','env','rack','security','ops','final'])assert.equal(a[k],b[k]);assert.ok(b.fill<=a.fill&&b.exposure<=a.exposure);if(!a.ops)assert.deepEqual(a,b);}const a=subjectLighting(.73,mobile),b=subjectLighting(.73,mobile,'ops-balanced');assert.ok(b.fill<a.fill&&b.exposure<a.exposure&&b.head>1);}});
