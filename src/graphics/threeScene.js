@@ -4,7 +4,7 @@ import {KTX2Loader} from 'three/addons/loaders/KTX2Loader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {cameraPose,facilityMotion} from './facilityCamera.js';
-import {facility,facilityHDRI} from './facilityLayout.js';
+import {compositionFacility,facilityHDRI} from './facilityLayout.js';
 import {installDisplay} from './facilityDisplays.js';
 import {RGBELoader} from 'three/addons/loaders/RGBELoader.js';
 export async function createThreeScene(host,onLost){
@@ -13,7 +13,7 @@ export async function createThreeScene(host,onLost){
  const scene=new THREE.Scene();scene.background=new THREE.Color(0x0a1116);scene.fog=new THREE.FogExp2(0x0a1116,.008);
  const camera=new THREE.PerspectiveCamera(64,1,.075,65);
  const debug=new URLSearchParams(location.search).has('diagnostics'),cinema=new URLSearchParams(location.search).get('quality')==='cinema';
- const initialMobile=innerWidth<720;let effects=null,audit=null,last=0,frame=0,previousTick=0,firstFrame=false,environmentMode='studio',removedOverlap=0,shadowMotion='';const startTime=performance.now();
+ const composition=new URLSearchParams(location.search).get('composition');const facility=compositionFacility(composition);const initialMobile=innerWidth<720;let effects=null,audit=null,last=0,frame=0,previousTick=0,firstFrame=false,environmentMode='studio',removedOverlap=0,shadowMotion='';const startTime=performance.now();
  const ktx=new KTX2Loader().setTranscoderPath(import.meta.env.BASE_URL+'models/basis/').detectSupport(renderer);
  const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).setKTX2Loader(ktx);
  const pmrem=new THREE.PMREMGenerator(renderer),studio=new RoomEnvironment();let environment=pmrem.fromScene(studio,.05);studio.dispose();scene.environment=environment.texture;scene.environmentIntensity=.40;
@@ -53,13 +53,13 @@ export async function createThreeScene(host,onLost){
   const seen=new Set();root.traverse(o=>{if(!o.isMesh)return;o.receiveShadow=true;o.castShadow=spec.id==='quantum'||spec.id==='access-panel'||spec.id==='cable'||/crane|blast_door|rack_devices/.test(o.name);for(const m of Array.isArray(o.material)?o.material:[o.material]){if(seen.has(m))continue;seen.add(m);if(m.color&&!/glass|light|glow|led|screen|holo/i.test(m.name??'')){m.color.multiply(new THREE.Color(spec.id==='servers'?0x72878a:spec.id==='quantum'?0xa2a7aa:0x9caeae));m.roughness=Math.max(m.roughness??.35,.34);}if(/led|glow/i.test(m.name??'')){m.emissive?.setHex(0x75c9a3);m.emissiveIntensity=Math.min(1.1,Math.max(.42,m.emissiveIntensity??1));leds.push({m,base:m.emissiveIntensity,phase:leds.length});}if(spec.id==='servers'||spec.id==='bridge'||spec.id==='portal'){const t=installDisplay(m,spec.id,textures,o);if(t)displays.push(spec.id);}}});
   const holder=new THREE.Group();holder.name='facility-'+spec.id;holder.add(root);
   if(spec.size){root.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(root),s=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),scale=spec.size/Math.max(s.x,s.y,s.z);root.scale.multiplyScalar(scale);root.position.x-=c.x*scale;root.position.z-=c.z*scale;root.position.y-=b.min.y*scale;}else root.scale.multiplyScalar(spec.scale);
-  holder.position.set(...spec.position);scene.add(holder);roots.set(spec.id,holder);if(spec.id==='servers')clearServerOverlap();renderer.shadowMap.needsUpdate=true;
+  holder.position.set(...spec.position);if(spec.mount){const server=roots.get('servers');if(!server)throw Error('server mount unavailable');scene.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(server);if(spec.mount==='server-roof'){holder.position.y=box.max.y;holder.position.z=(box.min.z+box.max.z)/2;}else if(spec.mount==='server-front'){holder.position.z=box.max.z+.015;}}scene.add(holder);roots.set(spec.id,holder);if(spec.id==='servers')clearServerOverlap();renderer.shadowMap.needsUpdate=true;
  }
  // First render needs only the actual hangar. Subsequent geometry loads by distance
  // and narrative priority, with at most two concurrent model decodes.
  const fileFor=s=>initialMobile&&s.lowFile?s.lowFile:s.file;
  async function loadOne(spec){const g=await loader.loadAsync(base+fileFor(spec));if(disposed){collect(g.scene);for(const o of g.scene.children)o.removeFromParent();disposeCollected();return;}add(spec,g);}
- function pump(){if(disposed)return;const pos=cameraPose(last,mobile).position;const todo=facility.filter(s=>!roots.has(s.id)&&!pending.has(s.id)&&!failures.includes(s.id)).sort((a,b)=>score(a)-score(b));function score(s){return Math.hypot(s.position[0]-pos[0],s.position[2]-pos[2])+s.priority*2;}
+ function pump(){if(disposed)return;const pos=cameraPose(last,mobile).position;const todo=facility.filter(s=>(!s.mount||roots.has('servers'))&&!roots.has(s.id)&&!pending.has(s.id)&&!failures.includes(s.id)).sort((a,b)=>score(a)-score(b));function score(s){return Math.hypot(s.position[0]-pos[0],s.position[2]-pos[2])+s.priority*2;}
  while(activeLoads<2&&todo.length){const s=todo.shift();pending.add(s.id);activeLoads++;loadOne(s).catch(e=>{failures.push(s.id);console.warn('Secondary facility asset unavailable',s.id,e);}).finally(()=>{activeLoads--;pending.delete(s.id);if(!disposed){if(roots.size===facility.length)timings.allAssetsMs=Math.round(performance.now()-startTime);draw(last);pump();}});}
  }
  try{await loadOne(facility[0]);if(debug){const {createMeshAudit}=await import('./meshAudit.js');audit=createMeshAudit();}}
@@ -76,7 +76,7 @@ export async function createThreeScene(host,onLost){
  const motion=facilityMotion(p),signature=[motion.blast,motion.crane].map(v=>Math.round(v*40)).join(':');if(signature!==shadowMotion){shadowMotion=signature;renderer.shadowMap.needsUpdate=true;}
  const before=performance.now();if(effects)effects.render();else renderer.render(scene,camera);
  const elapsed=performance.now()-before;if(!firstFrame){firstFrame=true;timings.firstFrameMs=Math.round(performance.now()-startTime);}
- host.dataset.pose=JSON.stringify(pose);host.dataset.progress=String(p);host.dataset.facility=[...roots.keys()].sort().join(',');host.dataset.assets=String(roots.size);host.dataset.authoredModels='0';host.dataset.mechanical=JSON.stringify(bones.map(b=>[b.id,b.o.position.x,b.o.position.y,b.o.position.z,b.o.rotation.y]));host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);host.dataset.displayCount=String(displays.length);host.dataset.failures=failures.join(',');host.dataset.lod=initialMobile?'mobile':'desktop';host.dataset.firstFrameMs=String(timings.firstFrameMs);host.dataset.allAssetsMs=String(timings.allAssetsMs??'');host.dataset.cpuRenderMs=String(elapsed);host.dataset.effects=effects?'cinema':'standard';host.dataset.environment=environmentMode;host.dataset.removedOverlap=String(removedOverlap);
+ host.dataset.composition=composition??'baseline';host.dataset.pose=JSON.stringify(pose);host.dataset.progress=String(p);host.dataset.facility=[...roots.keys()].sort().join(',');host.dataset.assets=String(roots.size);host.dataset.authoredModels='0';host.dataset.mechanical=JSON.stringify(bones.map(b=>[b.id,b.o.position.x,b.o.position.y,b.o.position.z,b.o.rotation.y]));host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);host.dataset.displayCount=String(displays.length);host.dataset.failures=failures.join(',');host.dataset.lod=initialMobile?'mobile':'desktop';host.dataset.firstFrameMs=String(timings.firstFrameMs);host.dataset.allAssetsMs=String(timings.allAssetsMs??'');host.dataset.cpuRenderMs=String(elapsed);host.dataset.effects=effects?'cinema':'standard';host.dataset.environment=environmentMode;host.dataset.removedOverlap=String(removedOverlap);
  if(debug&&audit){scene.updateMatrixWorld(true);const c=audit.measure(roots.values(),camera.position);host.dataset.clearance=String(c.distance);host.dataset.nearest=c.object??'';}
  if(!debug&&changed&&elapsed>30&&scaleFactor>.8){scaleFactor=Math.max(.75,scaleFactor-.05);resize();}
  pump();
