@@ -13,7 +13,6 @@ export const facility=[
  ... (approved.has('cable.glb')?[{id:'cable',file:'cable.glb',position:[5.5,3.15,7.3],size:1.88,priority:1}]:[])
 ];
 export const facilityHDRI=approved.has('hangar.hdr')?'hangar.hdr':null;
-export const expectedAssets=facility.length+2;
 
 const external=(id,position,extra={})=>({id,file:id+'-lod1.glb',lowFile:id+'-lod2.glb',position,scale:1,priority:4,...extra});
 // The cleanroom's front/back doors lie on the actual central aisle, not next to the cryostat.
@@ -26,3 +25,5 @@ export function spatialFacility(mode){
  if(mode==='lab')return [...base,external('cleanroom-airlock',[0,0,-2.20],{priority:3}),external('lab-drawer-bench',[7.7,0,-9.4],{priority:5})];
  return base;
 }
+
+export const expectedAssets=spatialFacility('production').length;
