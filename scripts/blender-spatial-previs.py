@@ -127,17 +127,17 @@ tracks={
   ([-5.5,1.65,-13.96],[-5.5,1.55,-13.00],66),
   ([-6.38,1.78,-13.7],[-5.45,1.45,-12.1],60),
   ([-6.68,2.05,-12.65],[-5.1,1.3,-11.0],55),
-  ([-6.05,2.15,-11.75],[-4.8,1.1,-10.9],54)],
+  ([-6.05,2.15,-11.75],[-5.28,1.44,-10.96],66)],
  'quantum':[
   ([34.9,6.7,5.4],[30,8.8,0],65.8),
   ([33.8,6.1,4.5],[30,8.2,0],62),
   ([31.9,5.5,4.2],[30,7.8,0],61),
-  ([30,4.8,4.8],[30,7.65,0],65)],
+  ([30,4.8,4.8],[29.55,7.0,0],70)],
  'stellar':[
   ([7.14,1.85,4.66],[2.8,1.55,4.66],65),
   ([6.15,1.65,4.66],[3.7,1.5,4.55],60),
   ([4.85,1.55,4.66],[3.5,1.55,3.95],55),
-  ([3.7,1.75,4.66],[3.2,1.55,3.93],54)]
+  ([3.7,1.75,4.66],[3.38,1.52,4.03],68)]
 }
 track=[(B(pos),B(target),lens) for pos,target,lens in tracks[name]]
 def anchored(words,xyz,normal,width,surface=False,source=None):
@@ -145,7 +145,7 @@ def anchored(words,xyz,normal,width,surface=False,source=None):
 options=[]
 if name=='office':
     # Start close behind the real chair at z=-13.3, travel around its left side, then face console.
-    options.append(('chair-reveal',*anchored('AUTONOMY',[-5.38,1.55,-11.15],[-.45,0,-1],1.35)))
+    options.append(('chair-reveal',*anchored('AUTONOMY',[-5.38,1.55,-11.15],[-.45,0,-1],1.12)))
     surface=nearest(.62,.73,lambda h:h['normal'][1]>.65 and .55<h['point'][1]<1.75)
     if surface:
         n=B(surface['normal']).normalized();a=B(surface['point'])+n*.035
@@ -153,11 +153,11 @@ if name=='office':
     else:
         options.append(('console-plane',*anchored('EXPLICIT CONTROL',[-4.8,1.45,-10.65],[-.8,0,-1],1.0)))
 elif name=='quantum':
-    options.append(('reactor-axis',*anchored('BEYOND CLASSICAL',[30,5.0,1.40],[0,0,1],3.2)))
-    options.append(('reactor-side',*anchored('BEYOND CLASSICAL',[27.0,6.1,1.35],[.35,0,1],2.8)))
+    options.append(('reactor-axis',*anchored('BEYOND CLASSICAL',[30,5.45,1.40],[0,0,1],2.8)))
+    options.append(('reactor-side',*anchored('BEYOND CLASSICAL',[27.8,6.35,1.35],[.35,0,1],2.4)))
 else:
-    options.append(('rack-perspective',*anchored('VALUE IN MOTION',[3.40,1.52,4.05],[0,0,1],.85)))
-    options.append(('aisle-plane',*anchored('VALUE IN MOTION',[3.05,1.55,4.48],[1,0,.45],.70)))
+    options.append(('rack-perspective',*anchored('VALUE IN MOTION',[3.40,1.52,4.05],[0,0,1],.68)))
+    options.append(('aisle-plane',*anchored('VALUE IN MOTION',[3.20,1.55,4.30],[1,0,.45],.55)))
 # Use a smoothly interpolated camera track. Validate every frame with BVH; if the
 # curve overshoots, try the measured piecewise-linear track with eased segments.
 def catmull(a,b,c,e,t):
@@ -217,6 +217,7 @@ for option_index,(tag,words,a,n,w,surface,source) in enumerate(options):
         scene.render.resolution_x=640;scene.render.resolution_y=360;scene.cycles.samples=24
     scene.frame_set(96)
     bpy.ops.wm.save_as_mainfile(filepath=str(out/(tag+'.blend')),compress=True)
+    entry['finalFramingPass']=entry['frames'][-1]['visibleBoxFraction']>=.95 and entry['frames'][-1]['inFrameFraction']==1 and entry['frames'][-1]['facingCosine']>=.55
     report['options'].append(entry)
     bpy.data.objects.remove(o,do_unlink=True)
 (out/'report.json').write_text(json.dumps(report,indent=2))
