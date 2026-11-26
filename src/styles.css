@@ -46,3 +46,6 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
 #stage[data-renderer="three"][data-spatial-title="INTELLIGENCE"] ~ main .chapter[data-name="INTELLIGENCE"] :is(h1,h2){opacity:0}
 #stage[data-renderer="three"][data-spatial-title="QUANTUM"] ~ main .chapter[data-name="QUANTUM"] :is(h1,h2){opacity:0}
 #stage[data-renderer="three"][data-spatial-title="CONVERGENCE"] ~ main .chapter[data-name="CONVERGENCE"] :is(h1,h2){opacity:0}
+
+/* Keep the spatial title outside the heavy screen overlay; local copy retains its own contrast. */
+@media(min-width:721px){#stage[data-spatial-title]:not([data-spatial-title=""])[data-side] .veil{background:linear-gradient(0deg,#050a1070,transparent 22%)}}
