@@ -4,6 +4,7 @@ import {FontLoader} from 'three/addons/loaders/FontLoader.js';
 import {TextGeometry} from 'three/addons/geometries/TextGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {ramp,windows} from './facilityCamera.js';
+import {backlogModes,backlogLayout,stagedCopy} from './backlogStudy.js';
 import {brandPlane,isStudy,studyModes} from './compositionStudy.js';
 import {brandSurfaces,artEnvelope} from './artDirection.js';
 import {shotCards,shotAnimation,shotLayout} from './shotCards.js';
@@ -101,9 +102,10 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   for(const [i,m] of e.group.children.entries()){
    const b=m.geometry.boundingBox,center=b.getCenter(V()),size=b.getSize(V());
    const chosenLayout=e.card.name==='INTELLIGENCE'&&composition==='ops-clear'?[[-.52,.73,.30,2.8],[-.52,-.55,.27,2.5],[-.52,-.78,.24,2.6]]:e.card.name==='INTELLIGENCE'&&isStudy(composition,'ops-hero')?[[-.45,.50,.32,2.8],[-.45,-.12,.30,2.5],[-.45,-.63,.28,2.6]]:e.card.name==='CONVERGENCE'&&isStudy(composition,'final-hero')?[[0,.42,.65,6.5],[0,-.08,.38,4.6],[0,-.43,.30,4.0]]:layouts[e.card.name];
-   const [rx,ry,rs,depth]=chosenLayout[i];
-   const mobileY=e.card.name==='INTELLIGENCE'&&composition==='ops-clear'?[.75,-.54,-.78,-.91]:e.card.name==='QUANTUM'?(['quantum-copy','selected','composition-first','brand-hero','final-hero','ops-hero','ops-clear','final-clean'].includes(composition)?[.75,-.50,-.71,-.91]:[.75,-.64,-.84,-.91]):[.35,-.18,-.59,-.84];
-   const x=mobile?0:rx,y=mobile?mobileY[i]:ry,span=mobile?Math.min(.80,rs*1.8):rs;
+   
+   const mobileY=e.card.name==='INTELLIGENCE'&&composition==='ops-clear'?[.75,-.54,-.78,-.91]:e.card.name==='QUANTUM'?(['quantum-copy','selected','composition-first','brand-hero','final-hero','ops-hero','ops-clear','final-clean',...backlogModes].includes(composition)?[.75,-.50,-.71,-.91]:[.75,-.64,-.84,-.91]):[.35,-.18,-.59,-.84];
+   const refined=backlogLayout(e.card.name,mobile,composition,chosenLayout,mobileY);const [rx,ry,rs,depth]=refined.layout[i];
+   const x=mobile?0:rx,y=mobile?refined.mobileY[i]:ry,span=mobile?Math.min(.80,rs*1.8):rs;
    let anchor=null;if(art&&i===0&&e.card.brand){if(e.card.name==='ORIGIN'&&(['mid','close','selected'].includes(composition)||studyModes.includes(composition)))anchor=midBrand(m,cam,all);const candidate=brandPlane(e.card.name,mobile,composition);if(candidate)anchor=midBrand(m,cam,all,candidate)??anchor;if(!anchor)anchor=mountedBrand(e,m,cam,mobile,roots);}
    for(const d of [depth,depth*.76,depth*.55,depth*.36,.72,.48,.30]){
     if(anchor)break;
@@ -130,7 +132,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   const {group}=active;group.position.set(0,0,0);group.quaternion.identity();group.scale.setScalar(1);group.visible=anim.alpha>.02;
   const t=anim.local;
   for(const [i,m] of group.children.entries()){
-   const anchor=active.anchors[i],hold=(card.hold-windows[anim.index])/(windows[anim.index+1]-windows[anim.index]);const delayed=card.name!=='QUANTUM'&&i===2;const enter=i===0?1:delayed?ramp(t,Math.max(.12,hold-.20),Math.max(.15,hold-.025)):ramp(t,i===1?.16:i===2?.32:.05,i===1?.34:i===2?.46:.18);const exit=anim.index===6?1:1-ramp(t,Math.max(hold+.025,i===0?.69:.74),Math.max(hold+.075,i===0?.86:.88));const arrival=card.name==='BLOCKCHAIN'?ramp(p,.165,.178):1;const roleAlpha=art&&card.name!=='QUANTUM'?artEnvelope(card,p)[m.name]:enter*exit;const alpha=anim.alpha*roleAlpha*arrival;
+   const anchor=active.anchors[i],hold=(card.hold-windows[anim.index])/(windows[anim.index+1]-windows[anim.index]);const delayed=card.name!=='QUANTUM'&&i===2;const enter=i===0?1:delayed?ramp(t,Math.max(.12,hold-.20),Math.max(.15,hold-.025)):ramp(t,i===1?.16:i===2?.32:.05,i===1?.34:i===2?.46:.18);const exit=anim.index===6?1:1-ramp(t,Math.max(hold+.025,i===0?.69:.74),Math.max(hold+.075,i===0?.86:.88));const arrival=card.name==='BLOCKCHAIN'?ramp(p,.165,.178):1;const roleAlpha=art&&card.name!=='QUANTUM'?stagedCopy(card,p,artEnvelope(card,p),composition==='backlog-copy')[m.name]:enter*exit;const alpha=anim.alpha*roleAlpha*arrival;
    m.visible=alpha>.025;m.material.opacity=alpha;
    // Put fully revealed lettering into the opaque pass so transmissive surfaces cannot erase it.
    const opaque=alpha>.995;if(m.material.transparent===opaque){m.material.transparent=!opaque;m.material.depthWrite=opaque;m.material.needsUpdate=true;}
