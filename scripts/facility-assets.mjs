@@ -32,8 +32,8 @@ async function atomicWrite(file,b){
  try{await writeFile(temp,b,{flag:'wx'});await rename(temp,file);}
  finally{await rm(temp,{force:true});}
 }
-async function download(f,{fetchImpl,attempts,timeout,sleep}){
- const url=new URL(f.url);
+async function download(f,{fetchImpl,attempts,timeout,sleep,published}){
+ const url=published?new URL(f.file.split('/').map(encodeURIComponent).join('/'),'https://zolvency-labs.vercel.app/models/facility/'):new URL(f.url);
  let last;
  for(let i=0;i<attempts;i++){
   try{
@@ -48,7 +48,7 @@ async function download(f,{fetchImpl,attempts,timeout,sleep}){
  }
  throw last;
 }
-export async function stageAssets(assets,{dir='public/models',cacheDir='.cache/facility',offline=false,fetchImpl=globalThis.fetch,attempts=3,timeout=45000,concurrency=4,sleep=ms=>new Promise(r=>setTimeout(r,ms)),log=console.log}={}){
+export async function stageAssets(assets,{dir='public/models',cacheDir='.cache/facility',offline=false,published=false,fetchImpl=globalThis.fetch,attempts=3,timeout=45000,concurrency=4,sleep=ms=>new Promise(r=>setTimeout(r,ms)),log=console.log}={}){
  validateAssets(assets);
  if(process.env.NODE_TLS_REJECT_UNAUTHORIZED==='0')throw Error('Unsafe TLS configuration: unset NODE_TLS_REJECT_UNAUTHORIZED before staging.');
  const counts={local:0,cache:0,downloaded:0};const failures=[];let next=0;
@@ -59,7 +59,7 @@ export async function stageAssets(assets,{dir='public/models',cacheDir='.cache/f
   b=await readVerified(cached,f);
   if(b){await atomicWrite(dest,b);counts.cache++;return;}
   if(offline)throw Error('missing verified local/cache bytes (offline mode)');
-  b=await download(f,{fetchImpl,attempts,timeout,sleep});
+  b=await download(f,{fetchImpl,attempts,timeout,sleep,published});
   await atomicWrite(cached,b);await atomicWrite(dest,b);counts.downloaded++;
   log('Downloaded and verified: '+f.file);
  }
@@ -67,7 +67,7 @@ export async function stageAssets(assets,{dir='public/models',cacheDir='.cache/f
   while(next<assets.length){
    const f=assets[next++];
    try{await stage(f);}
-   catch(e){const {code,tls}=networkError(e);failures.push({file:f.file,host:new URL(f.url).hostname,code,tls,message:e.message});}
+   catch(e){const {code,tls}=networkError(e);failures.push({file:f.file,host:published?'zolvency-labs.vercel.app':new URL(f.url).hostname,code,tls,message:e.message});}
   }
  }
  await Promise.all(Array.from({length:Math.min(Math.max(1,concurrency),assets.length)},worker));
