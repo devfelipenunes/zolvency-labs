@@ -10,12 +10,23 @@ test('all seven reading holds remain fully legible within browser sampling toler
  }
  for(const [a,b,c,d] of beats){const n=directedNarrative((a+b)/2);assert.equal(n.title,0);assert.equal(n.body,0);assert.ok(n.label>0);assert.equal(directedNarrative((c+d)/2,1).alpha,0);}
 });
-test('distance mapping is monotonic, reversible, and never exceeds half a viewport per normal rendered step',()=>{
+test('distance mapping is monotonic, reversible, and never exceeds 0.35 viewport per normal rendered step',()=>{
  for(const mobile of [false,true]){
   const pacing=getPacing(mobile),map=travelMapper(pacing);let last=-1;
   for(let i=0;i<=1000;i++){const p=i/1000,x=map.to(p);assert.ok(x>last);assert.ok(Math.abs(map.from(x)-p)<1e-9);last=x;}
   const d=createTravelMotion(pacing);d.set(.95);let before=0;
-  for(let i=0;i<1000&&d.pending;i++){const next=d.step(i*100);assert.ok(next>=before);assert.ok((map.to(next)-map.to(before))*map.total<=.500001);before=next;}
+  for(let i=0;i<1000&&d.pending;i++){const next=d.step(i*100);assert.ok(next>=before);assert.ok((map.to(next)-map.to(before))*map.total<=.350001);before=next;}
   assert.ok(Math.abs(d.value-.95)<1e-8);d.set(.2);assert.ok(d.step(100001)<=.95);d.set(0,{snap:true});assert.equal(d.value,0);
+ }
+});
+
+test('camera starts gently, brakes and submits the fully masked splice positions in either direction',()=>{
+ for(const mobile of [false,true]){
+  const d=createTravelMotion(getPacing(mobile));d.set(1);let previous=0,velocity=0,ts=0;const frames=[];
+  for(let i=0;i<2000&&d.pending;i++){const p=d.step(ts);ts+=16.667;assert.ok(p>=previous);assert.ok(Math.abs(d.velocity-velocity)<=18*.017+1e-6||d.velocity===0);frames.push(p);previous=p;velocity=d.velocity;}
+  assert.equal(d.value,1);
+  for(const cut of [.51,.81,.965])assert.ok(frames.some(p=>Math.abs(p-cut)<1e-9),'missing forward cut '+cut);
+  d.set(0);const reverse=[];for(let i=0;i<2000&&d.pending;i++){reverse.push(d.step(ts));ts+=16.667;}
+  assert.equal(d.value,0);for(const cut of [.51,.81,.965])assert.ok(reverse.some(p=>Math.abs(p-cut)<1e-9),'missing reverse cut '+cut);
  }
 });
