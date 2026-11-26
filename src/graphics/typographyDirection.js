@@ -15,6 +15,8 @@ export function wrapWords(text,measure,limit){
  for(const word of text.split(/\s+/)){const next=line?line+' '+word:word;if(line&&measure(next)>limit){lines.push(line);line=word;}else line=next;}
  if(line)lines.push(line);return lines;
 }
-export function readability({width,height,titlePx,bodyPx,inside,clear}){
- return Boolean(inside&&clear&&width>=180&&height>=80&&titlePx>=22&&bodyPx>=14);
+export function titleReadability({width,height,titlePx,inside,clear}){
+ return Boolean(inside&&clear&&width>=180&&height>=80&&titlePx>=22);
 }
+export function readability(data){return titleReadability(data)&&data.bodyPx>=14;}
+
