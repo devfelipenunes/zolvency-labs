@@ -2,6 +2,7 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdir,writeFile } from 'node:fs/promises';
+import { storyProgress } from '../src/graphics/camera.js';
 const server=spawn('npm',['run','preview','--','--host','127.0.0.1','--port','4173','--strictPort'],{stdio:'inherit'});
 const base='http://127.0.0.1:4173';let browser;const evidence=[];
 try{
@@ -15,7 +16,12 @@ try{
  if(webgl)await page.waitForSelector('#stage[data-renderer="three"]',{timeout:30000});
  const mode=await page.locator('#stage').getAttribute('data-renderer');console.log(label,'renderer:',mode,'WebGL2 probe:',webgl);
  const pose=()=>page.locator('#stage').getAttribute('data-pose');
- const scroll=async fraction=>{await page.evaluate(f=>scrollTo(0,Math.round((document.documentElement.scrollHeight-innerHeight)*f)),fraction);await page.waitForTimeout(300);return pose();};
+ const scroll=async fraction=>{
+ const state=await page.evaluate(f=>{scrollTo(0,Math.round((document.documentElement.scrollHeight-innerHeight)*f));return {y:scrollY,max:document.documentElement.scrollHeight-innerHeight,anchors:[...document.querySelectorAll('main section')].map(e=>e.offsetTop),reduced:matchMedia('(prefers-reduced-motion: reduce)').matches};},fraction);
+ const expected=state.reduced?0:storyProgress(state.y,state.anchors,state.max).progress;
+ await page.waitForFunction(p=>Math.abs(Number(document.querySelector('#stage')?.dataset.progress)-p)<1e-8,expected,{timeout:20000});
+ return pose();
+ };
  const start=await scroll(0);const initialGeo=await page.locator('#stage').getAttribute('data-geometries');
  const readouts=[];const stages=await page.locator('.chapter').evaluateAll(es=>es.map((e,i)=>{const r=e.querySelector('.copy').getBoundingClientRect(),top=e.getBoundingClientRect().top+scrollY;return Math.min(1,Math.max(0,(i===0?0:top+r.top-e.getBoundingClientRect().top-innerHeight*.26)/(document.documentElement.scrollHeight-innerHeight)));}));
  for(let i=0;i<stages.length;i++){await scroll(stages[i]);const name=await page.locator('.chapter').nth(i).getAttribute('data-name');await page.screenshot({path:'artifacts/'+label+'-'+name.toLowerCase()+'.png'});readouts.push(await page.locator('#stage').evaluate(e=>({...e.dataset}))); }
@@ -30,7 +36,7 @@ try{
  if(mode==='three'){const lost=await page.evaluate(()=>{const c=document.querySelector('#three-scene');const ext=c?.getContext('webgl2')?.getExtension('WEBGL_lose_context');if(!ext)return false;ext.loseContext();return true;});if(lost){await page.waitForSelector('#stage[data-renderer="canvas"]');lostContext='fallback confirmed';}}
  assert.deepEqual(errors,[]);assert.deepEqual(shaderErrors,[]);
  await page.goto(base+'/?renderer=canvas');await page.waitForSelector('#stage[data-renderer="canvas"][data-pose]');const first=await scroll(0);assert.notEqual(await scroll(1),first);assert.equal(await scroll(0),first);await page.screenshot({path:'artifacts/'+label+'-fallback.png'});
- await page.emulateMedia({reducedMotion:'reduce'});await page.waitForTimeout(350);const reduced=await scroll(0);assert.equal(await scroll(1),reduced);assert.match(await page.locator('main').innerText(),/Stellar/);assert.deepEqual(errors,[]);
+ await page.emulateMedia({reducedMotion:'reduce'});await page.waitForFunction(()=>document.querySelector('#stage')?.dataset.renderer==='canvas' && Number(document.querySelector('#stage')?.dataset.progress)===0);const reduced=await scroll(0);assert.equal(await scroll(1),reduced);assert.match(await page.locator('main').innerText(),/Stellar/);assert.deepEqual(errors,[]);
  evidence.push({label,viewport,mode,webgl,lostContext,readouts});console.log('evidence',label,JSON.stringify({mode,lostContext,drawCalls:readouts.map(x=>x.drawCalls),triangles:readouts.map(x=>x.triangles)}));await page.close();
  }
  await writeFile('artifacts/metrics.json',JSON.stringify({note:'Software Chromium; submitMs is CPU submission duration, not GPU frame time or FPS.',evidence},null,2));
