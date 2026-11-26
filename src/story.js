@@ -1,8 +1,9 @@
-export const chapters = [
-{name:'ORIGIN',label:'Independent Technology Company',title:'Building beyond the known.',body:'We explore emerging technologies to build new products and rethink complex systems.'},
-{name:'EXPLORATION',label:'A culture of exploration',title:'From possibility to purpose.',body:'We turn curiosity into ideas, and ideas into systems we can build.'},
-{name:'CONNECTION',label:'Our starting point',title:'Infrastructure for a connected world.',body:'We are exploring blockchain-based financial infrastructure on the Stellar network, starting with payments and tokenized assets.'},
-{name:'CONSTRUCTION',label:'Our approach',title:'Explore.\nExperiment.\nBuild.',body:'We investigate problems, challenge assumptions and develop prototypes to turn possibilities into practical systems.'},
-{name:'HORIZONS',label:'What comes next',title:'Beyond a single technology.',body:'Blockchain is our starting point. Artificial intelligence and quantum computing are future directions we are interested in exploring.'},
-{name:'CONTINUATION',label:'Independent by design',title:'Built independently.\nBuilt with purpose.',body:'Zolvency Labs is an independent technology company founded by two software professionals.'}
+export const chapters=[
+ {name:'ORIGIN',label:'Independent Technology Company',title:'Building beyond the known.',body:'We explore emerging technologies to build new products and rethink complex systems.'},
+ {name:'CRYPTOGRAPHY',label:'The mathematics of trust',title:'Trust begins with mathematics.',body:'Cryptography gives digital systems tools for integrity, authenticity and privacy. It is a foundation for the infrastructure we explore.'},
+ {name:'BLOCKCHAIN',label:'Verifiable infrastructure',title:'From information to infrastructure.',body:'Cryptographic commitments link records. Distributed networks can coordinate shared state without relying on a single operator.'},
+ {name:'STELLAR',label:'Our starting point · Stellar',title:'Infrastructure for a connected world.',body:'Our current focus is blockchain-based financial infrastructure on Stellar, starting with payments and tokenized assets.'},
+ {name:'INTELLIGENCE',label:'Future exploration · Blockchain × AI',title:'When infrastructure meets intelligence.',body:'We are interested in how AI agents could interact with verifiable systems, with cryptographic authorization and defined permissions.'},
+ {name:'QUANTUM',label:'Future exploration · Quantum & cryptography',title:'Beyond classical boundaries.',body:'Quantum computing opens a different computational frontier. Post-quantum cryptography is a distinct direction for exploring resilient digital infrastructure.'},
+ {name:'CONVERGENCE',label:'Independent by design',title:'New possibilities emerge at the intersection.',body:'Zolvency Labs is an independent technology company. We start with blockchain and look beyond a single technology.'}
 ];
