@@ -8,12 +8,12 @@ import {windows} from '../src/graphics/facilityCamera.js';
 import {expectedAssets} from '../src/graphics/facilityLayout.js';
 const mobile=process.env.EDITORIAL_VIEW==='mobile',profile=process.env.EDITORIAL_PROFILE??'balanced',legacy=profile==='legacy',directed=process.env.EDITORIAL_DIRECTION==='staged',travel=process.env.EDITORIAL_TRAVEL??'candidate';
 const integrated=process.env.EDITORIAL_INTEGRATED==='1',physical=integrated&&process.env.EDITORIAL_PHYSICAL==='1';
-const edition=process.env.EDITORIAL_COPY??'control';assert.ok(editorialEditions.includes(edition));
-const copyQuery=edition==='control'?'':'&copy='+edition;
+const railMode=process.env.EDITORIAL_RAIL??'control';const edition=process.env.EDITORIAL_COPY??'control';assert.ok(editorialEditions.includes(edition));
+const copyQuery=(edition==='control'?'':'&copy='+edition)+(railMode==='composed'?'&rail=composed':'');
 const candidateQuery=integrated?'&lighting=local&transmission=threequarter&framing=portrait&preflight='+(mobile?'full':'compact'):'';
 const viewport=mobile?{width:390,height:844}:{width:1280,height:720},out=integrated?'artifacts/integrated-cinematic':'artifacts/editorial-experience',base='http://127.0.0.1:4195';
 if(integrated){assert.ok(directed&&!legacy);assert.equal(travel,'responsive');}
-const pacing=edition==='control'?createPacing({mobile}):getPacing(mobile,edition),holds=[.055,.205,.405,.625,.73,.935,.992];
+const pacing=edition==='control'&&railMode==='control'?createPacing({mobile}):getPacing(mobile,edition,railMode),holds=[.055,.205,.405,.625,.73,.935,.992];
 await mkdir(out,{recursive:true});
 const server=spawn('npm',['run','preview','--','--host','127.0.0.1','--port','4195','--strictPort'],{stdio:'inherit'});
 let browser;const results=[],errors=[];

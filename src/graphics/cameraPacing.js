@@ -5,6 +5,7 @@ import {stabilizedPose} from './editorialCamera.js';
 import {directedCut} from './cinematicCut.js';
 import {redistributeReading} from './readingPacing.js';
 import {editorialEditions} from '../editorialStory.js';
+import {composedPose} from './composedRail.js';
 const length=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]));
 const direction=pose=>{const d=pose.target.map((x,i)=>x-pose.position[i]),n=Math.hypot(...d);return d.map(x=>x/Math.max(n,1e-9));};
 export function angularDistance(a,b){const x=direction(a),y=direction(b);return Math.acos(Math.max(-1,Math.min(1,x.reduce((s,v,i)=>s+v*y[i],0))))*180/Math.PI;}
@@ -47,4 +48,4 @@ export function pacedStoryProgress(scroll,starts,max,pacing){
 }
 
 const pacingCache=new Map();
-export function getPacing(mobile=false,edition='control'){edition=editorialEditions.includes(edition)?edition:'control';const key=(mobile?'mobile':'desktop')+':'+edition;if(!pacingCache.has(key)){const table=prepared[mobile?'mobile':'desktop'],base=Array.isArray(table)&&table.length===windows.length-1?table:createPacing({mobile}).chapters;pacingCache.set(key,pacingFromChapters(redistributeReading(base,edition)));}return pacingCache.get(key);}
+export function getPacing(mobile=false,edition='control',railMode='control'){railMode=mobile?'control':railMode;edition=editorialEditions.includes(edition)?edition:'control';const key=(mobile?'mobile':'desktop')+':'+edition+':'+railMode;if(!pacingCache.has(key)){const table=prepared[railMode==='composed'?'composedDesktop':mobile?'mobile':'desktop'],base=Array.isArray(table)&&table.length===windows.length-1?table:createPacing({mobile,...(railMode==='composed'?{poseFor:p=>directedCut(p,false,null,(q,m)=>composedPose(q,m,(x,n)=>stabilizedPose(x,n,(a,b)=>reviewPose(a,b,true,'aisle','opposite',true,'brand-hero'))))}:{})}).chapters;pacingCache.set(key,pacingFromChapters(redistributeReading(base,edition)));}return pacingCache.get(key);}
