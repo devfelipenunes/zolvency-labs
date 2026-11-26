@@ -6,11 +6,13 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: blender-previs-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   export:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
@@ -30,6 +32,7 @@ jobs:
           path: artifacts/blender-input/
   render:
     needs: export
+    if: always() && (needs.export.result == 'success' || needs.export.result == 'skipped')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
@@ -41,9 +44,17 @@ jobs:
         with:
           persist-credentials: false
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        if: github.event_name == 'workflow_dispatch'
         with:
           name: blender-input
           path: artifacts/blender-input
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        if: github.event_name != 'workflow_dispatch'
+        with:
+          name: blender-input
+          path: artifacts/blender-input
+          github-token: ${{ github.token }}
+          run-id: 45892011208
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends blender
       - run: blender --version
       - run: blender -b -t 4 --python-exit-code 1 --python scripts/blender-spatial-previs.py -- artifacts/blender-input artifacts/blender-previs ${{ matrix.scene }}

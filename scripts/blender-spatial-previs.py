@@ -81,7 +81,7 @@ assert subject
 pivot=B(subject['point']);dep=max(.5,depth(pivot))
 light('soft camera fill',C+Z*.55,pivot,220 if name!='quantum' else 1800,(.8,.92,1),3 if name!='quantum' else 6)
 light('side rim',C+R*1.0+Z*.3,pivot,100 if name!='quantum' else 550,(.36,.75,.66),2.0)
-scene.render.engine='CYCLES';scene.cycles.device='CPU';scene.cycles.samples=6;scene.cycles.use_denoising=True
+scene.render.engine='CYCLES';scene.cycles.device='CPU';scene.cycles.samples=24;scene.cycles.use_denoising=False
 scene.render.resolution_x=640;scene.render.resolution_y=360;scene.render.resolution_percentage=100
 scene.render.image_settings.file_format='PNG'
 scene.render.fps=24;scene.frame_start=1;scene.frame_end=72
