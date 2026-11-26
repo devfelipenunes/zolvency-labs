@@ -154,7 +154,7 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
  #stage[data-experience="editorial"][data-renderer="three"] ~ main .chapter[data-side] .copy{
   position:fixed;left:var(--gutter);right:auto;top:auto;bottom:clamp(64px,11svh,110px);transform:none;
   width:min(440px,calc(100vw - 2 * var(--gutter)));margin:0;text-align:left;
-  background:rgba(7,15,20,.94);padding:20px 24px 22px;border-left:1px solid #86bbaa;
+  visibility:visible;background:rgba(7,15,20,.94);padding:20px 24px 22px;border-left:1px solid #86bbaa;
   text-shadow:none;box-shadow:0 8px 24px #03080b30;transition:opacity 100ms linear;
  }
  #stage[data-experience="editorial"][data-renderer="three"] ~ main .chapter[data-side] .copy::before{content:none}
