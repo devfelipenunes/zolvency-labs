@@ -24,10 +24,11 @@ try{
    for(let i=0;i<81;i++){assert.deepEqual(forward[i].position,reverse[i].position);assert.deepEqual(forward[i].hits,reverse[i].hits);}
    assert.ok(Math.abs(Math.max(...forward.map(r=>r.position[2]))-Math.min(...forward.map(r=>r.position[2]))-4)<1e-5);
    const clearance=await page.evaluate(()=>document.querySelector('#stage').inspectOpeningClearance());
-   const interior=await page.evaluate(()=>{const s=document.querySelector('#stage');return {floor:s.inspectInteriorFloor?.()??null,clearance:s.inspectInteriorClearance?.()??null};});
+   const interior=await page.evaluate(()=>{const s=document.querySelector('#stage');return {floor:s.inspectInteriorFloor(),clearance:s.inspectInteriorClearance()};});
    assert.ok(clearance.every(r=>r.distance>.06));
    // Preserve computed evidence even if subsequent screenshot/video capture fails.
    reports.push({viewport,...report,clearance,interior});await writeFile(out+'/report.json',JSON.stringify(reports,null,2));
+   assert.equal(interior.floor.length,6);assert.ok(interior.floor.every(r=>r&&Number.isFinite(r.y)&&Math.abs(r.y)<.08),JSON.stringify(interior.floor));assert.equal(interior.clearance.length,41);assert.ok(interior.clearance.every(r=>r.distance>.06),JSON.stringify(interior.clearance.filter(r=>r.distance<=.06)));
    const name=viewport.width+'-'+(candidate?'candidate':'control');
    for(const p of [0,.025,.055,.075,.105,.485,.51,.535,.625,.705,.73,.755]){await page.evaluate(p=>document.querySelector('#stage').benchmarkFrame(p),p);await page.screenshot({path:out+'/'+name+'-'+p+'.png',timeout:120000,animations:'disabled'});}
    for(const direction of ['forward','reverse'])for(let i=0;i<=12;i++){const p=.115*(direction==='forward'?i:12-i)/12;await page.evaluate(p=>document.querySelector('#stage').benchmarkFrame(p),p);await page.waitForTimeout(90);}
