@@ -29,13 +29,13 @@ try{
    await page.evaluate(()=>document.querySelector('#stage').benchmarkFrame(.81));
    assert.equal(await page.locator('#stage').getAttribute('data-edit-name'),'operations-to-quantum');
    assert.ok(Number(await page.locator('#stage').getAttribute('data-wall-cut-mask'))>.99);
-   await page.evaluate(()=>document.querySelector('#stage').benchmarkFrame(.935));
+   await page.evaluate(()=>document.querySelector('#stage').benchmarkFrame(.935));const installation=await page.evaluate(()=>{const s=document.querySelector('#stage');return {...s.inspectQuantumInstallation(),hits:s.inspectSpatialFrame(),clearance:s.inspectReactorClearance()};});assert.ok(installation.reactor.removed>=50);assert.equal(installation.cryostat.removed,2);assert.ok(installation.cryostat.bottom>5);assert.ok(Math.abs(installation.cryostat.mountTop-11.5)<.05);assert.equal(installation.hits.hangar??0,0);assert.ok((installation.hits.quantum??0)>0,'cryostat must appear in shot');assert.ok(installation.clearance.every(r=>r.distance>.06));
    await page.screenshot({path:'artifacts/smoke/'+name+'.png',timeout:90000,animations:'disabled'});
    await page.goto(base+'/?renderer=canvas');
    await page.waitForSelector('#stage[data-renderer="canvas"][data-pose]');
    assert.equal(await page.locator('main section').count(),7);
    assert.deepEqual(errors,[]);
-   results.push({name,frames,opening,interior});await writeFile('artifacts/smoke/results.json',JSON.stringify(results,null,2));
+   results.push({name,frames,opening,interior,installation});await writeFile('artifacts/smoke/results.json',JSON.stringify(results,null,2));
   }finally{await page.close();}
  }
 }finally{await browser?.close();server.kill();}
