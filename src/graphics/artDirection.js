@@ -17,7 +17,7 @@ export const stellarAngles={
  opposite:[6.35,1.65,3.98]
 };
 export function artAim(name,mobile,variant='devices',composition='default'){
- if(name==='ORIGIN'&&['mid','close'].includes(composition))return [-1.5,3.3,2];
+ if(name==='ORIGIN'&&['mid','close','brand-hero'].includes(composition))return [-1.5,3.3,2];
  if(name==='CONVERGENCE'&&composition==='final-high')return [-4,5.8,13.7];
  if(name==='ORIGIN')return [-3.5,4.4,-14.8];
  if(name==='CONVERGENCE')return [-4,4.6,13.7];
