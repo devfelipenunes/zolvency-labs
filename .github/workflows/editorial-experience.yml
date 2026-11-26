@@ -1,7 +1,7 @@
 name: Editorial motion and performance
 on:
   pull_request:
-    branches: [main]
+    branches: [main, feat/v0.31-editorial-motion-performance]
     paths:
       - 'src/**'
       - 'tests/editorialExperience.test.js'
