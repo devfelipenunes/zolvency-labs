@@ -46,7 +46,8 @@ export function createBaselineTravelMotion(pacing,initial=0){
  }
  // Jerk-limited acceleration command (not a guarantee on physical camera-space
  // jerk). Endpoint protection, explicit snaps and optical splices take precedence.
- export function createTravelMotion(pacing,initial=0,{baseline=false}={}){
+ export function createTravelMotion(pacing,initial=0,{baseline=false,responsive=false}={}){
+  if(responsive)return createResponsiveTravelMotion(pacing,initial);
   if(baseline)return createBaselineTravelMotion(pacing,initial);
   const map=travelMapper(pacing),total=map.total,stops=[.51,.81,.965].map(p=>map.to(p)*total);
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -82,3 +83,32 @@ export function createBaselineTravelMotion(pacing,initial=0){
    get velocity(){return v;},get acceleration(){return a;}
   };
  }
+
+// Responsive critically damped tracking in travel-distance units. This is a
+// third opt-in controller, not a claim of physical camera jerk continuity.
+export function createResponsiveTravelMotion(pacing,initial=0){
+ const map=travelMapper(pacing),total=map.total,stops=[.51,.81,.965].map(p=>map.to(p)*total);
+ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+ let x=map.to(clamp(initial,0,1))*total,target=x,v=0,a=0,last=null;
+ return {
+  set(p,{snap=false}={}){target=map.to(clamp(p,0,1))*total;if(snap){x=target;v=a=0;last=null;}},
+  step(now){
+   const dt=last===null?1/60:clamp((now-last)/1000,0,.25);last=now;
+   if(!dt)return map.from(x/total);
+   const delta=target-x,oldV=v;
+   if(Math.abs(delta)<.006&&Math.abs(v)<.12){x=target;v=a=0;return map.from(x/total);}
+   // Higher gain for a larger scroll lag, lower gain near reading holds.
+   const omega=10+3*Math.min(1,Math.abs(delta)/1.5);
+   const y=-delta,k=v+omega*y,e=Math.exp(-omega*dt);
+   const nextY=(y+k*dt)*e,nextV=(v-omega*k*dt)*e;
+   const budget=Math.min(.65,dt*7);
+   let step=clamp(nextY-y,-budget,budget);
+   if(step*delta<=0){step=0;v=0;}else if(Math.abs(step)>=Math.abs(delta)){step=delta;v=0;}else v=clamp(nextV,-7,7);
+   const next=clamp(x+step,0,total),crossed=stops.filter(s=>next>x?s>x+1e-9&&s<=next:s<x-1e-9&&s>=next);
+   if(crossed.length){x=next>x?crossed[0]:crossed.at(-1);v=0;}else x=next;
+   if(x===0||x===total)v=0;
+   a=(v-oldV)/dt;
+   return map.from(x/total);
+  },resetClock(){last=null;},get pending(){return x!==target||v!==0;},get value(){return map.from(x/total);},get target(){return map.from(target/total);},get velocity(){return v;},get acceleration(){return a;}
+ };
+}
