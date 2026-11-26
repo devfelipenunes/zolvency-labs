@@ -38,6 +38,10 @@ import {createRenderQueue,createResolutionGovernor,createGpuTimer} from './rende
 export async function createThreeScene(host,onLost){
  const query=new URLSearchParams(location.search),economic=query.get('experience')==='editorial'&&(query.get('profile')??(innerWidth<720?'economy':'balanced'))==='economy';
  const renderer=new THREE.WebGLRenderer({antialias:!economic,alpha:false,powerPreference:'high-performance'});
+ // Fixed for this session: no reallocations from chapter-specific scale changes.
+ const transmissionStudy=query.get('transmission');
+ if(query.get('experience')==='editorial'&&['half','quarter'].includes(transmissionStudy))renderer.transmissionResolutionScale=transmissionStudy==='half'?.5:.25;
+ host.dataset.transmissionScale=String(renderer.transmissionResolutionScale);
  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;
  renderer.info.autoReset=false;
  const scene=new THREE.Scene();scene.background=new THREE.Color(0x0a1116);scene.fog=new THREE.FogExp2(0x0a1116,.008);
