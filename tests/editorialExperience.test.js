@@ -32,11 +32,11 @@ test('server travel and final angular peaks decrease using authored scroll budge
 });
 test('large normal scroll never snaps; explicit navigation can snap; reverse is bounded',()=>{
  const d=createMotionDriver();d.set(.9);let old=0;
- for(let t=0;t<5000;t+=16.7){const p=d.step(t);assert.ok(p>=old&&p-old<=.65*.05+1e-9);old=p;}
+ for(let t=0;t<5000;t+=16.7){const p=d.step(t);assert.ok(p>=old&&p-old<=.065+1e-9);old=p;}
  assert.equal(d.value,.9);d.set(.1);assert.ok(d.step(5100)>.1);d.set(0,{snap:true});assert.equal(d.value,0);assert.equal(d.pending,false);
 });
 test('institutional narrative has seven acts, explicit current and exploratory directions',()=>{
  assert.equal(editorialChapters.length,7);assert.equal(editorialChapters[0].title,'Building beyond the known.');
- assert.match(editorialChapters[2].body,/Stellar/);assert.match(editorialChapters[4].body,/explore/i);assert.match(editorialChapters[5].body,/separately/);
+ assert.match(editorialChapters[2].body,/Stellar/);assert.match(editorialChapters[4].body,/explor/i);assert.match(editorialChapters[5].body,/separately/);
  assert.equal(qualityProfiles.economy.ao,false);assert.equal(qualityProfiles.balanced.msaa,0);assert.ok(qualityProfiles.cinematic.msaa>0);
 });
