@@ -40,12 +40,19 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
 
 /* A legible in-world sign replaces the matching visual copy, never its semantics. */
 #stage[data-renderer="three"][data-surface-readable="true"] .veil{background:linear-gradient(0deg,#050a1040,transparent 12%)}
-#stage[data-renderer="three"][data-surface-title="ORIGIN"] ~ main .chapter[data-name="ORIGIN"] .copy{opacity:0;pointer-events:none}
-#stage[data-renderer="three"][data-surface-title="BLOCKCHAIN"] ~ main .chapter[data-name="BLOCKCHAIN"] .copy{opacity:0;pointer-events:none}
-#stage[data-renderer="three"][data-surface-title="STELLAR"] ~ main .chapter[data-name="STELLAR"] .copy{opacity:0;pointer-events:none}
-#stage[data-renderer="three"][data-surface-title="CRYPTOGRAPHY"] ~ main .chapter[data-name="CRYPTOGRAPHY"] .copy{opacity:0;pointer-events:none}
-#stage[data-renderer="three"][data-surface-title="INTELLIGENCE"] ~ main .chapter[data-name="INTELLIGENCE"] .copy{opacity:0;pointer-events:none}
-#stage[data-renderer="three"][data-surface-title="QUANTUM"] ~ main .chapter[data-name="QUANTUM"] .copy{opacity:0;pointer-events:none}
-#stage[data-renderer="three"][data-surface-title="CONVERGENCE"] ~ main .chapter[data-name="CONVERGENCE"] .copy{opacity:0;pointer-events:none}
+#stage[data-renderer="three"][data-surface-title="ORIGIN"] ~ main .chapter[data-name="ORIGIN"] :is(h1,h2,.eyebrow){opacity:calc(1 - var(--scene-sign-alpha,0))}
+#stage[data-renderer="three"][data-surface-readable="true"][data-surface-title="ORIGIN"] ~ main .chapter[data-name="ORIGIN"] :is(p,.tag,.endnote){opacity:calc(1 - var(--scene-sign-alpha,0))}
+#stage[data-renderer="three"][data-surface-title="BLOCKCHAIN"] ~ main .chapter[data-name="BLOCKCHAIN"] :is(h1,h2,.eyebrow){opacity:calc(1 - var(--scene-sign-alpha,0))}
+#stage[data-renderer="three"][data-surface-readable="true"][data-surface-title="BLOCKCHAIN"] ~ main .chapter[data-name="BLOCKCHAIN"] :is(p,.tag,.endnote){opacity:calc(1 - var(--scene-sign-alpha,0))}
+#stage[data-renderer="three"][data-surface-title="STELLAR"] ~ main .chapter[data-name="STELLAR"] :is(h1,h2,.eyebrow){opacity:calc(1 - var(--scene-sign-alpha,0))}
+#stage[data-renderer="three"][data-surface-readable="true"][data-surface-title="STELLAR"] ~ main .chapter[data-name="STELLAR"] :is(p,.tag,.endnote){opacity:calc(1 - var(--scene-sign-alpha,0))}
+#stage[data-renderer="three"][data-surface-title="CRYPTOGRAPHY"] ~ main .chapter[data-name="CRYPTOGRAPHY"] :is(h1,h2,.eyebrow){opacity:calc(1 - var(--scene-sign-alpha,0))}
+#stage[data-renderer="three"][data-surface-readable="true"][data-surface-title="CRYPTOGRAPHY"] ~ main .chapter[data-name="CRYPTOGRAPHY"] :is(p,.tag,.endnote){opacity:calc(1 - var(--scene-sign-alpha,0))}
+#stage[data-renderer="three"][data-surface-title="INTELLIGENCE"] ~ main .chapter[data-name="INTELLIGENCE"] :is(h1,h2,.eyebrow){opacity:calc(1 - var(--scene-sign-alpha,0))}
+#stage[data-renderer="three"][data-surface-readable="true"][data-surface-title="INTELLIGENCE"] ~ main .chapter[data-name="INTELLIGENCE"] :is(p,.tag,.endnote){opacity:calc(1 - var(--scene-sign-alpha,0))}
+#stage[data-renderer="three"][data-surface-title="QUANTUM"] ~ main .chapter[data-name="QUANTUM"] :is(h1,h2,.eyebrow){opacity:calc(1 - var(--scene-sign-alpha,0))}
+#stage[data-renderer="three"][data-surface-readable="true"][data-surface-title="QUANTUM"] ~ main .chapter[data-name="QUANTUM"] :is(p,.tag,.endnote){opacity:calc(1 - var(--scene-sign-alpha,0))}
+#stage[data-renderer="three"][data-surface-title="CONVERGENCE"] ~ main .chapter[data-name="CONVERGENCE"] :is(h1,h2,.eyebrow){opacity:calc(1 - var(--scene-sign-alpha,0))}
+#stage[data-renderer="three"][data-surface-readable="true"][data-surface-title="CONVERGENCE"] ~ main .chapter[data-name="CONVERGENCE"] :is(p,.tag,.endnote){opacity:calc(1 - var(--scene-sign-alpha,0))}
 /* Avoid the broad left-hand mask even when a fallback is needed; retain local contrast. */
 @media(min-width:721px){#stage[data-renderer="three"]:not([data-typography-mode="html"]) .veil{background:linear-gradient(0deg,#050a1050,transparent 18%)}#stage[data-renderer="three"][data-surface-readable="true"] .veil{background:transparent}}
