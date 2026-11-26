@@ -1,5 +1,5 @@
 import { useEffect,useState } from 'react';
-import { storyProgress } from './graphics/camera.js';
+import { storyProgress } from './graphics/facilityCamera.js';
 export function useScrollStory(story){
  const [state,setState]=useState(()=>({progress:0,index:0,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches}));
  useEffect(()=>{

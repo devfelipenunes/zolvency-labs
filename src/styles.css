@@ -22,3 +22,8 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
 
 /* Spatial labels are technical annotations, not duplicated editorial headings. */
 @media(min-width:721px){.copy{width:min(34vw,520px)}#stage[data-side="left"] .veil{background:linear-gradient(90deg,#080e13df 0%,#080e1340 34%,transparent 61%),linear-gradient(0deg,#080e1370,transparent 16%)}#stage[data-side="right"] .veil{background:linear-gradient(270deg,#080e13df 0%,#080e1340 34%,transparent 61%),linear-gradient(0deg,#080e1370,transparent 16%)}}
+
+/* Facility: quieter editorial overlay, less time between stations. */
+@media(prefers-reduced-motion:no-preference){.chapter,.chapter:nth-child(n){min-height:175svh;padding:34svh var(--gutter) 30svh}.chapter:first-child{min-height:160svh;padding-top:27svh}.chapter[data-name="BLOCKCHAIN"],.chapter[data-name="STELLAR"]{min-height:200svh}.chapter:last-child{min-height:145svh;padding-top:48svh}}
+@media(min-width:721px){#stage[data-side="left"] .veil{background:linear-gradient(90deg,#050a10e8 0%,#050a10b0 21%,#050a1022 47%,transparent 71%),linear-gradient(0deg,#050a1070,transparent 20%)}.copy{width:min(35vw,530px);top:29svh}h1{font-size:clamp(45px,5.4vw,85px)}h2{font-size:clamp(35px,3.8vw,64px)}}
+@media(max-width:720px) and (prefers-reduced-motion:no-preference){.chapter,.chapter:nth-child(n){min-height:145svh;padding:45svh var(--gutter) 24svh}.chapter[data-name="BLOCKCHAIN"],.chapter[data-name="STELLAR"]{min-height:175svh}.chapter:first-child{padding-top:46svh}.copy,.chapter[data-side="center"] .copy{top:45svh}.chapter:last-child{min-height:135svh}}
