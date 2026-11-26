@@ -1,0 +1,7 @@
+import test from 'node:test';import assert from 'node:assert/strict';import * as THREE from 'three';
+import {glassTreatments,originalFinish,finishMaterial,reviewGrade,reviewPose,visualShots} from '../src/graphics/visualReview.js';
+import {noirPose} from '../src/graphics/noirDirection.js';
+import {photographicLook} from '../src/graphics/photographicLighting.js';
+test('glass treatments restore clarity without changing original physical transmission',()=>{for(const name of Object.keys(glassTreatments)){const m=new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:.025,transmission:1,thickness:.12,ior:1.45});m.name='rack_glass_lod1';const src=originalFinish(m);m.roughness=.42;m.color.setHex(0x698b8e);assert.equal(finishMaterial(m,src,'servers',name),'server-glass');assert.ok(m.roughness<.08);assert.equal(m.transmission,1);assert.equal(m.thickness,.12);assert.equal(m.ior,1.45);m.dispose();}});
+test('all seven camera compositions preserve the previous audited position',()=>{assert.equal(visualShots.length,7);for(const mobile of [false,true])for(let i=0;i<=1000;i++){const p=i/1000;assert.deepEqual(reviewPose(p,mobile).position,noirPose(p,mobile).position);assert.ok(reviewPose(p,mobile).target.every(Number.isFinite));}});
+test('local subject lighting is stronger at rack holds, not global daylight',()=>{const base=photographicLook(.205),look=reviewGrade(base,.205);assert.ok(look.fill<base.fill&&look.fill>base.fill*.5);assert.ok(look.env<base.env&&look.env>base.env*.5);});
