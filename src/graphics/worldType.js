@@ -40,28 +40,28 @@ function frameMetrics(camera,center,right,vertical,w,h,roots,ray){
 export const bodyHeightProxy=(metrics,bodyPixels,height=720)=>metrics.spanY*height*bodyPixels/(TEX_HEIGHT*.88);
 function anchor(spec,camera,root,roots,ray,bodyPixels){
  if(!root)return null;const candidates=[];const [x,y]=spec.screen;
- for(const dx of [0,-.18,.18,-.34,.34])for(const dy of [0,-.18,.18]){
-  const ndc=new THREE.Vector2(THREE.MathUtils.clamp(x+dx,-.75,.75),THREE.MathUtils.clamp(y+dy,-.6,.6));
+ for(const dx of [0,-.12,.12,-.24,.24,-.36,.36])for(const dy of [0,-.16,.16,-.32,.32]){
+  const ndc=new THREE.Vector2(THREE.MathUtils.clamp(x+dx,-.78,.78),THREE.MathUtils.clamp(y+dy,-.68,.68));
   ray.setFromCamera(ndc,camera);ray.near=.10;ray.far=50;const hits=ray.intersectObject(root,true).filter(allowed);
-  for(const hit of hits.slice(0,2)){
+  for(const hit of hits.slice(0,3)){
    const n=hit.face.normal.clone().applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld));
    if(Math.abs(n.y)>.25)continue;if(n.dot(camera.position.clone().sub(hit.point))<0)n.negate();
-   n.y=0;n.normalize();const right=up.clone().cross(n).normalize(),center=hit.point.clone().addScaledVector(n,.027);
+   n.normalize();const right=up.clone().cross(n).normalize(),vertical=n.clone().cross(right).normalize(),center=hit.point.clone().addScaledVector(n,.027);
    const facing=n.dot(camera.position.clone().sub(center).normalize());if(facing<.54)continue;
    const distance=camera.position.distanceTo(center),desired=THREE.MathUtils.clamp(2*distance*Math.tan(THREE.MathUtils.degToRad(camera.fov)/2)*camera.aspect*spec.span,spec.min,spec.max);
-   for(const w of [desired,desired*.8,desired*.64]){
+   for(const w of [desired,desired*.9,desired*.8,desired*.7,desired*.6]){
     if(w<spec.min*.7)continue;
     const h=w/2;let support=0;
     // Each sample must hit the same near-coplanar opaque architectural support.
     for(const u of [-.45,0,.45])for(const v of [-.42,0,.42]){
-     const q=center.clone().addScaledVector(right,u*w).addScaledVector(up,v*h).addScaledVector(n,.09);
+     const q=center.clone().addScaledVector(right,u*w).addScaledVector(vertical,v*h).addScaledVector(n,.09);
      ray.set(q,n.clone().negate());ray.near=0;ray.far=.18;
      const contact=ray.intersectObject(root,true).find(allowed);if(contact){const sn=contact.face.normal.clone().applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(contact.object.matrixWorld));if(Math.abs(sn.dot(n))>.96&&Math.abs(contact.point.clone().sub(center).dot(n))<.065)support++;}
     }
     if(support<9)continue;
-    const m=frameMetrics(camera,center,right,up,w,h,roots,ray);
+    const m=frameMetrics(camera,center,right,vertical,w,h,roots,ray);
     if(m.inFrame<1||m.clear<1||m.spanX<.24||bodyHeightProxy(m,bodyPixels)<16)continue;
-    candidates.push({center,right,normal:n,width:w,height:h,mesh:hit.object.name,metrics:m,facing,support: support/9,score:m.spanX*2+facing*.4-Math.hypot(dx,dy)*1.25});
+    candidates.push({center,right,vertical,normal:n,width:w,height:h,mesh:hit.object.name,metrics:m,facing,support: support/9,score:m.spanX*2+facing*.4-Math.hypot(dx,dy)*1.25});
    }
   }
  }
