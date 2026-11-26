@@ -7,5 +7,7 @@ const take=(rows,names)=>rows.filter(r=>names.includes(r.name)).flatMap(r=>r.fil
 const refinement=await read('assets/refinement-lock.json');
 const spatial=await read('assets/spatial-transition-lock.json');
 const selected=[...spatial,...refinement,...take(interiors,['hangar','straight','bridge']),...take(composition,['server-room','corridor-door','reactor-room']),...external.filter(r=>['quantum-computer'].includes(r.name)).map(r=>({file:r.name+'.glb',url:r.url,bytes:r.bytes,sha256:r.sha256}))];
-const result=await stageAssets(selected,{offline:process.env.FACILITY_OFFLINE==='1'||process.argv.includes('--offline')});
+const source=process.env.FACILITY_SOURCE??'upstream';
+if(!['upstream','published'].includes(source))throw Error('FACILITY_SOURCE must be upstream or published');
+const result=await stageAssets(selected,{published:source==='published',offline:process.env.FACILITY_OFFLINE==='1'||process.argv.includes('--offline')});
 console.log('Facility:',result.total,'verified files,',result.bytes,'bytes; local:',result.local,'cache:',result.cache,'downloaded:',result.downloaded);
