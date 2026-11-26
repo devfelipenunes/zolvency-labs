@@ -50,7 +50,7 @@ export function cameraPose(progress,isMobile=false){
 export function storyProgress(scroll,starts,maxScroll){
  if(maxScroll<=0)return {progress:0,index:0};
  // Browser scroll extent and scrollY can differ by subpixels on mobile.
- const y=scroll>=maxScroll-1?maxScroll:Math.max(0,Math.min(maxScroll,scroll));
+ const y=scroll<=1?0:scroll>=maxScroll-1?maxScroll:Math.max(0,Math.min(maxScroll,scroll));
  const anchors=starts.map(s=>Math.max(0,Math.min(maxScroll,s)));
  let index=0;for(let i=1;i<anchors.length;i++)if(y>=anchors[i])index=i;
  const a=anchors[index],b=index===anchors.length-1?maxScroll:anchors[index+1],local=b>a?clamp((y-a)/(b-a)):1;
