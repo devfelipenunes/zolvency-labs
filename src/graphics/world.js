@@ -22,7 +22,7 @@ export function makeScene(){
  blockCenters.forEach((p,i)=>model(ledgerParts(0),p,i===2?{hero:true}:{}));
  for(let i=0;i<4;i++)for(const z of [-49.15,-46.85])link([blockCenters[i][0]+2.35,1.75,z],[blockCenters[i+1][0]-2.35,1.75,z],'accent',.10,.18);
  // Stellar: network across a volume, not actual SCP topology.
- const ns=[[-22,4,-75],[-27,2,-72],[-17,2.5,-77],[-21,7.6,-70],[-25,5.9,-80],[-18,5.5,-70],[-21,1,-80]];
+ const ns=[[-23,2,-71],[-27,2,-72],[-17,2.5,-80],[-21,2,-70],[-25,2,-80],[-18,2,-70],[-21,1,-80]];
  ns.forEach((p,i)=>{model(stellarParts(i),p,{station:true,phase:i,asset:'server-room'});});
  // Public payment-flow visualization above the external projector; not a real payment.
  const publicNodes=[[-13.4,3.4,-72],[-12,4.3,-71],[-14.7,4.4,-71],[-13.4,5.3,-70],[-12,3.3,-69]];

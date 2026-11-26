@@ -51,7 +51,7 @@ export function createComposition(renderer,scene,disposeRoot,requestDraw){
    if(spec.room&&/^rack_[AB]\d+_door$/.test(o.name))bones.push({id:spec.id,o,y:o.rotation.y,sign:o.name.includes('_A')?1:-1});
    if(!o.isMesh)return;for(const m of Array.isArray(o.material)?o.material:[o.material]){
     if(seen.has(m))continue;seen.add(m);
-    if(spec.kenney){if(m.map)m.map=null;m.color?.setHex(0x46585a);m.metalness=.66;m.roughness=.43;}
+    if(spec.kenney){m.color?.setHex(0x46585a);m.metalness=.66;m.roughness=.43;}
     else if(!/glass|glow|led|light|screen|holo/.test(m.name??'')){m.color?.multiply(new THREE.Color(spec.id==='pcb'?0x8ca5a1:0x89999a));m.roughness=Math.max(.36,m.roughness??.4);}
     else if(/led|glow/.test(m.name??'')){m.emissive?.setHex(0x7ce9b3);m.emissiveIntensity=.7;}
    }
