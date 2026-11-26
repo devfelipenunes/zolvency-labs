@@ -18,3 +18,5 @@ test('new architecture modes retain the base geometry and stage only approved ca
  assert.ok(b.some(s=>s.id==='cleanroom-airlock'&&s.position[0]===0));assert.ok(b.some(s=>s.id==='lab-drawer-bench'));
  for(const spec of b)assert.ok(spec.file.endsWith('.glb'));
 });
+
+test('production combines the two previously audited architecture modes',()=>{const p=spatialFacility('production');assert.equal(p.length,10);for(const id of ['rooftop-cable-tray','cleanroom-airlock','lab-drawer-bench'])assert.ok(p.some(s=>s.id===id));assert.ok(p.find(s=>s.id==='bridge').aperture);});
