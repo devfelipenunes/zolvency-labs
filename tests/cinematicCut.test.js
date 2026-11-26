@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {wallCutEnvelope,createWallCut} from '../src/graphics/cinematicCut.js';
+test('occlusion completely masks the splice and opens at both ends',()=>{assert.equal(wallCutEnvelope(.51).mask,1);assert.equal(wallCutEnvelope(.415).mask,0);assert.equal(wallCutEnvelope(.59).mask,0);assert.equal(wallCutEnvelope(.415).approach,0);assert.equal(wallCutEnvelope(.59).approach,0);assert.equal(wallCutEnvelope(.51).side,'corridor');});
+test('wall cut is deterministic and falls back when wall geometry is unavailable',()=>{const c=createWallCut(new Map());const a=c.pose(.5,false);assert.equal(a.active,false);assert.equal(a.mask,0);assert.deepEqual(a,c.pose(.5,false));});
