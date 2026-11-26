@@ -14,3 +14,9 @@ test('only finite samples, unique GPU serials and visible active frame intervals
  a.record(d);a.record(d);a.record({...d,activeFrameIntervalMs:'300'});a.record(d,true);a.record({...d,gpuSampleSerial:'2',gpuMs:'4'});
  const r=a.stop(d,{width:1280,height:720});assert.equal(r.samples,3);assert.equal(r.metrics.gpuMs.samples,2);assert.equal(r.metrics.intervalMs.p95,16);assert.ok(!('deviceId' in r));assert.equal(summarizeDeviceFrames([]).metrics.cpuMs.p95,null);
 });
+
+test('native scroll timing is consumed once and only after a valid active frame',()=>{
+ const study=createDeviceStudy(),d={activeFrameIntervalMs:'16',cpuFrameMs:'4'};
+ study.start();study.markScroll(100);study.markScroll(110);study.record(d,false,125);study.record(d,false,140);
+ const result=study.stop(d,{width:1280,height:720});assert.equal(result.metrics.scrollToSubmitMs.samples,1);assert.equal(result.metrics.scrollToSubmitMs.p95,15);
+});
