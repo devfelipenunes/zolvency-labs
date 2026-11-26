@@ -1,7 +1,9 @@
 import {box,cylinder,sphere,torus,ledgerParts,processorParts,cryostatParts,cryptographyParts,stellarParts,secondaryParts} from './models.js';
+import {makeArchitecture,architecturePose} from './architecture.js';
+import {legacyProgress} from './camera.js';
 const TAU=2*Math.PI,sample=(n,fn)=>Array.from({length:n+1},(_,i)=>fn(i/n));
 const add=(a,b)=>a.map((v,i)=>v+b[i]);
-export const sceneNames=['ORIGIN','CRYPTOGRAPHY','BLOCKCHAIN','STELLAR','INTELLIGENCE','QUANTUM','CONVERGENCE'];
+export const sceneNames=['ORIGIN','BLOCKCHAIN','STELLAR','CRYPTOGRAPHY','INTELLIGENCE','QUANTUM','CONVERGENCE'];
 export const blockCenters=[-14,-7,0,7,14].map(x=>[x,2,-48]);
 export const importedModels=[{name:'processor',position:[12,3,-100]},{name:'cryostat',position:[-6,5,-124]},{name:'rack',position:[-27,2,-72]}];
 export function makeScene(){
@@ -37,12 +39,12 @@ export function makeScene(){
  // Convergence: interlocking sculpture and smaller modules in a constellation.
  for(let i=0;i<8;i++){const a=i*TAU/8;path(sample(96,t=>[10+(4.2+.7*Math.sin(3*t*TAU))*Math.cos(t*TAU+a),4+(3.1+.4*Math.cos(2*t*TAU))*Math.sin(t*TAU+a),-153+3*Math.sin(t*TAU+a/2)]),.11,i%3===0?'accent':i%2?'gold':'titanium');}
  for(let i=0;i<3;i++)objects.push(box([10,2.8+i*.85,-153],[2.2,.57,2.2],i===1?'dark':'titanium'),box([10,3.13+i*.85,-153],[2.1,.07,2.1],'accent'));
- // Purposeful repeated signal terminals: six matching modules, aligned in pairs per act.
- const centers=[[0,2,0],[18,4,-24],[0,2,-48],[-22,4,-75],[12,3,-100],[-6,5,-124],[10,4,-153]];
- for(let c=0;c<centers.length;c++)for(let i=0;i<6;i++){const a=i*TAU/6,r=c===2?19:8.5;const p=add(centers[c],[r*Math.cos(a),-1.2+(i%2)*3,r*Math.sin(a)]);for(const o of secondaryParts('electronic',0))objects.push({...o,position:add(p,o.position),float:.14,phase:i%2*Math.PI,fragment:true});}
- return {objects,paths};
+ const env=makeArchitecture();objects.push(...env.objects);paths.push(...env.paths);
+ return {objects,paths,plates:env.plates};
 }
 export function objectTransform(o,p){
+ if(o.architecture)return architecturePose(o,p);
+ p=legacyProgress(p);
  const a=(o.phase??0)+p*TAU*3,spread=o.hero?Math.exp(-(((p-.368)/.038)**2))*.92:0;
  const gate=o.gate?Math.sin(Math.PI*Math.max(0,Math.min(1,(p-.115)/.12)))*.32*(o.position[2]+24):0,station=o.station?.16*Math.sin(p*TAU*8+(o.phase??0)):0;
  const position=[o.position[0]+(o.float??0)*Math.sin(a),o.position[1]+station+(o.float??0)*Math.cos(a*.83)+(o.part??0)*spread,o.position[2]+gate+(o.float??0)*Math.sin(a*.67)];

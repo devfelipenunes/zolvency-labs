@@ -5,7 +5,7 @@ export function createFallback(canvas){
  const ctx=canvas.getContext('2d'),world=makeScene(),host=canvas.parentElement;
  const color={accent:[169,231,199],titanium:[206,215,215],gold:[190,165,112],dark:[70,91,100],ceramic:[215,223,221],copper:[168,93,54],glass:[82,124,137]};
  function resize(){if(!ctx)return;const dpr=Math.min(devicePixelRatio||1,1.5);canvas.width=Math.round(innerWidth*dpr);canvas.height=Math.round(innerHeight*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
- function draw(p){const pose=cameraPose(p,innerWidth<720);host.dataset.pose=JSON.stringify(pose);host.dataset.progress=String(p);for(const key of ['geometries','drawCalls','gpuGeometries','triangles','submitMs','assets','externalAssets','mechanical'])delete host.dataset[key];if(!ctx)return;
+ function draw(p){const pose=cameraPose(p,innerWidth<720);host.dataset.pose=JSON.stringify(pose);host.dataset.progress=String(p);for(const key of ['geometries','drawCalls','gpuGeometries','triangles','submitMs','assets','externalAssets','mechanical','plates','visiblePlates'])delete host.dataset[key];if(!ctx)return;
  const w=innerWidth,h=innerHeight,basis=viewBasis(pose),f=h/(2*Math.tan(pose.fov*Math.PI/360));ctx.clearRect(0,0,w,h);
  function project(v){const rel=sub(v,pose.position),z=dot(rel,basis.forward);if(z<.25||z>85)return null;return [w/2+dot(rel,basis.right)*f/z,h/2-dot(rel,basis.up)*f/z,z];}
  const commands=[];for(const path of world.paths){if(Math.abs(path.points[0][2]-pose.position[2])>65)continue;for(let i=1;i<path.points.length;i++){const a=project(path.points[i-1]),b=project(path.points[i]);if(a&&b)commands.push({type:'line',a,b,depth:(a[2]+b[2])/2,kind:path.kind,width:Math.min(55,Math.max(.6,2*path.radius*f/((a[2]+b[2])/2)))});}}

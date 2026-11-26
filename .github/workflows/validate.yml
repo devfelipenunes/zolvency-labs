@@ -58,3 +58,16 @@ jobs:
         with:
           name: external-asset-audition
           path: artifacts/asset-audition/
+  environment-audition:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - run: python3 scripts/audition-environments.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: environment-asset-audition
+          path: artifacts/environment-audition/

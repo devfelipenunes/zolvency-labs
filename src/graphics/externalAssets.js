@@ -1,7 +1,9 @@
 import * as THREE from 'three';
+import {legacyProgress} from './camera.js';
 // Keep the original GLBs immutable; styling and transforms happen in memory.
 export const externalSpecs={processor:{file:'graphics-card',size:6.4},cryostat:{file:'quantum-computer',size:7.6},rack:{file:'server-rack',size:2.5}};
 export function mechanicalPose(progress){
+ progress=legacyProgress(progress);
  const clamp=x=>Math.max(0,Math.min(1,x));
  const ai=clamp((progress-.575)/.155),stellar=clamp((progress-.435)/.14),q=clamp((progress-.73)/.135);
  const smooth=t=>t*t*(3-2*t);

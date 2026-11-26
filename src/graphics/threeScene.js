@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {externalSpecs,adaptExternal,animateExternal} from './externalAssets.js';
 import {signalPaths,signalPoint} from './signal.js';
+import {createSpatialPlates} from './spatialType.js';
 import { cameraPose } from './camera.js';
 import { makeScene,objectTransform,importedModels } from './world.js';
 import { geometries,materials,partMatrix } from './meshFactory.js';
@@ -15,13 +16,14 @@ export async function createThreeScene(host,onLost){
  const camera=new THREE.PerspectiveCamera(47,1,.10,190);
  const mats=materials(true),geo=geometries(),world=makeScene();
  const assetRoots=[];
+ const spatial=createSpatialPlates(world.plates,scene);
  // Spatial batches avoid rendering distant chapters; independent parts remain movable.
  const zone=o=>Math.floor(o.position[2]/22);
  const groups=new Map();
- for(const o of world.objects){const key=[o.asset??'world',o.kind,o.shape,zone(o),o.float||o.hero||o.gate||o.station?'moving':'static'].join(':');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(o);}
+ for(const o of world.objects){const key=[o.asset??'world',o.kind,o.shape,zone(o),o.float||o.hero||o.gate||o.station||o.proofDoor?'moving':'static'].join(':');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(o);}
  const batches=[];
  for(const group of groups.values()){
- const first=group[0],mesh=new THREE.InstancedMesh(geo[first.shape],mats[first.kind],group.length),dynamic=group.some(o=>o.float||o.hero||o.gate||o.station);
+ const first=group[0],mesh=new THREE.InstancedMesh(geo[first.shape],mats[first.kind],group.length),dynamic=group.some(o=>o.float||o.hero||o.gate||o.station||o.proofDoor);
  mesh.instanceMatrix.setUsage(dynamic?THREE.DynamicDrawUsage:THREE.StaticDrawUsage);
  const update=p=>{group.forEach((o,i)=>{const t=objectTransform(o,p);mesh.setMatrixAt(i,partMatrix(o,t.position,t.rotation));});mesh.instanceMatrix.needsUpdate=true;};
  update(0);mesh.computeBoundingSphere();if(dynamic)mesh.frustumCulled=false;scene.add(mesh);
@@ -60,15 +62,15 @@ export async function createThreeScene(host,onLost){
  }
  function resize(){if(disposed)return;mobile=innerWidth<720;r.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.15:1.6));r.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/Math.max(1,innerHeight);camera.updateProjectionMatrix();}
  function draw(p){if(disposed)return;last=p;const start=performance.now(),pose=cameraPose(p,mobile);camera.position.set(...pose.position);camera.up.set(0,1,0);camera.lookAt(...pose.target);camera.fov=pose.fov;camera.updateProjectionMatrix();fill.position.set(pose.position[0]-3,pose.position[1]+6,pose.position[2]-6);
- const z=pose.position[2],range=mobile?43:55;
+ const z=pose.position[2],range=mobile?37:48;spatial.update(z,range);
  for(const o of importedModels)if(Math.abs(o.position[2]-z)<48)fetchModel(o);for(const b of batches){b.mesh.visible=Math.abs(b.z-z)<range&&!loaded.includes(b.group[0].asset);if(b.dynamic&&b.mesh.visible)b.update(p);}
  for(const b of lines)b.mesh.visible=Math.abs(b.z-z)<range+16;
  for(const a of assetRoots){a.root.visible=Math.abs(a.position[2]-z)<range;if(a.external)animateExternal(a.external,p);}for(const g of glows)g.visible=Math.abs(g.position.z-z)<range;
  let visible=0;for(let i=0;i<pulses.length;i++){const pos=signalPoint(pulses[i],p,i);if(Math.abs(pos[2]-z)>range)continue;pulseDummy.position.set(...pos);pulseDummy.updateMatrix();pulseMesh.setMatrixAt(visible++,pulseDummy.matrix);}pulseMesh.count=visible;pulseMesh.instanceMatrix.needsUpdate=true;
  r.render(scene,camera);
- host.dataset.pose=JSON.stringify(pose);host.dataset.progress=String(p);host.dataset.assets=String(loaded.length);host.dataset.externalAssets=assetRoots.filter(a=>a.external).map(a=>a.external.file).sort().join(',');host.dataset.mechanical=JSON.stringify(assetRoots.filter(a=>a.external).map(a=>({name:a.name,rotors:a.external.rotors.map(r=>r.o.rotation.y),door:a.external.door?.o.rotation.y??null,emission:a.external.emissions[0]?.emissiveIntensity??null})));host.dataset.geometries=String(batches.length+lines.length+importedModels.length);host.dataset.gpuGeometries=String(r.info.memory.geometries);host.dataset.drawCalls=String(r.info.render.calls);host.dataset.triangles=String(r.info.render.triangles);host.dataset.submitMs=String(performance.now()-start);
+ host.dataset.plates=String(spatial.items.length);host.dataset.visiblePlates=String(spatial.items.filter(i=>i.holder.visible).length);host.dataset.pose=JSON.stringify(pose);host.dataset.progress=String(p);host.dataset.assets=String(loaded.length);host.dataset.externalAssets=assetRoots.filter(a=>a.external).map(a=>a.external.file).sort().join(',');host.dataset.mechanical=JSON.stringify(assetRoots.filter(a=>a.external).map(a=>({name:a.name,rotors:a.external.rotors.map(r=>r.o.rotation.y),door:a.external.door?.o.rotation.y??null,emission:a.external.emissions[0]?.emissiveIntensity??null})));host.dataset.geometries=String(batches.length+lines.length+importedModels.length);host.dataset.gpuGeometries=String(r.info.memory.geometries);host.dataset.drawCalls=String(r.info.render.calls);host.dataset.triangles=String(r.info.render.triangles);host.dataset.submitMs=String(performance.now()-start);
  }
  function lost(e){e.preventDefault();onLost();}
- function dispose(){if(disposed)return;disposed=true;r.domElement.removeEventListener('webglcontextlost',lost);for(const b of batches)b.mesh.dispose();for(const b of lines)b.mesh.geometry.dispose();for(const a of assetRoots){releaseRoot(a.root);a.external?.originalTextures.forEach(t=>t.dispose());}pulseMesh.dispose();pulseGeo.dispose();pulseMat.dispose();glowMat.dispose();glowTexture.dispose();const textures=new Set();for(const m of Object.values(mats)){if(m.normalMap)textures.add(m.normalMap);if(m.roughnessMap)textures.add(m.roughnessMap);}textures.forEach(t=>t.dispose());Object.values(geo).forEach(g=>g.dispose());Object.values(mats).forEach(m=>m.dispose());env.dispose();r.dispose();r.domElement.remove();}
+ function dispose(){if(disposed)return;disposed=true;r.domElement.removeEventListener('webglcontextlost',lost);for(const b of batches)b.mesh.dispose();for(const b of lines)b.mesh.geometry.dispose();for(const a of assetRoots){releaseRoot(a.root);a.external?.originalTextures.forEach(t=>t.dispose());}spatial.dispose();pulseMesh.dispose();pulseGeo.dispose();pulseMat.dispose();glowMat.dispose();glowTexture.dispose();const textures=new Set();for(const m of Object.values(mats)){if(m.normalMap)textures.add(m.normalMap);if(m.roughnessMap)textures.add(m.roughnessMap);}textures.forEach(t=>t.dispose());Object.values(geo).forEach(g=>g.dispose());Object.values(mats).forEach(m=>m.dispose());env.dispose();r.dispose();r.domElement.remove();}
  r.domElement.id='three-scene';r.domElement.addEventListener('webglcontextlost',lost);host.insertBefore(r.domElement,host.querySelector('.veil'));return {resize,draw,dispose};
 }
