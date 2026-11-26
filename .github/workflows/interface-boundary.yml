@@ -2,7 +2,7 @@ name: Interface keyboard and fallback
 on:
   pull_request:
     branches: [feat/v0.31-directed-experience]
-    paths: ['src/**','tests/**','scripts/interface-boundary-check.mjs','.github/workflows/interface-boundary.yml']
+    paths: ['src/App.jsx','src/useScrollStory.js','src/SoundControl.jsx','src/graphics/boundaryKey.js','tests/boundaryKey.test.js','scripts/interface-boundary-check.mjs','.github/workflows/interface-boundary.yml']
   workflow_dispatch:
 permissions:
   contents: read
