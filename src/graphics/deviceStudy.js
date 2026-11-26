@@ -19,13 +19,13 @@ export function createAdaptiveAO({budget=16.7,slowFrames=24,fastFrames=120,coold
  },reset(){slow=fast=0;ema=null;}};
 }
 export function createDeviceStudy({maxSamples=3000}={}){
- const frames=[];let active=false,lastGPU='';
+ const frames=[];let active=false,lastGPU='',longGaps=0,hiddenFrames=0;
  const n=v=>v===''||v==null?null:Number(v);
- return {start(){frames.length=0;lastGPU='';active=true;},record(d,hidden=false){
-  if(!active||hidden||frames.length>=maxSamples)return;
-  const interval=n(d.activeFrameIntervalMs);if(!Number.isFinite(interval)||interval<=0||interval>250)return;
+ return {start(){frames.length=0;lastGPU='';longGaps=hiddenFrames=0;active=true;},record(d,hidden=false){
+  if(!active||frames.length>=maxSamples)return;if(hidden){hiddenFrames++;return;}
+  const interval=n(d.activeFrameIntervalMs);if(!Number.isFinite(interval)||interval<=0)return;if(interval>250){longGaps++;return;}
   const serial=d.gpuSampleSerial,unique=!!serial&&serial!==lastGPU;if(unique)lastGPU=serial;
   const requested=n(d.targetProgress),rendered=n(d.progress);
   frames.push({intervalMs:interval,cpuMs:n(d.cpuFrameMs),gpuMs:unique?n(d.gpuMs):null,drawCalls:n(d.drawCalls),triangles:n(d.triangles),pixelRatio:n(d.pixelRatio),geometries:n(d.geometryCount),textures:n(d.textureCount),targetError:Number.isFinite(requested)&&Number.isFinite(rendered)?Math.abs(requested-rendered):null});
- },stop(d,viewport){active=false;return {...summarizeDeviceFrames(frames),viewport,firstFrameMs:n(d.firstFrameMs),allAssetsMs:n(d.allAssetsMs),gpuTimerSupported:d.gpuTimerSupported==='true',renderer:d.renderer,quality:d.effectVariant,note:'Active rendered intervals only; >250ms gaps excluded. No GPU fingerprint, URL, account or device identifier collected. Target error is not input latency.'};}};
+ },stop(d,viewport){active=false;return {...summarizeDeviceFrames(frames),viewport,excludedLongGaps:longGaps,excludedHiddenFrames:hiddenFrames,firstFrameMs:n(d.firstFrameMs),allAssetsMs:n(d.allAssetsMs),gpuTimerSupported:d.gpuTimerSupported==='true',renderer:d.renderer,quality:d.effectVariant,note:'Active rendered intervals only; >250ms gaps excluded. No GPU fingerprint, URL, account or device identifier collected. Target error is not input latency.'};}};
 }
