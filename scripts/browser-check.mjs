@@ -1,4 +1,4 @@
-import {chromium} from 'playwright';import assert from 'node:assert/strict';import {spawn} from 'node:child_process';import {mkdir,writeFile,copyFile} from 'node:fs/promises';import {storyProgress,windows,shots} from '../src/graphics/facilityCamera.js';import {facilityPlan} from './facility-plan.mjs';import {expectedAssets} from '../src/graphics/facilityLayout.js';
+import {chromium} from 'playwright';import assert from 'node:assert/strict';import {spawn} from 'node:child_process';import {mkdir,writeFile,copyFile} from 'node:fs/promises';import {storyProgress,windows,shots} from '../src/graphics/facilityCamera.js';import {facilityPlan} from './facility-plan.mjs';import {stations} from '../src/graphics/typographyDirection.js';import {expectedAssets} from '../src/graphics/facilityLayout.js';
 const server=spawn('npm',['run','preview','--','--host','127.0.0.1','--port','4173','--strictPort'],{stdio:'inherit'}),base='http://127.0.0.1:4173';let browser;const evidence=[];
 try{for(let i=0;i<80;i++){try{if((await fetch(base)).ok)break;}catch{}await new Promise(r=>setTimeout(r,250));}await mkdir('artifacts',{recursive:true});await copyFile('public/models/manifest.json','artifacts/model-manifest.json');browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage','--disable-smooth-scrolling']});
 for(const [label,viewport] of [['desktop',{width:1440,height:900}],['mobile',{width:390,height:844}]]){
@@ -12,5 +12,33 @@ const mid=await go(.65),end=await go(1);assert.notEqual(start,mid);assert.notEqu
 await page.keyboard.press('End');await page.waitForFunction(()=>scrollY>=document.documentElement.scrollHeight-innerHeight-1&&Number(document.querySelector('#stage')?.dataset.progress)===1,null,{timeout:20000});assert.equal(await pose(),end);assert.ok(await page.locator('.build-version').isVisible());await page.keyboard.press('Home');await page.waitForFunction(()=>scrollY<=1&&Number(document.querySelector('#stage')?.dataset.progress)===0,null,{timeout:20000});assert.equal(await page.locator('main section').count(),7);assert.equal(await page.locator('h1').count(),1);assert.match(await page.locator('main').innerText(),/Stellar/);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
 if(label==='desktop'){const sound=page.getByRole('button',{name:'Enable ambient sound'});if(await sound.count()){await sound.click();await page.waitForSelector('.sound-control[aria-pressed="true"]');await page.getByRole('button',{name:'Mute ambient sound'}).click();await page.waitForSelector('.sound-control[aria-pressed="false"]');}}
 const lost=await page.evaluate(()=>{const ext=document.querySelector('#three-scene')?.getContext('webgl2')?.getExtension('WEBGL_lose_context');if(!ext)return false;ext.loseContext();return true;});if(lost)await page.waitForSelector('#stage[data-renderer="canvas"]');await page.goto(base+'/?renderer=canvas');await page.waitForSelector('#stage[data-renderer="canvas"][data-pose]');const flat=await go(0);assert.notEqual(await go(.65),flat);await page.screenshot({timeout:90000,path:'artifacts/'+label+'-fallback.png'});await page.emulateMedia({reducedMotion:'reduce'});await page.waitForFunction(()=>document.querySelector('#stage')?.dataset.renderer==='canvas'&&Number(document.querySelector('#stage')?.dataset.progress)===0);const reduced=await go(0);assert.equal(await go(1),reduced);assert.deepEqual(errors,[]);evidence.push({label,readouts,initialAssets,routeAudit,lostContext:lost});console.log('facility evidence',label,JSON.stringify({assets:readouts[0].facility,triangles:readouts.map(x=>x.triangles),drawCalls:readouts.map(x=>x.drawCalls),clearance:readouts.map(x=>x.clearance)}));if(label==='desktop'){await page.emulateMedia({reducedMotion:'no-preference'});await page.setViewportSize({width:960,height:600});await page.goto(base+'/?diagnostics=1&quality=cinema');await page.waitForSelector('#stage[data-renderer="three"][data-effects="cinema"]',{timeout:90000});await page.waitForFunction(n=>Number(document.querySelector('#stage')?.dataset.assets)===n,expectedAssets,{timeout:90000});await page.waitForSelector('#stage[data-environment="hdr"]',{timeout:90000});await page.screenshot({timeout:90000,path:'artifacts/desktop-cinema.png'});assert.deepEqual(errors,[]);}await page.close();}
+const typeEvidence=[];
+for(const [mode,viewport] of [['surface',{width:1440,height:900}],['panel',{width:1440,height:900}],['projection',{width:1440,height:900}],['html',{width:1440,height:900}],['surface',{width:390,height:844}]]){
+ const page=await browser.newPage({viewport});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ try{
+  await page.goto(base+'/?diagnostics=1&type='+mode);
+  await page.waitForSelector('#stage[data-renderer="three"]',{timeout:90000});
+  await page.waitForFunction(n=>Number(document.querySelector('#stage')?.dataset.assets)===n,expectedAssets,{timeout:90000});
+  const stage=page.locator('#stage'),rows=[];
+  for(const [index,s] of stations.entries()){
+   await page.evaluate(({p,index,windows})=>{const max=document.documentElement.scrollHeight-innerHeight;const a=[...document.querySelectorAll('main section')].map((e,i)=>i===0?0:e.getBoundingClientRect().top+scrollY);scrollTo(0,Math.round(a[index]+((a[index+1]??max)-a[index])*(p-windows[index])/(windows[index+1]-windows[index])));},{p:s.hold,index,windows});
+   await page.waitForFunction(p=>Math.abs(Number(document.querySelector('#stage')?.dataset.progress)-p)<.002,s.hold,{timeout:30000});
+   const data=await stage.evaluate(e=>({...e.dataset}));const copy=page.locator('main .chapter[data-name="'+s.name+'"] .copy');const opacity=await copy.evaluate(e=>getComputedStyle(e).opacity);
+   assert.equal(await copy.locator('h1,h2').count(),1);assert.equal(await copy.locator('p').count(),1);
+   if(data.surfaceTitle===s.name){assert.ok(data.surfaceAnchor);assert.equal(data.surfaceReadable,'true');}
+   else assert.ok(Number(opacity)>0,'HTML fallback must remain visible');
+   if(mode==='html')assert.ok(!data.surfaceTitle);
+   const file='typography-'+mode+'-'+viewport.width+'-'+s.name+'.png';await page.screenshot({timeout:90000,path:'artifacts/'+file});
+   rows.push({name:s.name,mode,viewport,anchor:data.surfaceAnchor??'',visible:data.surfaceTitle===s.name,extruded:data.surfaceExtruded,diagnostics:JSON.parse(data.surfaceDiagnostics??'{}')[s.name],file});
+  }
+  assert.deepEqual(errors,[]);typeEvidence.push(...rows);
+  await writeFile('artifacts/typography-evidence.json',JSON.stringify(typeEvidence,null,2));
+  console.log('surface typography evidence',JSON.stringify(rows));
+ }finally{await page.close();}
+}
+const primary=typeEvidence.filter(x=>x.mode==='surface'&&x.viewport.width===1440);
+console.log('desktop surface coverage',primary.filter(x=>x.visible).length,'of',primary.length);
+assert.equal(primary.length,7);
+assert.ok(primary.some(x=>x.visible),'At least one validated in-world surface is required; review all seven before merge');
 await writeFile('artifacts/metrics.json',JSON.stringify({note:'SwiftShader; 481 sampled closest-triangle BVH measurements, not continuous collision proof or physical GPU benchmark.',evidence},null,2));
 }finally{await browser?.close();server.kill();}
