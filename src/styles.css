@@ -138,3 +138,6 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
  #stage[data-renderer="three"][data-typography-mode="narrative3d"][data-narrative-ready="true"] ~ .brand{opacity:0;pointer-events:none}
  #stage[data-renderer="three"][data-typography-mode="narrative3d"][data-narrative-ready="true"] ~ .track{opacity:0;pointer-events:none}
 }
+
+/* Review plates isolate cinematography from all typography; this flag is diagnostic only. */
+#stage[data-plate="true"] ~ main .chapter .copy,#stage[data-plate="true"] ~ .brand,#stage[data-plate="true"] ~ .track{opacity:0!important;pointer-events:none}
