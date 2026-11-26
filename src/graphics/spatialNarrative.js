@@ -13,7 +13,7 @@ export function spatialState(p){
  p=Math.min(1,Math.max(0,Number.isFinite(p)?p:0));
  const e=environments.findLast(s=>p>=s.points[0])??environments[0];
  const [a,b,c,d,z]=e.points;
- const phase=p<b?'approach':p<c?'threshold':p<d?'hold':p<z?'release':'exit';
+ const phase=p<b?'approach':p<b+(c-b)*.65?'threshold':p<c?'commit':p<d?'hold':p<z?'release':'exit';
  const strength=ramp(p,a,c)*(1-ramp(p,d,z));
  return {...e,phase,strength};
 }
