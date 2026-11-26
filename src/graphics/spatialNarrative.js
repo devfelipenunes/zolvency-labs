@@ -24,7 +24,7 @@ export function spatialPose(p,mobile=false){
  // Use unit directions to avoid target-distance changing the interpolation.
  const u=base.target.map((x,i)=>x-base.position[i]),un=Math.hypot(...u);
  const v=focus?.map((x,i)=>x-base.position[i]),vn=v?Math.hypot(...v):0;
- const weight=focus&&vn>.3?s:0;
+ const weight=focus&&vn>.3?s*(e.name==='QUANTUM'?ramp(p,.89,.92):1):0;
  const dir=u.map((x,i)=>x/un*(1-weight)+(vn>.3?v[i]/vn:0)*weight);
  const target=base.position.map((x,i)=>x+dir[i]*5/Math.max(.001,Math.hypot(...dir)));
  return {position:base.position,target,fov:base.fov+(e.fov+(mobile?10:0)-base.fov)*s};
