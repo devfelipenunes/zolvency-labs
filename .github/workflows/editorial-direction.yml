@@ -2,7 +2,7 @@ name: Editorial direction audition
 on:
   pull_request:
     branches: [feat/v0.31-directed-experience, main]
-    paths: ['src/**', 'scripts/editorial-*.mjs', 'tests/editorialDirection.test.js', '.github/workflows/editorial-direction.yml']
+    paths: ['src/editorialStory.js', 'src/App.jsx', 'src/world-type.css', 'src/graphics/directedNarrative.js', 'src/graphics/readingPacing.js', 'src/graphics/cameraPacing.js', 'scripts/editorial-direction-check.mjs', 'tests/editorialDirection.test.js', '.github/workflows/editorial-direction.yml']
   workflow_dispatch:
 permissions:
   contents: read

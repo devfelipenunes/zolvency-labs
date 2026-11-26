@@ -1,0 +1,2 @@
+# R45 narrative and accessible controls (#95 #118)
+Maintain provisional manifesto copy, distinguish current Stellar from research directions, align static metadata and noscript, retain prelaunch noindex and no unapproved contact CTA. Add focus-only skip link and named sections without visual navigation redesign. Native browser reduced-motion, exact DOM text and keyboard focus evidence desktop/mobile. Final text and 3D reading acceptance remain pending; no public promotion.
