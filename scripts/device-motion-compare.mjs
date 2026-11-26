@@ -45,7 +45,7 @@ try{
    await page.evaluate(()=>{
     window.__motionTrial={active:false,frames:[],last:'',started:0,first:null};
     function frame(now){const q=window.__motionTrial,d=document.querySelector('#stage').dataset;
-     if(q.active&&d.renderCount!==q.last){q.last=d.renderCount;const n=k=>d[k]===''||d[k]==null?null:Number(d[k]);const p=n('progress');if(q.first===null&&p!==q.startProgress)q.first=now-q.started;
+     if(q.active&&d.renderCount!==q.last){q.last=d.renderCount;const n=k=>d[k]===''||d[k]==null?null:Number(d[k]);const p=n('progress');if(q.first===null&&p!==null&&p!==q.startProgress)q.first=Math.max(0,now-q.started);
       q.frames.push({now,progress:p,target:n('targetProgress'),interval:n('activeFrameIntervalMs'),cpu:n('cpuFrameMs'),gpu:n('gpuMs'),gpuSerial:d.gpuSampleSerial,draws:n('drawCalls'),triangles:n('triangles'),scale:n('resolutionScale')});
      }requestAnimationFrame(frame);
     }requestAnimationFrame(frame);
@@ -60,7 +60,7 @@ try{
      trials.push({direction,p,...result});
     }
    }
-   const frames=trials.flatMap(x=>x.frames),moving=trials.flatMap(x=>x.frames.filter((f,i,a)=>i>0&&f.progress!==a[i-1].progress));
+   const moving=trials.flatMap(x=>x.frames.filter((f,i,a)=>i===0?Number.isFinite(f.interval):f.progress!==a[i-1].progress));
    const seen=new Set(),gpu=moving.filter(f=>{if(!f.gpuSerial||seen.has(f.gpuSerial))return false;seen.add(f.gpuSerial);return true;});
    const report={travel,profile,viewport,startup,trialCount:trials.length,activeSamples:moving.length,frameInterval:summary(moving.map(f=>f.interval)),cpu:summary(moving.map(f=>f.cpu)),gpu:summary(gpu.map(f=>f.gpu)),draws:summary(moving.map(f=>f.draws)),triangles:summary(moving.map(f=>f.triangles)),resolutionScale:summary(moving.map(f=>f.scale)),firstMotionMs:summary(trials.map(t=>t.firstMotionMs)),settleMs:summary(trials.map(t=>t.settleMs)),gapsOver50ms:moving.filter(f=>f.interval>50).length,gapsOver250ms:moving.filter(f=>f.interval>250).length,errors};
    await writeFile(out+'/'+travel+'-trials.json',JSON.stringify(trials));
