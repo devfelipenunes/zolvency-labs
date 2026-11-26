@@ -28,11 +28,11 @@ function atlas(chapter,index){
  ctx.fillStyle='#d3e3db';for(const line of body){ctx.fillText(line,x,y);y+=bs*1.25;}
  const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=2;return {tex,titleLines:ts,bodyLines:body,bodyPixels:bs,overflow:y>488};
 }
-function frameMetrics(camera,center,right,vertical,w,h,roots,ray){
+function frameMetrics(camera,center,right,vertical,w,h,roots,ray,{audit=null,grid=3}={}){
  let inFrame=0,clear=0,total=0;const ndcs=[];
- for(const x of [-.46,0,.46])for(const y of [-.44,0,.44]){
+ for(let i=0;i<grid;i++)for(let j=0;j<grid;j++){const x=.92*(i/(grid-1)-.5),y=.88*(j/(grid-1)-.5);
   const q=center.clone().addScaledVector(right,w*x).addScaledVector(vertical,h*y),n=q.clone().project(camera),d=q.clone().sub(camera.position),dist=d.length();total++;ndcs.push(n);
-  if(n.z>=-1&&n.z<=1&&Math.abs(n.x)<.94&&Math.abs(n.y)<.92){inFrame++;ray.set(camera.position,d.normalize());ray.near=.075;ray.far=Math.max(.076,dist-.03);if(!ray.intersectObjects(roots,true).some(opaque))clear++;}
+  if(n.z>=-1&&n.z<=1&&Math.abs(n.x)<.94&&Math.abs(n.y)<.92){inFrame++;ray.set(camera.position,d.normalize());ray.near=.075;ray.far=Math.max(.076,dist-.03);const blocker=ray.intersectObjects(roots,true).find(opaque);if(!blocker)clear++;else if(audit){const name=blocker.object.name||'(unnamed)';audit.occluders[name]=(audit.occluders[name]??0)+1;}}
  }
  const ys=ndcs.map(n=>n.y),xs=ndcs.map(n=>n.x);return {inFrame:inFrame/total,clear:clear/total,spanX:(Math.max(...xs)-Math.min(...xs))/2,spanY:(Math.max(...ys)-Math.min(...ys))/2};
 }
@@ -60,8 +60,8 @@ function anchor(spec,camera,root,roots,ray,bodyPixels,diagnostics){
     }
     diagnostics.supportHistogram[support]++;if(support>diagnostics.bestSupport){diagnostics.bestSupport=support;diagnostics.bestSupportMesh=hit.object.name;diagnostics.bestSupportWidth=w;}
     if(support<9){diagnostics.rejectedSupport++;continue;}
-    const m=frameMetrics(camera,center,right,vertical,w,h,roots,ray);
-    if(m.inFrame<1){diagnostics.rejectedFrame++;continue;}if(m.clear<1){diagnostics.rejectedOcclusion++;continue;}if(m.spanX<.24||bodyHeightProxy(m,bodyPixels)<16){diagnostics.rejectedReadability++;continue;}diagnostics.accepted++;
+    const m=frameMetrics(camera,center,right,vertical,w,h,roots,ray,{audit:diagnostics});
+    if(m.inFrame<1){diagnostics.rejectedFrame++;continue;}if(m.clear<1){diagnostics.rejectedOcclusion++;continue;}if(m.spanX<.24||bodyHeightProxy(m,bodyPixels)<16){diagnostics.rejectedReadability++;continue;}const refined=frameMetrics(camera,center,right,vertical,w,h,roots,ray,{audit:diagnostics,grid:5});if(refined.inFrame<1||refined.clear<1){diagnostics.rejectedDense++;continue;}diagnostics.accepted++;
     candidates.push({center,right,vertical,normal:n,width:w,height:h,mesh:hit.object.name,metrics:m,facing,support: support/9,score:m.spanX*2+facing*.4-Math.hypot(dx,dy)*1.25});
    }
   }
@@ -89,13 +89,13 @@ function spatialAnchor(spec,camera,roots,ray,bodyPixels){
 }
 export function createWorldType(scene,chapters,mode='flat'){
  const entries=[],ray=new THREE.Raycaster();let prepared=false,suppress=false;
- function prepare({roots,rail,applySet}){
+ function prepare({roots,rail,applySet,applyMotion}){
   if(prepared)return;prepared=true;
   for(let i=0;i<worldTypeSpecs.length;i++){
-   const spec=worldTypeSpecs[i];applySet(spec.hold);scene.updateMatrixWorld(true);const activeRoots=[...roots.values()].filter(o=>o.visible);
+   const spec=worldTypeSpecs[i];applySet(spec.hold);applyMotion(spec.hold);scene.updateMatrixWorld(true);const activeRoots=[...roots.values()].filter(o=>o.visible);
    const r=atlas(chapters[i],i);
    if(r.overflow){r.tex.dispose();entries.push({spec,reason:'atlas-overflow'});continue;}
-   const cam=cameraFor(rail,spec.hold,false,16/9);const anchorAudit={rays:0,allowedHits:0,consideredHits:0,rejectedSlope:0,rejectedFacing:0,rejectedWidth:0,footprints:0,supportHistogram:Array(10).fill(0),bestSupport:0,bestSupportMesh:null,bestSupportWidth:null,rejectedSupport:0,rejectedFrame:0,rejectedOcclusion:0,rejectedReadability:0,accepted:0};let a=anchor(spec,cam,roots.get(spec.root),activeRoots,ray,r.bodyPixels,anchorAudit);if(a)a.kind='surface-mounted';else a=spatialAnchor(spec,cam,activeRoots,ray,r.bodyPixels);
+   const cam=cameraFor(rail,spec.hold,false,16/9);const anchorAudit={rays:0,allowedHits:0,consideredHits:0,rejectedSlope:0,rejectedFacing:0,rejectedWidth:0,footprints:0,supportHistogram:Array(10).fill(0),bestSupport:0,bestSupportMesh:null,bestSupportWidth:null,rejectedSupport:0,rejectedFrame:0,rejectedOcclusion:0,rejectedReadability:0,rejectedDense:0,occluders:Object.create(null),accepted:0};let a=anchor(spec,cam,roots.get(spec.root),activeRoots,ray,r.bodyPixels,anchorAudit);if(a)a.kind='surface-mounted';else a=spatialAnchor(spec,cam,activeRoots,ray,r.bodyPixels);
    if(!a){r.tex.dispose();entries.push({spec,anchorAudit,reason:'no-readable-supported-or-fixed-plane'});continue;}
    const material=mode==='lit'?new THREE.MeshStandardMaterial({map:r.tex,emissiveMap:r.tex,emissive:0xffffff,emissiveIntensity:.65,roughness:.65,metalness:0,alphaTest:.25,transparent:true,depthWrite:true}):new THREE.MeshBasicMaterial({map:r.tex,alphaTest:.25,transparent:true,depthWrite:true,toneMapped:false});
    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(a.width,a.height),material);
@@ -103,15 +103,15 @@ export function createWorldType(scene,chapters,mode='flat'){
    const mobile=frameMetrics(cameraFor(rail,spec.hold,true,390/844),a.center,a.right,a.vertical??up,a.width,a.height,activeRoots,ray);
    entries.push({spec,a,mesh,...r,mobile,anchorAudit,reason:a.kind});
   }
-  applySet(0);scene.updateMatrixWorld(true);
+  applySet(0);applyMotion(0);scene.updateMatrixWorld(true);
  }
  function update(p,mobile,aspect,mask){
-  const b=directedNarrative(p,mask),e=entries[b.index];let active=!!e?.mesh;
+  const b=directedNarrative(p,mask),e=entries[b.index];let active=!!e?.mesh&&e.a?.kind==='surface-mounted';
   // The portrait camera is independently composed. No invisible/reflowed world text;
   // keep HTML until a dedicated portrait plane has been verified.
   if(mobile||aspect<1.55||aspect>1.95)active=false;
   for(const x of entries)if(x.mesh){x.mesh.visible=active&&!suppress&&x===e&&b.alpha>.02;x.mesh.material.opacity=b.alpha;}
-  return {active,name:e?.spec.name??'',reason:active?e.reason:mobile?'portrait-fallback':e?.reason??'unprepared'};
+  return {active,name:e?.spec.name??'',reason:active?e.reason:mobile?'portrait-fallback':e?.reason==='spatial-free-plane'?'html-fallback-unmounted':e?.reason??'unprepared'};
  }
  return {prepare,update,suppressInk(value){suppress=!!value;},textures:()=>entries.filter(e=>e.tex).map(e=>e.tex),report:()=>entries.map(e=>({name:e.spec.name,root:e.spec.root,reason:e.reason,anchorAudit:e.anchorAudit,anchor:e.a?.center.toArray(),normal:e.a?.normal.toArray(),width:e.a?.width,height:e.a?.height,support:e.a?.support,kind:e.a?.kind,hold:e.a?.metrics,mobile:e.mobile,bodyPixels:e.bodyPixels,estimatedBodyHeightPx:e.a?bodyHeightProxy(e.a.metrics,e.bodyPixels):null,mesh:e.a?.mesh,textureBytes:e.tex?TEX_WIDTH*TEX_HEIGHT*4:0})),dispose(){for(const e of entries)if(e.mesh){e.mesh.removeFromParent();e.mesh.geometry.dispose();e.mesh.material.dispose();/* textures owned by facility registry after prepare */}entries.length=0;}};
 }
