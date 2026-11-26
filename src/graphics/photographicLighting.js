@@ -33,14 +33,14 @@ export function activePracticals(p){
 }
 const edges=[0,1,...practicals.flatMap(s=>[Math.max(0,s.center-s.width),Math.min(1,s.center+s.width)])].sort((a,b)=>a-b);
 export const practicalSlots=Math.max(...edges.map(p=>activePracticals(p).length),...edges.slice(1).map((p,i)=>activePracticals((p+edges[i])/2).length));
-export function createPhotography(scene,{pooled=true,extended=false}={}){
+export function createPhotography(scene,{pooled=true,extended=false,noir=false,reactor=false}={}){
  RectAreaLightUniformsLib.init();
  const lights=Array.from({length:pooled?practicalSlots:practicals.length},(_,i)=>{const l=new THREE.RectAreaLight(0xffffff,0,1,1);l.name='practical-slot-'+i;scene.add(l);return {l,s:null};});
- const rim=new THREE.SpotLight(0xe9c28c,0,12,Math.PI/5,.65,2);rim.position.set(7.3,6.7,-10);rim.target.position.set(4.7,2.4,-8.6);scene.add(rim,rim.target);
- function configure(slot,s,intensity){const {l}=slot;if(slot.s!==s){l.color.setHex(s.color);l.width=s.w;l.height=s.h;const dz=extended&&s.name==='operations-ceiling'?-4.72:0;l.position.set(s.pos[0],s.pos[1],s.pos[2]+dz);l.lookAt(s.aim[0],s.aim[1],s.aim[2]+dz);slot.s=s;}l.intensity=intensity;}
+ const rim=new THREE.SpotLight(0xe9c28c,0,12,Math.PI/5,.65,2);rim.position.set(7.3,6.7,-10);rim.target.position.set(4.7,2.4,-8.6);if(reactor){rim.position.set(25.5,12,-4);rim.target.position.set(30,9,0);}scene.add(rim,rim.target);
+ function configure(slot,s,intensity){const {l}=slot;if(slot.s!==s){l.color.setHex(s.color);l.width=s.w;l.height=s.h;const dz=extended&&s.name==='operations-ceiling'?-4.72:0;if(reactor&&s.name.startsWith('quantum-')){const isKey=s.name==='quantum-key';l.position.set(isKey?34.5:25.5,isKey?10:11,isKey?3.8:-3.8);l.lookAt(30,9,0);if(noir)l.color.setHex(isKey?0xffc98a:0x6cc8d4);}else{l.position.set(s.pos[0],s.pos[1],s.pos[2]+dz);l.lookAt(s.aim[0],s.aim[1],s.aim[2]+dz);}slot.s=s;}l.intensity=intensity*(noir?(s.name.startsWith('quantum-')?.84:.68):1);}
  return {slots:lights.length,update(p){
   if(pooled){const active=activePracticals(p);for(const [i,slot] of lights.entries()){const a=active[i];if(a)configure(slot,a.s,a.intensity);else slot.l.intensity=0;}}
   else for(const [i,slot] of lights.entries()){const s=practicals[i],d=Math.abs(p-s.center);configure(slot,s,s.power*(1-ramp(d,0,s.width)));}
-  rim.intensity=55*(1-ramp(Math.abs(p-.935),.02,.12));return photographicLook(p);
+  rim.intensity=(noir?35:55)*(1-ramp(Math.abs(p-.935),.02,.12));return photographicLook(p);
  },dispose(){for(const {l} of lights)l.removeFromParent();rim.removeFromParent();rim.target.removeFromParent();}};
 }
