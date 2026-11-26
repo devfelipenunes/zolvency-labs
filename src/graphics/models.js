@@ -6,7 +6,7 @@ export const torus=(position,size,kind='gold',extra={})=>({shape:'torus',positio
 export const hex=(position,size,kind='gold',extra={})=>({shape:'hex',position,size,kind,...extra});
 export const bevel=(position,size,kind='titanium',extra={})=>({shape:'chamfer',position,size,kind,...extra});
 export const palette={
- titanium:{color:0xaabcc3,metalness:.83,roughness:.32},gold:{color:0xb99a5a,metalness:.85,roughness:.29},dark:{color:0x19242d,metalness:.48,roughness:.5},ceramic:{color:0xd7dfdd,metalness:.18,roughness:.37},copper:{color:0xa85d36,metalness:.8,roughness:.33},glass:{color:0x527c89,metalness:.35,roughness:.16,clearcoat:1},accent:{color:0x9af0ce,metalness:.15,roughness:.3,emissive:0x53b88c,emissiveIntensity:2.4}
+ titanium:{color:0xaabcc3,metalness:.83,roughness:.32},gold:{color:0x9f9380,metalness:.85,roughness:.29},dark:{color:0x19242d,metalness:.48,roughness:.5},ceramic:{color:0xc2cdcd,metalness:.18,roughness:.37},copper:{color:0x777e80,metalness:.8,roughness:.33},glass:{color:0x53666a,metalness:.35,roughness:.16,clearcoat:1},accent:{color:0x9af0ce,metalness:.15,roughness:.3,emissive:0x53b88c,emissiveIntensity:2.4}
 };
 export function ledgerParts(variant=0){
  const a=[],finish=['titanium','ceramic','titanium','glass','dark'][variant%5];

@@ -13,16 +13,16 @@ export function makeScene(){
  // Hero: suspended dark core and multiple tilted rings.
  objects.push(sphere([0,2,0],1.35,'dark'),sphere([0,2,0],.63,'accent'));
  for(let i=0;i<6;i++)ring([0,2,0],2.8+i*.35,2.1+i*.26,Math.sin(i*1.3)*2.8,i%3===0?'accent':'titanium',.09);
- for(let i=0;i<34;i++){const a=i*2.399963,r=3.5+(i%5)*.39;objects.push(box([r*Math.cos(a),2+2.7*Math.sin(a*.7),r*Math.sin(a)],[.22,.12,.33],i%3?'gold':'accent',{float:.19,phase:i}));}
+ for(let i=0;i<12;i++){const a=i*TAU/12,r=4.1;objects.push(box([r*Math.cos(a),2,r*Math.sin(a)],[.27,.15,.42],i%3?'titanium':'accent',{float:.12,phase:i}));}
  // Cryptography: suspended plates with real apertures, surface tiles, and links.
- model(cryptographyParts(),[18,4,-25]);
+ model(cryptographyParts(),[18,4,-25],{gate:true});
  for(let i=0;i<7;i++){const a=i*TAU/7;path(sample(60,t=>[18+(2.9-1.8*t)*Math.cos(a+t*1.7),4+(2.9-1.8*t)*Math.sin(a+t*1.7),-17-10*t]),.055,i%2?'accent':'gold');}
  // Floating blockchain, actual gaps along x. The central block opens deterministically.
- blockCenters.forEach((p,i)=>model(ledgerParts(i),p,i===2?{hero:true}:{}));
+ blockCenters.forEach((p,i)=>model(ledgerParts(0),p,i===2?{hero:true}:{}));
  for(let i=0;i<4;i++)for(const z of [-49.15,-46.85])link([blockCenters[i][0]+2.35,1.75,z],[blockCenters[i+1][0]-2.35,1.75,z],'accent',.10,.18);
  // Stellar: network across a volume, not actual SCP topology.
  const ns=[[-22,4,-75],[-27,2,-72],[-17,2.5,-77],[-21,7.6,-70],[-25,5.9,-80],[-18,5.5,-70],[-21,1,-80]];
- ns.forEach((p,i)=>{model(stellarParts(i),p);ring(p,.96,.96,.55,'gold',.04);if(i)link(ns[0],p,'accent',.055,.65);});
+ ns.forEach((p,i)=>{model(stellarParts(i),p,{station:true,phase:i});ring(p,.96,.96,.55,'gold',.04);if(i)link(ns[0],p,'accent',.055,.65);});
  for(let i=1;i<ns.length-1;i++)link(ns[i],ns[i+1],'titanium',.045);
  // Intelligence: processor GLB and neural graph rising behind the chip.
  model(processorParts(),importedModels[0].position,{asset:'processor'});
@@ -37,14 +37,15 @@ export function makeScene(){
  // Convergence: interlocking sculpture and smaller modules in a constellation.
  for(let i=0;i<8;i++){const a=i*TAU/8;path(sample(96,t=>[10+(4.2+.7*Math.sin(3*t*TAU))*Math.cos(t*TAU+a),4+(3.1+.4*Math.cos(2*t*TAU))*Math.sin(t*TAU+a),-153+3*Math.sin(t*TAU+a/2)]),.11,i%3===0?'accent':i%2?'gold':'titanium');}
  for(let i=0;i<3;i++)objects.push(box([10,2.8+i*.85,-153],[2.2,.57,2.2],i===1?'dark':'titanium'),box([10,3.13+i*.85,-153],[2.1,.07,2.1],'accent'));
- // Loose foreground and background objects across all chapters, outside the principal corridors.
+ // Purposeful repeated signal terminals: six matching modules, aligned in pairs per act.
  const centers=[[0,2,0],[18,4,-24],[0,2,-48],[-22,4,-75],[12,3,-100],[-6,5,-124],[10,4,-153]];
- for(let c=0;c<centers.length;c++)for(let i=0;i<28;i++){const a=i*2.399963+c*.8,r=11+(i%6)*1.6;const p=add(centers[c],[r*Math.cos(a),-4+(i%5)*3.4,r*Math.sin(a)]);const parts=secondaryParts(i%7===0?'electronic':i%5===0?'quantum':'fragment',i%15);for(const o of parts)objects.push({...o,position:add(p,o.position.map(v=>v*.55)),size:o.size.map(v=>v*.55),float:.30,phase:i+c*31,fragment:true});}
+ for(let c=0;c<centers.length;c++)for(let i=0;i<6;i++){const a=i*TAU/6,r=c===2?19:8.5;const p=add(centers[c],[r*Math.cos(a),-1.2+(i%2)*3,r*Math.sin(a)]);for(const o of secondaryParts('electronic',0))objects.push({...o,position:add(p,o.position),float:.14,phase:i%2*Math.PI,fragment:true});}
  return {objects,paths};
 }
 export function objectTransform(o,p){
  const a=(o.phase??0)+p*TAU*3,spread=o.hero?Math.exp(-(((p-.368)/.038)**2))*.92:0;
- const position=[o.position[0]+(o.float??0)*Math.sin(a),o.position[1]+(o.float??0)*Math.cos(a*.83)+(o.part??0)*spread,o.position[2]+(o.float??0)*Math.sin(a*.67)];
+ const gate=o.gate?Math.sin(Math.PI*Math.max(0,Math.min(1,(p-.115)/.12)))*.32*(o.position[2]+24):0,station=o.station?.16*Math.sin(p*TAU*8+(o.phase??0)):0;
+ const position=[o.position[0]+(o.float??0)*Math.sin(a),o.position[1]+station+(o.float??0)*Math.cos(a*.83)+(o.part??0)*spread,o.position[2]+gate+(o.float??0)*Math.sin(a*.67)];
  return {position,rotation:o.float?[a*.15,a*.25,a*.12]:[0,0,0]};
 }
 export function clearance(position,paths){let d=Infinity;for(const path of paths)for(let i=1;i<path.points.length;i++){const a=path.points[i-1],b=path.points[i],v=b.map((x,k)=>x-a[k]),w=position.map((x,k)=>x-a[k]),len=v.reduce((s,x)=>s+x*x,0);const t=len?Math.max(0,Math.min(1,w.reduce((s,x,k)=>s+x*v[k],0)/len)):0;d=Math.min(d,Math.hypot(...position.map((x,k)=>x-a[k]-t*v[k]))-path.radius);}return d;}
