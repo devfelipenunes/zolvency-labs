@@ -11,5 +11,34 @@ const mid=await go(.65),end=await go(1);assert.notEqual(start,mid);assert.notEqu
 await page.keyboard.press('End');await page.waitForFunction(()=>scrollY>=document.documentElement.scrollHeight-innerHeight-1&&Number(document.querySelector('#stage')?.dataset.progress)===1,null,{timeout:20000});assert.equal(await pose(),end);await page.keyboard.press('Home');await page.waitForFunction(()=>scrollY<=1&&Number(document.querySelector('#stage')?.dataset.progress)===0,null,{timeout:20000});assert.equal(await page.locator('main section').count(),7);assert.equal(await page.locator('h1').count(),1);assert.match(await page.locator('main').innerText(),/Stellar/);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
 if(label==='desktop'){const sound=page.getByRole('button',{name:'Enable ambient sound'});if(await sound.count()){await sound.click();await page.waitForSelector('.sound-control[aria-pressed="true"]');await page.getByRole('button',{name:'Mute ambient sound'}).click();await page.waitForSelector('.sound-control[aria-pressed="false"]');}}
 const lost=await page.evaluate(()=>{const ext=document.querySelector('#three-scene')?.getContext('webgl2')?.getExtension('WEBGL_lose_context');if(!ext)return false;ext.loseContext();return true;});if(lost)await page.waitForSelector('#stage[data-renderer="canvas"]');await page.goto(base+'/?renderer=canvas');await page.waitForSelector('#stage[data-renderer="canvas"][data-pose]');const flat=await go(0);assert.notEqual(await go(.65),flat);await page.screenshot({timeout:90000,path:'artifacts/'+label+'-fallback.png'});await page.emulateMedia({reducedMotion:'reduce'});await page.waitForFunction(()=>document.querySelector('#stage')?.dataset.renderer==='canvas'&&Number(document.querySelector('#stage')?.dataset.progress)===0);const reduced=await go(0);assert.equal(await go(1),reduced);assert.deepEqual(errors,[]);evidence.push({label,readouts,initialAssets,routeAudit,lostContext:lost});console.log('facility evidence',label,JSON.stringify({assets:readouts[0].facility,triangles:readouts.map(x=>x.triangles),drawCalls:readouts.map(x=>x.drawCalls),clearance:readouts.map(x=>x.clearance)}));if(label==='desktop'){await page.emulateMedia({reducedMotion:'no-preference'});await page.setViewportSize({width:960,height:600});await page.goto(base+'/?diagnostics=1&quality=cinema');await page.waitForSelector('#stage[data-renderer="three"][data-effects="cinema"]',{timeout:90000});await page.waitForFunction(n=>Number(document.querySelector('#stage')?.dataset.assets)===n,expectedAssets,{timeout:90000});await page.waitForSelector('#stage[data-environment="hdr"]',{timeout:90000});await page.screenshot({timeout:90000,path:'artifacts/desktop-cinema.png'});assert.deepEqual(errors,[]);}await page.close();}
+// Exercise the first visible scene before secondary models finish, including a failed low-detail request.
+const early=await browser.newPage({viewport:{width:390,height:844}});
+let release;const gate=new Promise(resolve=>{release=resolve;});
+const earlyErrors=[];early.on('pageerror',e=>earlyErrors.push(e.message));
+let lowRequested=false;
+await early.route('**/models/facility/*.glb',async route=>{
+ const file=new URL(route.request().url()).pathname.split('/').pop();
+ if(file==='hangar-low.glb'||file==='hangar.glb')return route.continue();
+ await gate;
+ if(file==='server-room-low.glb'){lowRequested=true;return route.abort('failed');}
+ return route.continue();
+});
+try{
+ await early.goto(base+'/?diagnostics=1',{waitUntil:'domcontentloaded'});
+ await early.waitForSelector('#stage[data-renderer="three"][data-assets="1"]',{timeout:90000});
+ const stage=early.locator('#stage'),initialPose=await stage.getAttribute('data-pose');
+ assert.ok(Number(await stage.getAttribute('data-first-frame-ms'))>=0);
+ await early.keyboard.press('End');await early.waitForFunction(()=>Number(document.querySelector('#stage')?.dataset.progress)===1,null,{timeout:25000});
+ assert.notEqual(await stage.getAttribute('data-pose'),initialPose);
+ assert.equal(await stage.getAttribute('data-assets'),'1');
+ await early.keyboard.press('Home');await early.waitForFunction(()=>Number(document.querySelector('#stage')?.dataset.progress)===0,null,{timeout:25000});
+ assert.equal(await stage.getAttribute('data-pose'),initialPose);
+ release();
+ await early.waitForFunction(n=>Number(document.querySelector('#stage')?.dataset.assets)===n,expectedAssets,{timeout:90000});
+ assert.ok(lowRequested);assert.equal(await stage.getAttribute('data-lod-fallbacks'),'servers');assert.equal(await stage.getAttribute('data-failures'),'');
+ assert.ok(Number(await stage.getAttribute('data-all-assets-ms'))>=Number(await stage.getAttribute('data-first-frame-ms')));
+ assert.deepEqual(earlyErrors,[]);
+ console.log('progressive navigation evidence',JSON.stringify(await stage.evaluate(e=>({...e.dataset}))));
+}finally{release();await early.close();}
 await writeFile('artifacts/metrics.json',JSON.stringify({note:'SwiftShader; 481 sampled closest-triangle BVH measurements, not continuous collision proof or physical GPU benchmark.',evidence},null,2));
 }finally{await browser?.close();server.kill();}
