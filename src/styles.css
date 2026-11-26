@@ -37,3 +37,12 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
 .build-version{position:fixed;top:calc(clamp(20px,4vw,50px) + 42px);right:var(--gutter);z-index:4;color:#c0e8ce;background:#0a141be8;border:1px solid #b4d1c44d;padding:5px 8px;font:10px/1.2 ui-monospace,monospace;letter-spacing:.1em;pointer-events:none}
 @media(max-width:720px){.build-version{top:calc(clamp(20px,4vw,50px) + 35px);font-size:9px}}
 @media(prefers-reduced-motion:no-preference){.copy{transition:opacity 180ms ease-out}.chapter:not([data-active="true"]) .copy{opacity:.82}}
+
+/* Experimental: preserve semantic headings and layout; hide only when the corresponding world-space title is clear. */
+#stage[data-renderer="three"][data-spatial-title="ORIGIN"] ~ main .chapter[data-name="ORIGIN"] :is(h1,h2){opacity:0}
+#stage[data-renderer="three"][data-spatial-title="BLOCKCHAIN"] ~ main .chapter[data-name="BLOCKCHAIN"] :is(h1,h2){opacity:0}
+#stage[data-renderer="three"][data-spatial-title="STELLAR"] ~ main .chapter[data-name="STELLAR"] :is(h1,h2){opacity:0}
+#stage[data-renderer="three"][data-spatial-title="CRYPTOGRAPHY"] ~ main .chapter[data-name="CRYPTOGRAPHY"] :is(h1,h2){opacity:0}
+#stage[data-renderer="three"][data-spatial-title="INTELLIGENCE"] ~ main .chapter[data-name="INTELLIGENCE"] :is(h1,h2){opacity:0}
+#stage[data-renderer="three"][data-spatial-title="QUANTUM"] ~ main .chapter[data-name="QUANTUM"] :is(h1,h2){opacity:0}
+#stage[data-renderer="three"][data-spatial-title="CONVERGENCE"] ~ main .chapter[data-name="CONVERGENCE"] :is(h1,h2){opacity:0}
