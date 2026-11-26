@@ -1,0 +1,66 @@
+[
+  {
+    "file": "cleanroom-airlock-lod1.glb",
+    "url": "https://tevy.dev/models/cleanroom-airlock/v1/lod1.glb",
+    "bytes": 820884,
+    "sha256": "77339b34a76b96f90c35833b18c6c0185d9e3e83a7d16f2b375eaa9ec1f4b7a6",
+    "license": "CC0-1.0",
+    "source": "https://tevy.dev/models/cleanroom-airlock"
+  },
+  {
+    "file": "cleanroom-airlock-lod2.glb",
+    "url": "https://tevy.dev/models/cleanroom-airlock/v1/lod2.glb",
+    "bytes": 261296,
+    "sha256": "30bb8800d8c9c49741606152fa9caeae5273dd9a47700325d0ffbe927b0b29a8",
+    "license": "CC0-1.0",
+    "source": "https://tevy.dev/models/cleanroom-airlock"
+  },
+  {
+    "file": "rooftop-cable-tray-lod1.glb",
+    "url": "https://tevy.dev/models/rooftop-cable-tray/v1/lod1.glb",
+    "bytes": 19040,
+    "sha256": "37c8872c2c51478ca981a2e26c9df7e410d8a91215ebb996d7d4d9328fa12c96",
+    "license": "CC0-1.0",
+    "source": "https://tevy.dev/models/rooftop-cable-tray"
+  },
+  {
+    "file": "rooftop-cable-tray-lod2.glb",
+    "url": "https://tevy.dev/models/rooftop-cable-tray/v1/lod2.glb",
+    "bytes": 13532,
+    "sha256": "dcdd9f59cc33921bd254772205c1534377348cc01df88c980df4bbc9a5fdcde3",
+    "license": "CC0-1.0",
+    "source": "https://tevy.dev/models/rooftop-cable-tray"
+  },
+  {
+    "file": "junction-box-cluster-lod1.glb",
+    "url": "https://tevy.dev/models/junction-box-cluster/v1/lod1.glb",
+    "bytes": 62576,
+    "sha256": "38433014362b568fcb4bdbd245b94eae9697cb433028ddd2ad23b35d37df0625",
+    "license": "CC0-1.0",
+    "source": "https://tevy.dev/models/junction-box-cluster"
+  },
+  {
+    "file": "junction-box-cluster-lod2.glb",
+    "url": "https://tevy.dev/models/junction-box-cluster/v1/lod2.glb",
+    "bytes": 21644,
+    "sha256": "d830cd60ee86cdf4ece4677e5297e22938fe7101035e66452c007410afb2cbf0",
+    "license": "CC0-1.0",
+    "source": "https://tevy.dev/models/junction-box-cluster"
+  },
+  {
+    "file": "control-room-lod1.glb",
+    "url": "https://tevy.dev/models/control-room/v1/lod1.glb",
+    "bytes": 747884,
+    "sha256": "be7b7a96d9fe27c62ffe9aabc17fa92389e581a14540974fa9ee374304d180be",
+    "license": "CC0-1.0",
+    "source": "https://tevy.dev/models/control-room"
+  },
+  {
+    "file": "control-room-lod2.glb",
+    "url": "https://tevy.dev/models/control-room/v1/lod2.glb",
+    "bytes": 209268,
+    "sha256": "0c3bfcc9fe5f62456204174465becd45e27f1624dc6cb53f0308f2af8437513a",
+    "license": "CC0-1.0",
+    "source": "https://tevy.dev/models/control-room"
+  }
+]
