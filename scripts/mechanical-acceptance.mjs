@@ -24,7 +24,7 @@ try{
    for(let i=0;i<81;i++){assert.deepEqual(forward[i].position,reverse[i].position);assert.deepEqual(forward[i].hits,reverse[i].hits);}
    assert.ok(Math.abs(Math.max(...forward.map(r=>r.position[2]))-Math.min(...forward.map(r=>r.position[2]))-4)<1e-5);
    const spatial=await page.evaluate(()=>document.querySelector('#stage').inspectCraneSpatialSweep());
-   assert.equal(spatial.rows.length,161);assert.ok(spatial.rows.every((r,i)=>Math.abs(r.offset-i*.025)<1e-8&&r.movingMeshes>0&&r.otherMeshes>0));
+   assert.equal(spatial.rows.length,161);assert.ok(spatial.rows.every((r,i)=>Math.abs(r.offset-i*.025)<1e-8&&r.movingMeshes>0&&r.otherMeshes>0));for(const row of spatial.rows)for(const hit of row.hits)for(const key of ['movingBounds','otherBounds','overlapBounds'])assert.ok(hit[key].min.every((v,j)=>Number.isFinite(v)&&Number.isFinite(hit[key].max[j])&&v<=hit[key].max[j]));
    const clearance=await page.evaluate(()=>document.querySelector('#stage').inspectOpeningClearance());
    const interior=await page.evaluate(()=>{const s=document.querySelector('#stage');return {floor:s.inspectInteriorFloor(),clearance:s.inspectInteriorClearance()};});
    assert.ok(clearance.every(r=>r.distance>.06));
@@ -39,7 +39,7 @@ try{
  }
  const spatialComparisons=[];
  const summarize=rows=>[...pairs(rows)].map(pair=>{const hits=rows.filter(r=>r.hits.some(h=>h.moving+'|'+h.other===pair));return {pair,count:hits.length,firstOffset:hits[0].offset,lastOffset:hits.at(-1).offset,persistent:hits.length===rows.length};});
- for(let i=0;i<reports.length;i+=2){const a=reports[i].spatial.rows,b=reports[i+1].spatial.rows;const differences=a.flatMap((r,j)=>{const left=[...pairs([r])].sort(),right=[...pairs([b[j]])].sort();return JSON.stringify(left)===JSON.stringify(right)?[]:[{offset:r.offset,control:left,candidate:right}];});spatialComparisons.push({viewport:reports[i].viewport,control:summarize(a),candidate:summarize(b),differences,note:'Persistent and intermittent are descriptive categories, not approval of contact.'});}
+ for(let i=0;i<reports.length;i+=2){const a=reports[i].spatial.rows,b=reports[i+1].spatial.rows;const differences=a.flatMap((r,j)=>{const left=r.hits,right=b[j].hits;return JSON.stringify(left)===JSON.stringify(right)?[]:[{offset:r.offset,control:left,candidate:right}];});spatialComparisons.push({viewport:reports[i].viewport,control:summarize(a),candidate:summarize(b),differences,note:'Persistent and intermittent are descriptive categories, not approval of contact.'});}
  await writeFile(out+'/spatial-comparisons.json',JSON.stringify(spatialComparisons,null,2));
  assert.ok(spatialComparisons.every(c=>c.differences.length===0),'different contact sets at identical crane positions '+JSON.stringify(spatialComparisons));
  const comparisons=[];
