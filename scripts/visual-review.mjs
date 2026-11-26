@@ -52,7 +52,7 @@ async function frame(page,p,diagnostic){
 async function capture(page,label,mode,p,diagnostic,direction='fixed'){
  const f=await frame(page,p,diagnostic);const file=label+'-'+mode+'-'+direction+'-'+Math.round(p*1000)+'.png';
  const png=await page.screenshot({path:out+'/'+file,timeout:120000,animations:'disabled'});
- const photometry=group==='composition'?await page.evaluate(async base64=>{
+ const photometry=['composition','backlog'].includes(group)?await page.evaluate(async base64=>{
   const image=new Image();image.src='data:image/png;base64,'+base64;await image.decode();
   const canvas=document.createElement('canvas');canvas.width=256;canvas.height=Math.round(256*image.height/image.width);
   const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(image,0,0,canvas.width,canvas.height);
@@ -80,14 +80,14 @@ try{
    const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/shader|THREE.WebGLProgram/i.test(m.text()))errors.push(m.text());});
    try{
     await open(page,item.params,!item.motion);
-    if(item.group==='narrative'||item.group==='responsive'||item.motion||item.group==='composition'&&!item.params.includes('plate=1'))await page.waitForSelector('#stage[data-narrative-ready="true"]',{timeout:120000});
+    if(item.group==='narrative'||item.group==='responsive'||item.group==='backlog'||item.motion||item.group==='composition'&&!item.params.includes('plate=1'))await page.waitForSelector('#stage[data-narrative-ready="true"]',{timeout:120000});
     if(item.group==='composition'&&['composition-brand','composition-combined','composition-control'].includes(item.name)){const rows=await page.evaluate(()=>document.querySelector('#stage').inspectOpeningClearance());await writeFile(out+'/'+label+'-'+item.name+'-opening-clearance.json',JSON.stringify(rows,null,2));assert.ok(rows.every(x=>x.distance>.06),'opening clearance failure');}
     if(item.name==='world'){await page.waitForSelector('#stage[data-narrative-ready="true"]',{timeout:120000});const clearance=await page.evaluate(()=>document.querySelector('#stage').inspectServerClearance());await writeFile(out+'/'+label+'-server-clearance.json',JSON.stringify(clearance,null,2));assert.ok(clearance.every(r=>r.distance>.06),'server path clearance '+JSON.stringify(clearance.filter(r=>r.distance<=.06)));}
     if(item.motion){
      assert.equal(await page.locator('.build-version').count(),0);
      for(const [direction,targets] of Object.entries(scrollTargets)){for(const p of targets){const scroll=await scrollTo(page,p);await capture(page,label,item.name,p,false,direction);reports.at(-1).scroll=scroll;await save();}}
     }else{
-     for(const p of item.poses){await capture(page,label,item.name,p,true);if(item.group==='responsive'&&[.055,.205,.405,.625,.73,.935,.992].includes(p)){const entries=reports.at(-1).text??[];assert.ok(['hero','headline'].every(role=>entries.some(t=>t.role===role&&t.inside&&t.visibilityEstimate>=.85)),'responsive lettering '+JSON.stringify({viewport,p,entries}));}if(item.name==='floor-geometry-matte')assert.ok(reports.at(-1).floorFaces>0&&reports.at(-1).floorArea>0,'actual floor faces required '+JSON.stringify(reports.at(-1)));if(item.group==='effects'||item.group==='composition'&&[.055,.73,.935,.992].includes(p)){const samples=await page.evaluate(async p=>{const s=document.querySelector('#stage'),next=()=>new Promise(r=>requestAnimationFrame(r));await next();s.benchmarkFrame(p);let previous=await next();const rows=[];for(let i=0;i<5;i++){const now=await next();rows.push({...s.benchmarkFrame(p),rafMs:now-previous});previous=now;}return rows;},p);reports.at(-1).effectSamples=samples;await save();}}
+     for(const p of item.poses){await capture(page,label,item.name,p,true);if(['responsive','backlog'].includes(item.group)&&[.055,.205,.405,.625,.73,.935,.992].includes(p)){const entries=reports.at(-1).text??[];assert.ok(['hero','headline'].every(role=>entries.some(t=>t.role===role&&t.inside&&t.visibilityEstimate>=.85)),'responsive lettering '+JSON.stringify({viewport,p,entries}));}if(item.name==='floor-geometry-matte')assert.ok(reports.at(-1).floorFaces>0&&reports.at(-1).floorArea>0,'actual floor faces required '+JSON.stringify(reports.at(-1)));if(item.group==='effects'||item.group==='composition'&&[.055,.73,.935,.992].includes(p)){const samples=await page.evaluate(async p=>{const s=document.querySelector('#stage'),next=()=>new Promise(r=>requestAnimationFrame(r));await next();s.benchmarkFrame(p);let previous=await next();const rows=[];for(let i=0;i<5;i++){const now=await next();rows.push({...s.benchmarkFrame(p),rafMs:now-previous});previous=now;}return rows;},p);reports.at(-1).effectSamples=samples;await save();}}
     }
     assert.deepEqual(errors,[]);
    }catch(e){failures.push({label,mode:item.name,error:String(e),pageErrors:errors});await save();}
