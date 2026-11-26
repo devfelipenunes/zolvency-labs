@@ -11,7 +11,7 @@ export const reviewCases=[
  {name:'final-high',group:'narrative',params:'composition=final-high',poses:[.985,.992,1]},
  {name:'quantum-copy',group:'narrative',params:'composition=quantum-copy',poses:[.91,.935,.949],mobileOnly:true},
  {name:'world',group:'narrative',params:'',poses:[.005,.025,.055,.075,.105,.145,.17,.185,.205,.24,.31,.365,.405,.425,.625,.73,.91,.935,.949,.992]},
- ...['original','matte'].map(floor=>({name:'floor-'+floor,group:'variants',params:'floor='+floor+'&plate=1',poses:[.055,.992]})),
+ ...['original','matte','geometry-matte'].map(floor=>({name:'floor-'+floor,group:'variants',params:'floor='+floor+'&plate=1',poses:[.055,.992]})),
  {name:'ops-focus',group:'variants',params:'light=ops-focus&plate=1',poses:[.73]},
  {name:'public-scroll',group:'motion',params:'',motion:true},
  ...['default','no-ao','no-bloom','neither'].map(effect=>({name:'effects-'+effect,group:'effects',params:'effects='+effect+'&plate=1',poses:[.055,.405,.935],desktopOnly:true}))
