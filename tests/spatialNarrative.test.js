@@ -19,4 +19,4 @@ test('new architecture modes retain the base geometry and stage only approved ca
  for(const spec of b)assert.ok(spec.file.endsWith('.glb'));
 });
 
-test('production combines the two previously audited architecture modes',()=>{const p=spatialFacility('production');assert.equal(p.length,9);assert.deepEqual(p.find(s=>s.id==='corridor-extension').position,[-5.5,0,-5.55]);assert.deepEqual(p.find(s=>s.id==='bridge').scaleXYZ,[.72,1,.9]);assert.ok(p.some(s=>s.id==='rooftop-cable-tray'));for(const id of ['cleanroom-airlock','lab-drawer-bench'])assert.ok(!p.some(s=>s.id===id));assert.ok(p.find(s=>s.id==='bridge').aperture);});
+test('production combines the two previously audited architecture modes',()=>{const p=spatialFacility('production');assert.equal(p.length,10);assert.deepEqual(p.find(s=>s.id==='corridor-extension').position,[-5.5,0,-5.55]);assert.deepEqual(p.find(s=>s.id==='bridge').scaleXYZ,[.72,1,.9]);assert.ok(p.some(s=>s.id==='rooftop-cable-tray'));for(const id of ['cleanroom-airlock','lab-drawer-bench'])assert.ok(!p.some(s=>s.id===id));assert.ok(p.find(s=>s.id==='bridge').aperture);});

@@ -8,8 +8,8 @@ export const stations=[
  {name:'QUANTUM',root:'hangar',hold:.935,range:[.89,.92,.945,.95],style:'plate',sector:'06 / QUANTUM RESEARCH',hints:[[-.48,.12],[.48,.12],[-.30,.35]],accent:'#dfc991'},
  {name:'CONVERGENCE',root:'hangar',hold:.992,range:[.962,.985,1,1.01],style:'raised',sector:'07 / INDEPENDENT BY DESIGN',hints:[[-.32,.30],[.34,.30],[0,.25]],accent:'#c0e8ce'}
 ];
-export const modes=['editorial','labels','signage','surface','panel','projection','html'];
-export function typeMode(value){return modes.includes(value)?value:'editorial';}
+export const modes=['architectural','editorial','labels','signage','surface','panel','projection','html'];
+export function typeMode(value){return modes.includes(value)?value:'architectural';}
 export function wrapWords(text,measure,limit){
  const lines=[];let line='';
  for(const word of text.split(/\s+/)){const next=line?line+' '+word:word;if(line&&measure(next)>limit){lines.push(line);line=word;}else line=next;}

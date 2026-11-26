@@ -108,3 +108,13 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
  #stage[data-renderer="three"][data-typography-mode="editorial"] ~ main .chapter[data-side] p{font-size:clamp(13px,1.05vw,15px);line-height:1.55}
  #stage[data-renderer="three"][data-wall-cut="active"] ~ main .chapter[data-side] .copy{visibility:hidden}
 }
+
+/* Architectural type: use the physical wordmark as the opening hero; preserve readable HTML elsewhere. */
+@media(prefers-reduced-motion:no-preference){
+ #stage[data-renderer="three"][data-brand-reveal="true"] ~ .brand{opacity:0}
+ #stage[data-renderer="three"][data-brand-reveal="true"] ~ main .chapter[data-name="ORIGIN"] .copy :is(h1,p,.eyebrow){opacity:0}
+ #stage[data-renderer="three"][data-typography-mode="architectural"] ~ main .chapter[data-side] .copy{width:min(590px,calc(100vw - 44px));bottom:clamp(48px,7svh,76px)}
+ #stage[data-renderer="three"][data-typography-mode="architectural"] ~ main .chapter[data-side] :is(h1,h2){font-size:clamp(21px,2.25vw,32px);font-weight:500;letter-spacing:-.025em}
+ #stage[data-renderer="three"][data-typography-mode="architectural"][data-architectural-title]:not([data-architectural-title=""]) ~ main .chapter[data-side] .eyebrow{opacity:0}
+ .brand,.chapter .copy :is(h1,p,.eyebrow){transition:opacity .25s ease}
+}
