@@ -53,7 +53,7 @@ export function createDiegeticTypography(scene,mode,onReady,poseFn=cameraPose){
     if(!box.inside||box.width<(mobile?135:175)||!supports(patch))continue;
     // Discard a patch before ranking if any corner is hidden by foreground geometry at its reading pose.
     if([patch.point,...pts].some(q=>{const v=q.clone().addScaledVector(n,.014).sub(cam.position),dist=v.length();return !!hit(cam.position,v.normalize(),all,Math.max(.001,dist-.035));}))continue;
-    const style=mode==='panel'?'display':mode==='projection'?'projection':station.style;
+    const style=mode==='signage'?(station.style==='display'?'display':'stencil'):mode==='panel'?'display':mode==='projection'?'projection':station.style;
     const name=(matOf(h)?.name??'')+' '+h.object.name;
     const match=style==='glass'?looksGlass(h):style==='display'?/screen|panel|console|rack/i.test(name):/wall|panel|bay|frame/i.test(name);
     options.push({...patch,style,score:box.width*(match?1.3:1)*n.dot(toward),name:h.object.name,material:matOf(h)?.name??''});break;
@@ -66,7 +66,7 @@ export function createDiegeticTypography(scene,mode,onReady,poseFn=cameraPose){
   const style=patch.style,solid=['display','plate'].includes(style);
   if(solid){ctx.fillStyle='#102328';ctx.fillRect(0,0,c.width,c.height);ctx.strokeStyle=station.accent;ctx.lineWidth=3;ctx.strokeRect(8,8,c.width-16,c.height-16);}
   ctx.fillStyle=station.accent;ctx.font='500 35px monospace';ctx.fillText(station.sector,46,61);ctx.fillRect(46,85,132,4);
-  const raised=style==='raised'&&font;
+  const raised=mode!=='signage'&&style==='raised'&&font;
   ctx.font='600 108px Arial, sans-serif';const lines=wrapWords(chapter.title,s=>ctx.measureText(s).width,1444);ctx.fillStyle=style==='projection'?'#c2f7e5':'#f1f3ec';
   ctx.shadowColor=style==='projection'?'#52c8a8':'#061015';ctx.shadowBlur=solid?0:style==='projection'?18:7;
   if(!raised)lines.forEach((s,i)=>ctx.fillText(s,46,197+i*115));
@@ -114,7 +114,7 @@ export function createDiegeticTypography(scene,mode,onReady,poseFn=cameraPose){
      const dir=q.clone().sub(camera.position),dist=dir.length();if(hit(camera.position,dir.normalize(),all,Math.max(.001,dist-.025))){clear=false;break;}
     }
     const legibility={...box,clear,titlePx:box.height*e.titlePx,bodyPx:box.height*e.bodyPx};
-    const readable=readability(legibility),titleOk=titleReadability({...legibility,titlePx:box.height*e.compactPx,mobile});
+    const readable=mode!=='signage'&&readability(legibility),titleOk=titleReadability({...legibility,titlePx:box.height*e.compactPx,mobile});
     e.anchor.visible=titleOk;e.material.opacity=alpha;for(const l of e.letters)l.material.opacity=alpha;
     const selected=readable?e.texture:e.titleTexture;if(e.material.map!==selected){e.material.map=selected;e.material.needsUpdate=true;}
     if(e.anchor.visible)result={name:e.station.name,anchor:p.name,style:p.style,readable,alpha,projected:box,extruded:e.letters.length>0};
