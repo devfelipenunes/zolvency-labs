@@ -11,7 +11,7 @@ try{
  for(const [i,p] of holds.entries()){
    const r=await page.evaluate(p=>{const s=document.querySelector('#stage');const costs=s.benchmarkFrame(p);return {p,active:s.dataset.worldTypeActive,chapter:s.dataset.worldTypeChapter,reason:s.dataset.worldTypeReason,costs,copyOpacity:getComputedStyle(document.querySelector('.chapter .copy')).opacity};},p);
    assert.equal(r.chapter,inventory[i].name);if(mobile)assert.equal(r.active,'false');
-   await page.screenshot({path:out+'/'+i+'-'+r.chapter+'.png',timeout:120000});rows.push(r);
+   await page.screenshot({path:out+'/'+i+'-'+r.chapter+'.png',timeout:120000});rows.push(r);if(r.active==='true'){await page.evaluate(p=>{const s=document.querySelector('#stage');s.suppressWorldTypeInk(true);s.benchmarkFrame(p);},p);await page.screenshot({path:out+'/'+i+'-'+r.chapter+'-ink-off.png',timeout:120000});await page.evaluate(()=>document.querySelector('#stage').suppressWorldTypeInk(false));}
  }
  await writeFile(out+'/report.json',JSON.stringify({mode,view,inventory,rows,errors,note:'Diagnostic fixed holds; native scroll, physical GPU, full visual review and portrait spatial anchors remain release gates.'},null,2));assert.deepEqual(errors,[]);
 }finally{await browser?.close();server.kill();}

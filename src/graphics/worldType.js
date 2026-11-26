@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {directedNarrative} from './directedNarrative.js';
-import {brandSurfaces} from './artDirection.js';
+// Original logo is independent.
 // One immutable world transform per chapter; camera used once to discover a surface,
 // never parented to the live camera. Failed support/readability checks keep HTML.
 export const worldTypeSpecs=Object.freeze([
@@ -15,7 +15,7 @@ export const worldTypeSpecs=Object.freeze([
 export const TEX_WIDTH=1024,TEX_HEIGHT=512;
 const up=new THREE.Vector3(0,1,0),V=(...v)=>new THREE.Vector3(...v);
 const allowed=h=>{const m=Array.isArray(h.object.material)?h.object.material[h.face?.materialIndex??0]:h.object.material;for(let n=h.object;n;n=n.parent)if(!n.visible)return false;return !!h.face&&m&&(m.transmission??0)<.05&&!(m.transparent&&m.opacity<.9)&&!/glass|led|glow|screen|light/i.test(h.object.name+' '+m.name);};
-const opaque=h=>{for(let n=h.object;n;n=n.parent)if(!n.visible)return false;const m=Array.isArray(h.object.material)?h.object.material[h.face?.materialIndex??0]:h.object.material;return !!m&&(m.transmission??0)<.05&&!(m.transparent&&m.opacity<.9);};
+const opaque=h=>{for(let n=h.object;n;n=n.parent)if(!n.visible)return false;const m=Array.isArray(h.object.material)?h.object.material[h.face?.materialIndex??0]:h.object.material;return !!m&&!(m.transparent&&m.opacity<.15&&(m.transmission??0)<.05);};
 function cameraFor(rail,p,mobile,aspect){const pose=rail(p,mobile),c=new THREE.PerspectiveCamera(pose.fov,aspect,.075,65);c.position.set(...pose.position);c.lookAt(...pose.target);c.updateMatrixWorld(true);return c;}
 function lines(ctx,text,width){const rows=[];let row='';for(const word of text.split(/\s+/)){const next=row?row+' '+word:word;if(row&&ctx.measureText(next).width>width){rows.push(row);row=word;}else row=next;}if(row)rows.push(row);return rows;}
 function atlas(chapter,index){
@@ -65,21 +65,40 @@ function anchor(spec,camera,root,roots,ray){
  }
  return candidates.sort((a,b)=>b.score-a.score)[0]??null;
 }
+// Fixed free-space alternative, referenced to the first actual hit. Never camera-parented.
+function spatialAnchor(spec,camera,roots,ray){
+ const candidates=[],direction=camera.getWorldDirection(V()),right=V(1,0,0).applyQuaternion(camera.quaternion),vertical=V(0,1,0).applyQuaternion(camera.quaternion),normal=direction.clone().negate(),[x,y]=spec.screen;
+ for(const dx of [0,-.18,.18,-.34,.34])for(const dy of [0,-.18,.18]){
+  const ndc=new THREE.Vector2(THREE.MathUtils.clamp(x+dx,-.52,.52),THREE.MathUtils.clamp(y+dy,-.48,.48));
+  ray.setFromCamera(ndc,camera);ray.near=.1;ray.far=50;const hit=ray.intersectObjects(roots,true).find(opaque);
+  if(!hit)continue;const dist=hit.point.clone().sub(camera.position).dot(direction),sight=ray.ray.direction.clone();
+  if(dist<.4)continue;
+  for(const ratio of [.88,.72,.56,.42]){
+   const depth=dist*ratio;if(depth<.30)continue;
+   const center=camera.position.clone().addScaledVector(sight,depth/Math.max(.1,sight.dot(direction)));
+   const w=THREE.MathUtils.clamp(2*depth*Math.tan(THREE.MathUtils.degToRad(camera.fov)/2)*camera.aspect*spec.span,spec.min*.4,spec.max),h=w/2;
+   const metrics=frameMetrics(camera,center,right,vertical,w,h,roots,ray);
+   if(metrics.inFrame<1||metrics.clear<1||metrics.spanX<.24||metrics.spanY<.10)continue;
+   candidates.push({center,right,vertical,normal,width:w,height:h,mesh:hit.object.name,metrics,facing:1,support:0,kind:'spatial-free-plane',score:metrics.spanX*2+ratio*.6-Math.hypot(dx,dy)*.45});
+  }
+ }
+ return candidates.sort((a,b)=>b.score-a.score)[0]??null;
+}
 export function createWorldType(scene,chapters,mode='flat'){
- const entries=[],ray=new THREE.Raycaster();let prepared=false;
+ const entries=[],ray=new THREE.Raycaster();let prepared=false,suppress=false;
  function prepare({roots,rail,applySet}){
   if(prepared)return;prepared=true;
   for(let i=0;i<worldTypeSpecs.length;i++){
    const spec=worldTypeSpecs[i];applySet(spec.hold);scene.updateMatrixWorld(true);const activeRoots=[...roots.values()].filter(o=>o.visible);
-   const cam=cameraFor(rail,spec.hold,false,16/9),a=anchor(spec,cam,roots.get(spec.root),activeRoots,ray);
+   const cam=cameraFor(rail,spec.hold,false,16/9);let a=anchor(spec,cam,roots.get(spec.root),activeRoots,ray);if(a)a.kind='surface-mounted';else a=spatialAnchor(spec,cam,activeRoots,ray);
    if(!a){entries.push({spec,reason:'no-supported-reading-plane'});continue;}
    const r=atlas(chapters[i],i);
    if(r.overflow){r.tex.dispose();entries.push({spec,reason:'atlas-overflow'});continue;}
    const material=mode==='lit'?new THREE.MeshStandardMaterial({map:r.tex,emissiveMap:r.tex,emissive:0xffffff,emissiveIntensity:.65,roughness:.65,metalness:0,alphaTest:.25,transparent:true,depthWrite:true}):new THREE.MeshBasicMaterial({map:r.tex,alphaTest:.25,transparent:true,depthWrite:true,toneMapped:false});
    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(a.width,a.height),material);
-   mesh.name='world-type-'+spec.name;mesh.position.copy(a.center);mesh.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(a.right,up,a.normal));mesh.visible=false;scene.add(mesh);
-   const mobile=frameMetrics(cameraFor(rail,spec.hold,true,390/844),a.center,a.right,up,a.width,a.height,activeRoots,ray);
-   entries.push({spec,a,mesh,...r,mobile,reason:'anchored'});
+   mesh.name='world-type-'+spec.name;mesh.position.copy(a.center);mesh.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(a.right,a.vertical??up,a.normal));mesh.visible=false;scene.add(mesh);
+   const mobile=frameMetrics(cameraFor(rail,spec.hold,true,390/844),a.center,a.right,a.vertical??up,a.width,a.height,activeRoots,ray);
+   entries.push({spec,a,mesh,...r,mobile,reason:a.kind});
   }
   applySet(0);scene.updateMatrixWorld(true);
  }
@@ -88,8 +107,8 @@ export function createWorldType(scene,chapters,mode='flat'){
   // The portrait camera is independently composed. No invisible/reflowed world text;
   // keep HTML until a dedicated portrait plane has been verified.
   if(mobile||aspect<1.25||aspect>2.1)active=false;
-  for(const x of entries)if(x.mesh){x.mesh.visible=active&&x===e&&b.alpha>.02;x.mesh.material.opacity=b.alpha;}
-  return {active,name:e?.spec.name??'',reason:active?'anchored':mobile?'portrait-fallback':e?.reason??'unprepared'};
+  for(const x of entries)if(x.mesh){x.mesh.visible=active&&!suppress&&x===e&&b.alpha>.02;x.mesh.material.opacity=b.alpha;}
+  return {active,name:e?.spec.name??'',reason:active?e.reason:mobile?'portrait-fallback':e?.reason??'unprepared'};
  }
- return {prepare,update,textures:()=>entries.filter(e=>e.tex).map(e=>e.tex),report:()=>entries.map(e=>({name:e.spec.name,root:e.spec.root,reason:e.reason,anchor:e.a?.center.toArray(),normal:e.a?.normal.toArray(),width:e.a?.width,height:e.a?.height,support:e.a?.support,hold:e.a?.metrics,mobile:e.mobile,bodyPixels:e.bodyPixels,mesh:e.a?.mesh,textureBytes:e.tex?TEX_WIDTH*TEX_HEIGHT*4:0})),dispose(){for(const e of entries)if(e.mesh){e.mesh.removeFromParent();e.mesh.geometry.dispose();e.mesh.material.dispose();/* textures owned by facility registry after prepare */}entries.length=0;}};
+ return {prepare,update,suppressInk(value){suppress=!!value;},textures:()=>entries.filter(e=>e.tex).map(e=>e.tex),report:()=>entries.map(e=>({name:e.spec.name,root:e.spec.root,reason:e.reason,anchor:e.a?.center.toArray(),normal:e.a?.normal.toArray(),width:e.a?.width,height:e.a?.height,support:e.a?.support,kind:e.a?.kind,hold:e.a?.metrics,mobile:e.mobile,bodyPixels:e.bodyPixels,mesh:e.a?.mesh,textureBytes:e.tex?TEX_WIDTH*TEX_HEIGHT*4:0})),dispose(){for(const e of entries)if(e.mesh){e.mesh.removeFromParent();e.mesh.geometry.dispose();e.mesh.material.dispose();/* textures owned by facility registry after prepare */}entries.length=0;}};
 }
