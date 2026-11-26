@@ -1,4 +1,4 @@
-import {chromium} from 'playwright';import assert from 'node:assert/strict';import {spawn} from 'node:child_process';import {mkdir,writeFile,copyFile} from 'node:fs/promises';import {storyProgress,windows,shots} from '../src/graphics/facilityCamera.js';import {facilityPlan} from './facility-plan.mjs';import {expectedAssets} from '../src/graphics/facilityLayout.js';
+import {chromium} from 'playwright';import assert from 'node:assert/strict';import {spawn} from 'node:child_process';import {mkdir,writeFile,copyFile} from 'node:fs/promises';import {storyProgress,windows,shots} from '../src/graphics/facilityCamera.js';import {facilityPlan} from './facility-plan.mjs';import {expectedAssets,compositionFacility} from '../src/graphics/facilityLayout.js';
 const server=spawn('npm',['run','preview','--','--host','127.0.0.1','--port','4173','--strictPort'],{stdio:'inherit'}),base='http://127.0.0.1:4173';let browser;const evidence=[];
 try{for(let i=0;i<80;i++){try{if((await fetch(base)).ok)break;}catch{}await new Promise(r=>setTimeout(r,250));}await mkdir('artifacts',{recursive:true});await copyFile('public/models/manifest.json','artifacts/model-manifest.json');browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage','--disable-smooth-scrolling']});
 for(const [label,viewport] of [['desktop',{width:1440,height:900}],['mobile',{width:390,height:844}]]){
@@ -12,5 +12,28 @@ const mid=await go(.65),end=await go(1);assert.notEqual(start,mid);assert.notEqu
 await page.keyboard.press('End');await page.waitForFunction(()=>scrollY>=document.documentElement.scrollHeight-innerHeight-1&&Number(document.querySelector('#stage')?.dataset.progress)===1,null,{timeout:20000});assert.equal(await pose(),end);assert.ok(await page.locator('.build-version').isVisible());await page.keyboard.press('Home');await page.waitForFunction(()=>scrollY<=1&&Number(document.querySelector('#stage')?.dataset.progress)===0,null,{timeout:20000});assert.equal(await page.locator('main section').count(),7);assert.equal(await page.locator('h1').count(),1);assert.match(await page.locator('main').innerText(),/Stellar/);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
 if(label==='desktop'){const sound=page.getByRole('button',{name:'Enable ambient sound'});if(await sound.count()){await sound.click();await page.waitForSelector('.sound-control[aria-pressed="true"]');await page.getByRole('button',{name:'Mute ambient sound'}).click();await page.waitForSelector('.sound-control[aria-pressed="false"]');}}
 const lost=await page.evaluate(()=>{const ext=document.querySelector('#three-scene')?.getContext('webgl2')?.getExtension('WEBGL_lose_context');if(!ext)return false;ext.loseContext();return true;});if(lost)await page.waitForSelector('#stage[data-renderer="canvas"]');await page.goto(base+'/?renderer=canvas');await page.waitForSelector('#stage[data-renderer="canvas"][data-pose]');const flat=await go(0);assert.notEqual(await go(.65),flat);await page.screenshot({timeout:90000,path:'artifacts/'+label+'-fallback.png'});await page.emulateMedia({reducedMotion:'reduce'});await page.waitForFunction(()=>document.querySelector('#stage')?.dataset.renderer==='canvas'&&Number(document.querySelector('#stage')?.dataset.progress)===0);const reduced=await go(0);assert.equal(await go(1),reduced);assert.deepEqual(errors,[]);evidence.push({label,readouts,initialAssets,routeAudit,lostContext:lost});console.log('facility evidence',label,JSON.stringify({assets:readouts[0].facility,triangles:readouts.map(x=>x.triangles),drawCalls:readouts.map(x=>x.drawCalls),clearance:readouts.map(x=>x.clearance)}));if(label==='desktop'){await page.emulateMedia({reducedMotion:'no-preference'});await page.setViewportSize({width:960,height:600});await page.goto(base+'/?diagnostics=1&quality=cinema');await page.waitForSelector('#stage[data-renderer="three"][data-effects="cinema"]',{timeout:90000});await page.waitForFunction(n=>Number(document.querySelector('#stage')?.dataset.assets)===n,expectedAssets,{timeout:90000});await page.waitForSelector('#stage[data-environment="hdr"]',{timeout:90000});await page.screenshot({timeout:90000,path:'artifacts/desktop-cinema.png'});assert.deepEqual(errors,[]);}await page.close();}
+const comparisons=[];
+for(const [mode,points] of [['baseline',[.24,.31,.39,.705,.755,.865,.92]],['services',[.24,.31,.39]],['operations',[.705,.73,.755]],['cleanroom',[.865,.89,.92]]]){
+ const page=await browser.newPage({viewport:{width:1280,height:800}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ try{
+  await page.goto(base+'/?diagnostics=1'+(mode==='baseline'?'':'&composition='+mode));
+  await page.waitForSelector('#stage[data-renderer="three"]',{timeout:90000});
+  await page.waitForFunction(n=>Number(document.querySelector('#stage')?.dataset.assets)===n,compositionFacility(mode).length,{timeout:90000});
+  const stage=page.locator('#stage');
+  const route=await stage.evaluate(e=>e.auditRoute(480)),bounds=await stage.evaluate(e=>e.inspectLayout());
+  const min=[...route].sort((a,b)=>a.distance-b.distance)[0];const frames=[];
+  for(const p of points){
+   await page.evaluate(({p,windows})=>{const max=document.documentElement.scrollHeight-innerHeight;const a=[...document.querySelectorAll('main section')].map((e,i)=>i===0?0:e.getBoundingClientRect().top+scrollY);let i=windows.findIndex((w,j)=>j<windows.length-1&&p<=windows[j+1]);if(i<0)i=windows.length-2;scrollTo(0,Math.round(a[i]+((a[i+1]??max)-a[i])*(p-windows[i])/(windows[i+1]-windows[i])));},{p,windows});
+   await page.waitForFunction(p=>Math.abs(Number(document.querySelector('#stage')?.dataset.progress)-p)<.0005,p,{timeout:25000});
+   const info=await stage.evaluate(e=>({...e.dataset}));const file='composition-'+mode+'-'+Math.round(p*1000)+'.png';
+   await page.screenshot({timeout:90000,path:'artifacts/'+file});frames.push({file,p,triangles:Number(info.triangles),drawCalls:Number(info.drawCalls)});
+  }
+  assert.deepEqual(errors,[]);assert.equal(await stage.getAttribute('data-failures'),'');
+  const report={mode,min,passesSampledClearance:min.distance>.06,bounds,frames};
+  comparisons.push(report);console.log('composition comparison',JSON.stringify(report));
+  await writeFile('artifacts/composition-'+mode+'-plan.svg',facilityPlan(bounds,route));
+  await writeFile('artifacts/composition-comparisons.json',JSON.stringify(comparisons,null,2));
+ }finally{await page.close();}
+}
 await writeFile('artifacts/metrics.json',JSON.stringify({note:'SwiftShader; 481 sampled closest-triangle BVH measurements, not continuous collision proof or physical GPU benchmark.',evidence},null,2));
 }finally{await browser?.close();server.kill();}
