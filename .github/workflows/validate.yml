@@ -37,7 +37,7 @@ jobs:
           node-version: '22'
       - run: npm install --no-audit --no-fund
       - run: npm run export:models
-      - run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends blender
+      - run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends blender python3-numpy python3-pil
       - run: blender -b -t 2 --python-exit-code 1 --python scripts/blender-library.py -- artifacts/authoring/catalog.json artifacts/blender
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
