@@ -2,6 +2,8 @@ import {chromium} from 'playwright';
 import {spawn} from 'node:child_process';
 import {mkdir,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
+// Load completion order is nondeterministic; compare full mechanical tuples as a multiset.
+const canonicalMechanics=rows=>rows.map(row=>JSON.stringify(row)).sort();
 const mobile=process.env.BUDGET_VIEW==='mobile',mode=process.env.BUDGET_MODE??'targeted',viewport=mobile?{width:390,height:844}:{width:1280,height:720},base='http://127.0.0.1:4201',out='artifacts/targeted-render-budget';
 const variants=mode==='smoke'?[['control','full','off']]:mobile?[['batch','full','static'],['threequarter','threequarter','off'],['control','full','off']]:[['control','full','off'],['threequarter','threequarter','off'],['batch','full','static']];
 const holds=mode==='smoke'?[.205]:[.205,.405,.992],samples=mode==='smoke'?1:3;
@@ -25,5 +27,5 @@ try{
    assert.deepEqual(errors,[]);reports.push({name,startup,rows,errors});await writeFile(out+'/comparison.json',JSON.stringify({viewport,mode,reports,note:'Diagnostic short warmup only; not public startup or FPS. Fence-complete wall latency includes software driver, scheduling and submit. Three samples are exploratory. No GPU timer attribution; screenshots after samples.'},null,2));
   }finally{await context.close();}
  }
- const control=reports.find(r=>r.name==='control');for(const candidate of reports.filter(r=>r!==control)){assert.equal(candidate.startup.assets,control.startup.assets);for(let i=0;i<holds.length;i++){assert.deepEqual(candidate.rows[i].pose,control.rows[i].pose);assert.deepEqual(candidate.rows[i].mechanical,control.rows[i].mechanical);}}
+ const control=reports.find(r=>r.name==='control');for(const candidate of reports.filter(r=>r!==control)){assert.equal(candidate.startup.assets,control.startup.assets);for(let i=0;i<holds.length;i++){assert.deepEqual(candidate.rows[i].pose,control.rows[i].pose);assert.deepEqual(canonicalMechanics(JSON.parse(candidate.rows[i].mechanical)),canonicalMechanics(JSON.parse(control.rows[i].mechanical)));}}
 }finally{await browser?.close();server.kill();}
