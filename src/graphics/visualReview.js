@@ -57,10 +57,11 @@ export const visualShots=[
 // Retime only the existing door/aisle path, keeping chapter progress separate from spatial travel.
 const travelKeys=[[.115,.115],[.145,.28],[.17,.39],[.24,.39],[.31,.39],[.365,.40],[.415,.415],[.445,.445]];
 export function serverTravel(p){if(p<=.115||p>=.445)return p;const i=travelKeys.findIndex((k,i)=>i<travelKeys.length-1&&p<=travelKeys[i+1][0]);const [a,x]=travelKeys[i],[b,y]=travelKeys[i+1];return x+(y-x)*ramp(p,a,b);}
-export function reviewPose(p,mobile=false,reactor=true,route='aisle',angle='devices',art=true){
+export function reviewPose(p,mobile=false,reactor=true,route='aisle',angle='devices',art=true,composition='default'){
  const travel=route==='facade'?p:serverTravel(p);const base=noirPose(travel,mobile,reactor),slide=route==='facade'?0:.58*ramp(p,.255,.365)*(1-ramp(p,.415,.445));const pose={...base,position:[base.position[0]-slide,base.position[1],base.position[2]],target:[base.target[0]-slide,base.target[1],base.target[2]-0]};const s=visualShots.find(s=>p>=s.a&&p<=s.z);if(!s||(!reactor&&s.name==='QUANTUM'))return pose;
  const w=(s.a===0?1:ramp(p,s.a,s.b))*(s.c===s.z?1:1-ramp(p,s.c,s.z));
- const aim=route==='facade'&&s.name==='BLOCKCHAIN'?[6.35,1.65,5]:(art?artAim(s.name,mobile,angle):null)??s.aim;
+ const aim=route==='facade'&&s.name==='BLOCKCHAIN'?[6.35,1.65,5]:(art?artAim(s.name,mobile,angle,composition):null)??s.aim;
  const blend=art&&s.name==='STELLAR'?1:.90;
- return {...pose,target:pose.target.map((x,i)=>x+(aim[i]-x)*w*blend),fov:pose.fov+(s.fov+(mobile?9:0)-pose.fov)*w*.8};
+ const lens=s.name==='ORIGIN'&&composition==='close'?42:s.fov;
+ return {...pose,target:pose.target.map((x,i)=>x+(aim[i]-x)*w*blend),fov:pose.fov+(lens+(mobile?9:0)-pose.fov)*w*.8};
 }
