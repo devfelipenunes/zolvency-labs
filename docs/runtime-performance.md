@@ -1,0 +1,9 @@
+# R37 runtime performance — isolated experiment
+
+Base #131, no editorial/Blender dependencies or production promotion. Same selected camera responsive, profile economy, local light, 75% transmission, portrait, compact desktop / full mobile loading. Compare independently:
+- runtime=lean: share per-frame facility motion, cache reactor light references and colors, skip unused kinetic CSS on staged hybrid (does not skip active narrative properties).
+- runtime=bounded: nonblocking WebGL fence gate at most 2 outstanding runtime submissions; do not advance camera on poll-only RAF, preserve latest scroll target; fail open on missing API, timeout or context loss, release sync objects on disposal. No gl.finish. Loading still uses existing full/compact preflight fence.
+- runtime=combined: available, not selected until independent evidence.
+Control unchanged. No new assets or quality cuts. Candidate can worsen latency if fences add overhead; reject if p95 or first motion regress materially. Stats count fence completion, not actual display scanout. Software timings are not physical FPS. If gate fails open, result is not evidence of bounded scheduling. Run on physical device with DEVICE_SOFTWARE=0 and verify actual renderer, p50/p95 active frame interval, settle and first motion, long gaps, GPU samples and resolution scale. Desktop AB, mobile BA; repeat on same device and reversed order before selection. 13 native scroll trials per variant, 4 compare jobs, no screenshot/video/interception during benchmark. Separate visual equivalence validation needed before promotion.
+
+Latest integrated refraction A/B: desktop control→threequarter fenced medians 5137.4→4111.4 ms (.205), 5163.7→4162.5 (.405), 1925.1→1565.6 (.992); mobile 1396.2→1125.9, 1819.3→1438.2, 139.1→137.2. Software, three samples/hold; no physical FPS claims. Batching not selected.

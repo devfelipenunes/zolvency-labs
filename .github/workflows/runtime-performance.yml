@@ -1,0 +1,55 @@
+name: Runtime performance A-B
+on:
+  pull_request:
+    branches: [feat/v0.31-directed-experience]
+    paths: ['src/graphics/**', 'scripts/runtime-performance-check.mjs', 'tests/submissionGate.test.js', '.github/workflows/runtime-performance.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: runtime-performance-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  fast:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
+  compare:
+    needs: fast
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        view: [desktop, mobile]
+        variant: [lean, bounded]
+    env:
+      DEVICE_VIEW: ${{ matrix.view }}
+      DEVICE_SOFTWARE: '1'
+      DEVICE_PROFILE: economy
+      RUNTIME_VARIANT: ${{ matrix.variant }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/runtime-performance-check.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: runtime-${{ matrix.variant }}-${{ matrix.view }}
+          path: artifacts/runtime-performance/
