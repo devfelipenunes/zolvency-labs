@@ -30,6 +30,7 @@ import {createMeshAudit} from './meshAudit.js';
 import {stabilizedPose} from './editorialCamera.js';
 import {getPacing} from './cameraPacing.js';
 import {createTravelMotion} from './travelMotion.js';
+import {warmupPlan} from './compactPreflight.js';
 import {directedNarrative} from './directedNarrative.js';
 import {createMotionDriver} from './editorialMotion.js';
 import {qualityProfile} from './qualityProfiles.js';
@@ -144,18 +145,19 @@ export async function createThreeScene(host,onLost){
    const upload=[...textures];
    for(let i=0;i<upload.length;i++){check();renderer.initTexture(upload[i]);if(i%4===3)await tick();status('textures',i+1,upload.length);}
    host.dataset.warmedTextures=String(upload.length);mark('textureSubmission',uploadStart);const warmStart=performance.now(),warmRows=[];
-   resize();const holds=[.055,.205,.405,.485,.51,.535,.625,.73,.79,.81,.83,.935,.952,.965,.978,.992];
+   resize();const compact=params.get('preflight')==='compact',plan=warmupPlan(compact),holds=plan.map(x=>x.p);host.dataset.preflightPlan=compact?'compact':'full';
    for(let i=0;i<holds.length;i++){
     check();const poseStart=performance.now();status('warming',i,holds.length);applySet(holds[i]);const pose=rail(holds[i],mobile);
-    camera.position.set(...pose.position);camera.lookAt(...pose.target);camera.fov=pose.fov;camera.updateProjectionMatrix();scene.updateMatrixWorld(true);
+    const compilePose=compact&&useEditorialCut?(directedCut(holds[i],mobile,null,rail).pose):pose;
+    camera.position.set(...compilePose.position);camera.lookAt(...compilePose.target);camera.fov=compilePose.fov;camera.updateProjectionMatrix();if(compact)applyMotion(holds[i],0);scene.updateMatrixWorld(true);
     await renderer.compileAsync(scene,camera);check();const compiled=performance.now();
-    drawNow(holds[i],0);await tick();warmRows.push({p:holds[i],compileAndPoseMs:Math.round(compiled-poseStart),submitAndYieldMs:Math.round(performance.now()-compiled)});status('warming',i+1,holds.length);
+    if(plan[i].draw)drawNow(holds[i],0);await tick();warmRows.push({p:holds[i],drawn:plan[i].draw,compileAndPoseMs:Math.round(compiled-poseStart),submitAndYieldMs:Math.round(performance.now()-compiled)});status('warming',i+1,holds.length);
    }
    check();drawNow(0,0);mark('warmSubmission',warmStart);host.dataset.preflightWarmRows=JSON.stringify(warmRows);const fenceStart=performance.now();
    // Wait for submitted WebGL work without blocking the main thread via gl.finish.
    const ctx=renderer.getContext(),sync=ctx.fenceSync?.(ctx.SYNC_GPU_COMMANDS_COMPLETE,0);
    if(sync){try{ctx.flush();for(;;){check();const state=ctx.clientWaitSync(sync,0,0);if(state===ctx.ALREADY_SIGNALED||state===ctx.CONDITION_SATISFIED)break;if(state===ctx.WAIT_FAILED)throw Error('GPU preparation fence failed');await tick();}}finally{ctx.deleteSync(sync);}}
-   mark('fence',fenceStart);host.dataset.gpuPreflight=sync?'fenced':'submitted';host.dataset.warmedViews=String(holds.length+1);host.dataset.preflightMs=String(Math.round(performance.now()-start));
+   mark('fence',fenceStart);host.dataset.gpuPreflight=sync?'fenced':'submitted';host.dataset.compiledViews=String(holds.length);host.dataset.warmedViews=String(plan.filter(x=>x.draw).length+1);host.dataset.preflightMs=String(Math.round(performance.now()-start));
    previousMovingTime=null;governor.reset();adaptive?.reset();motionDriver?.set(0,{snap:true});
    status('ready',1,1);
   }finally{preparing=false;}
