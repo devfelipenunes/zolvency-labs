@@ -14,3 +14,12 @@ export const facility=[
 ];
 export const facilityHDRI=approved.has('hangar.hdr')?'hangar.hdr':null;
 export const expectedAssets=facility.length;
+
+const external=(id,position,extra={})=>({id,file:id+'-lod1.glb',lowFile:id+'-lod2.glb',position,scale:1,priority:4,...extra});
+// The cleanroom's front/back doors lie on the actual central aisle, not next to the cryostat.
+export function spatialFacility(mode){
+ if(mode==='baseline')return facility;
+ const base=[...facility.filter(s=>s.id!=='cable'),external('rooftop-cable-tray',[5.5,0,5],{mount:'server-roof',priority:1})];
+ if(mode==='lab')return [...base,external('cleanroom-airlock',[0,0,-2.20],{priority:3}),external('lab-drawer-bench',[7.7,0,-9.4],{priority:5})];
+ return base;
+}
