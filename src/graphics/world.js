@@ -1,26 +1,41 @@
-// Authored procedural greybox. The same static centerlines power both renderers.
+// Original procedural architecture: one strand family across three spatial scales.
 const TAU=Math.PI*2;
-function sample(n,fn){return Array.from({length:n+1},(_,i)=>fn(i/n));}
-export const portal={z:0,centerY:1.7,rx:4.2,ry:3.8};
+const sample=(n,fn)=>Array.from({length:n+1},(_,i)=>fn(i/n));
 export function makeWorld(){
  const paths=[];
- const add=(points,radius,kind='rib')=>paths.push({points,radius,kind});
- // Foreground strands sweep toward the portal; their closest edges stay outside the camera path.
- for(const side of [-1,1]) for(let j=0;j<5;j++){
-   add(sample(100,t=>{const z=17-17*t,offset=j*.45;const cx=-4.9*(1-t);const x=cx+side*(2.8+offset+1.55*t+.25*Math.sin(t*TAU+j*.5));const y=-.4+j*.73+.65*Math.sin(t*Math.PI+j*.25);return [x,y,z]}),.15+j*.015,j===0?'accent':'rib');
+ const add=(points,radius,kind='ceramic',profile=.45)=>paths.push({points,radius,kind,profile});
+ // Arrival: broad sweeping ribbons, paired with a slender seam.
+ for(const side of [-1,1])for(let j=0;j<7;j++){
+  const strand=t=>{const z=23-23*t,cx=-5*(1-t);return [cx+side*(3.2+j*.46+1.7*t+.7*Math.sin(t*Math.PI+j*.18)),.2+j*.85+.85*Math.sin(t*Math.PI+j*.2),z]};
+  add(sample(88,strand),.20+j*.032,j%3===0?'metal':'ceramic',.48);
+  if(j%2===0)add(sample(88,t=>{const v=strand(t);v[1]+=.12;return v}),.025,'accent',.8);
  }
- // One thick continuous oval profile defines each threshold and the interior nave.
- for(const [z,rx,ry] of [[0,4.2,3.8],[-.9,4.35,3.9],[-2.1,4.7,4.1],[-5,5.5,4.4],[-9,5.7,4.6],[-13,5.9,4.7],[-17,6,4.7],[-21,5.8,4.6],[-25,5.4,4.4],[-29,4.6,4]]){
-  add(sample(100,t=>[rx*Math.cos(t*TAU),1.7+ry*Math.sin(t*TAU),z]),z===0?.40:.23,'rib');
-  add(sample(100,t=>[(rx-.38)*Math.cos(t*TAU),1.7+(ry-.38)*Math.sin(t*TAU),z+.05]),.045,'accent');
+ // Threshold: irregular angled ribs. Open oval profile, no literal circular tunnel.
+ for(let j=0;j<5;j++){
+  const z=1.2-j*.83,rx=5.4+j*.15,ry=4.6+j*.1;
+  const shape=t=>{const a=t*TAU;return [rx*Math.cos(a)+.45*Math.sin(2*a),2.3+ry*Math.sin(a),z+1.0*Math.sin(a)+.5*Math.sin(2*a)]};
+  add(sample(104,shape),.33+j*.018,j===1?'metal':'ceramic',.36);
+  if(j%2===0)add(sample(104,t=>{const v=shape(t);v[2]+=.18;return v}),.032,'accent',.65);
  }
- // Longitudinal threads weave the repeating ribs into a single volume.
+ // Atrium: vaulted, staggered open ribs and tapering longitudinal seams.
+ for(let j=0;j<9;j++){
+  const z=-5-j*2.2,rx=7.2+.8*Math.sin(j*.52),ry=5.9+.7*Math.sin(j*.41);
+  add(sample(70,t=>{const a=.03+t*(Math.PI-.06);return [rx*Math.cos(a)+.5*Math.sin(j*.6),.1+ry*Math.sin(a),z+.85*Math.cos(a+j*.14)]}),.27,j%3===0?'metal':'ceramic',.42);
+ }
+ for(const side of [-1,1])for(let j=0;j<5;j++){
+  add(sample(90,t=>{const z=-2-21*t;return [side*(5.4+j*.45+1.6*Math.sin(t*Math.PI)),.4+j*1.15+.3*Math.sin(t*TAU+j),z]}),j===0?.045:.12,j===0?'accent':'metal',.55);
+ }
+ // Construction: off-axis woven core, surrounded by generous camera clearance.
  for(let j=0;j<12;j++){
-  const theta=j*TAU/12;
-  add(sample(150,t=>{const angle=theta+.17*Math.sin(t*TAU),r=4.6+1.1*Math.sin(t*Math.PI);return [r*Math.cos(angle),1.7+(r*.78)*Math.sin(angle),-30*t]}),.12,j%4===0?'accent':'rib');
+  const phase=j*TAU/12;
+  add(sample(100,t=>{const a=t*TAU+phase,b=phase+.75*Math.sin(t*TAU);const r=1.55+.35*Math.sin(3*a);return [5.1+r*Math.cos(a)*Math.cos(b),2.4+1.95*Math.sin(a),-27+r*Math.cos(a)*Math.sin(b)]}),j%4===0?.06:.15,j%4===0?'accent':j%3===0?'metal':'ceramic',.55);
  }
- // A distant node closes the perspective; camera stops before it.
- for(let j=0;j<3;j++)add(sample(90,t=>[(1.5+j*.5)*Math.cos(t*TAU),1.7+(1.5+j*.5)*Math.sin(t*TAU),-31-j*.55]),.14,'node');
+ // Open horizons: split branches run along the edge of an elevated field.
+ for(const side of [-1,1])for(let j=0;j<8;j++){
+  add(sample(100,t=>{const z=-31-43*t;return [side*(7.6+j*.65+8*t*t)+1.4*Math.sin(t*Math.PI),-.8+j*.67+4.4*t*t+.7*Math.sin(t*TAU+j*.17),z]}),.13+j*.015,j%4===0?'accent':j%3===0?'metal':'ceramic',.48);
+ }
+ // Final signature: three interlocking crescent-like blades, offset to the right.
+ for(let j=0;j<3;j++)add(sample(100,t=>{const a=-1.1+t*4.3;const r=4.1+j*.7;return [5.1+r*Math.cos(a),4.1+r*.72*Math.sin(a)+j*.42,-70+j*.9+1.3*Math.sin(a)]}),.25,j===1?'metal':'ceramic',.34);
  return paths;
 }
 export function clearance(position,paths){
