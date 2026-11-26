@@ -145,7 +145,7 @@ export async function createThreeScene(host,onLost){
    const upload=[...textures];
    for(let i=0;i<upload.length;i++){check();renderer.initTexture(upload[i]);if(i%4===3)await tick();status('textures',i+1,upload.length);}
    host.dataset.warmedTextures=String(upload.length);mark('textureSubmission',uploadStart);const warmStart=performance.now(),warmRows=[];
-   resize();const compact=params.get('preflight')==='compact',plan=warmupPlan(compact),holds=plan.map(x=>x.p);host.dataset.preflightPlan=compact?'compact':'full';
+   resize();const preflightMode=params.get('preflight'),guarded=preflightMode==='guarded'&&mobile,compact=preflightMode==='compact'||preflightMode==='guarded',plan=warmupPlan(compact,guarded),holds=plan.map(x=>x.p);host.dataset.preflightPlan=guarded?'guarded':compact?'compact':'full';
    for(let i=0;i<holds.length;i++){
     check();const poseStart=performance.now();status('warming',i,holds.length);applySet(holds[i]);const pose=rail(holds[i],mobile);
     const compilePose=compact&&useEditorialCut?(directedCut(holds[i],mobile,null,rail).pose):pose;
