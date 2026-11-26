@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {ramp} from './facilityCamera.js';
 // Independent candidates: never silently change the accepted V0.29 look.
-export const realismModes=['baseline','surface','bounce','depth','motion','combined'];
+export const realismModes=['baseline','surface','bounce','depth','motion','reflection','combined'];
 export function realismMode(value){return realismModes.includes(value)?value:'baseline';}
 export const enables=(mode,feature)=>mode==='combined'||mode===feature;
 const pulse=(p,a,b,c,d)=>ramp(p,a,b)*(1-ramp(p,c,d));
@@ -34,4 +34,21 @@ export function depthAtmosphere(p,mobile){
 export function equipmentAccent(p,phase,id){
  const {rack,ops}=localLightWeights(p),w=id==='servers'?rack:id==='bridge'?ops:0;
  return 1+w*.045*(Math.sin(p*36+phase*.91)+1);
+}
+
+// Low-resolution static reflection captures from existing room geometry.
+// PMREM r180 supports a world-space capture position. No live cubemap per frame.
+export function reflectionSpec(p){
+ if(p>=.04&&p<=.08)return {id:'hangar',position:[-3,3,0]};
+ if(p>=.18&&p<=.24)return {id:'servers',position:[5.5,1.7,4.66]};
+ if(p>=.715&&p<=.745)return {id:'bridge',position:[-4.1,1.7,-13.7]};
+ return null;
+}
+export function assignReflection(root,texture,intensity){
+ const seen=new Set();let count=0;
+ root.traverse(o=>{if(!o.isMesh)return;for(const m of Array.isArray(o.material)?o.material:[o.material]){
+  if(seen.has(m))continue;seen.add(m);
+  if(!m?.isMeshStandardMaterial||m.envMap||m.transparent||(m.transmission??0)>.001||/glass|light|led|screen|glow|holo/i.test(m.name??''))continue;
+  m.envMap=texture;m.envMapIntensity=(m.envMapIntensity??1)*intensity;m.needsUpdate=true;count++;
+ }});return count;
 }
