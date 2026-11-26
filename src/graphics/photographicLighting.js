@@ -33,11 +33,11 @@ export function activePracticals(p){
 }
 const edges=[0,1,...practicals.flatMap(s=>[Math.max(0,s.center-s.width),Math.min(1,s.center+s.width)])].sort((a,b)=>a-b);
 export const practicalSlots=Math.max(...edges.map(p=>activePracticals(p).length),...edges.slice(1).map((p,i)=>activePracticals((p+edges[i])/2).length));
-export function createPhotography(scene,{pooled=true}={}){
+export function createPhotography(scene,{pooled=true,extended=false}={}){
  RectAreaLightUniformsLib.init();
  const lights=Array.from({length:pooled?practicalSlots:practicals.length},(_,i)=>{const l=new THREE.RectAreaLight(0xffffff,0,1,1);l.name='practical-slot-'+i;scene.add(l);return {l,s:null};});
  const rim=new THREE.SpotLight(0xe9c28c,0,12,Math.PI/5,.65,2);rim.position.set(7.3,6.7,-10);rim.target.position.set(4.7,2.4,-8.6);scene.add(rim,rim.target);
- function configure(slot,s,intensity){const {l}=slot;if(slot.s!==s){l.color.setHex(s.color);l.width=s.w;l.height=s.h;l.position.set(...s.pos);l.lookAt(...s.aim);slot.s=s;}l.intensity=intensity;}
+ function configure(slot,s,intensity){const {l}=slot;if(slot.s!==s){l.color.setHex(s.color);l.width=s.w;l.height=s.h;const dz=extended&&s.name==='operations-ceiling'?-4.72:0;l.position.set(s.pos[0],s.pos[1],s.pos[2]+dz);l.lookAt(s.aim[0],s.aim[1],s.aim[2]+dz);slot.s=s;}l.intensity=intensity;}
  return {slots:lights.length,update(p){
   if(pooled){const active=activePracticals(p);for(const [i,slot] of lights.entries()){const a=active[i];if(a)configure(slot,a.s,a.intensity);else slot.l.intensity=0;}}
   else for(const [i,slot] of lights.entries()){const s=practicals[i],d=Math.abs(p-s.center);configure(slot,s,s.power*(1-ramp(d,0,s.width)));}
