@@ -19,3 +19,5 @@ test('responsive travel preserves cuts, bounded progress and reversibility at fo
   const d=createResponsiveTravelMotion(pacing,.2);d.set(.9);let ts=0;for(let i=0;i<25;i++){d.step(ts);ts+=16.667;}const before=d.value;d.set(.1);assert.ok(d.step(ts)<=before+1e-10);d.set(.4,{snap:true});assert.ok(Math.abs(d.value-.4)<1e-9);
  }
 });
+
+test('subthreshold travel cannot bypass a masked cut',()=>{const pacing=getPacing(false),map=travelMapper(pacing),cut=map.to(.51),offset=.0004/map.total,d=createResponsiveTravelMotion(pacing,map.from(cut-offset));d.set(map.from(cut+offset));assert.ok(Math.abs(d.step(0)-.51)<1e-9);d.step(17);assert.equal(d.pending,false);});

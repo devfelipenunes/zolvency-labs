@@ -95,7 +95,7 @@ export function createResponsiveTravelMotion(pacing,initial=0){
    if(!elapsed)return map.from(x/total);
    ema=ema*.7+elapsed*.3;
    const delta=target-x,dir=Math.sign(delta),gap=Math.abs(delta);
-   if(gap<.002){x=target;v=a=0;return map.from(x/total);}
+   if(gap<.002){const cut=stops.filter(s=>dir>0?s>x+1e-9&&s<=target:s<x-1e-9&&s>=target);x=cut.length?(dir>0?cut[0]:cut.at(-1)):target;v=a=0;return map.from(x/total);}
    // Reversal reset is intentional: responsive input takes precedence over jerk.
    if(v*dir<0){v=a=0;}
    const lag=Math.min(1,gap/2),limit=sceneSpeedLimit(map.from(x/total),pacing)+2.4*lag;

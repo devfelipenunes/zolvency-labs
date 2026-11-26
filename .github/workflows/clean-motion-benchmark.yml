@@ -27,6 +27,7 @@ jobs:
         with:
           node-version: '22'
       - run: npm install --no-audit --no-fund
+      - run: npm test
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: node scripts/device-motion-compare.mjs
