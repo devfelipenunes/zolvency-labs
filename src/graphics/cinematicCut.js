@@ -38,3 +38,15 @@ export function auditSuspension(roots){
  }
  return {modelDimensions:size.toArray(),mountableParts:q.getObjectByName('quantum-computer_body')?.isMesh===true?'single body; base and support not separable as nodes':'inspect hierarchy',samples:rows,decision:'No automatic suspension: verify overhead structure, load-bearing visual support and model base independently.'};
 }
+
+ // Default editorial transition: optical zoom and a short fully masked cut.
+ // Both endpoints stay on the already audited rail. No claim of a physical wall traversal.
+ export function editorialCut(p,mobile=false){
+  const base=spatialPose(p,mobile),a=.415,b=.51,z=.59;
+  if(p<a||p>z)return {pose:base,mask:0,active:false};
+  const source=p<b,t=source?ramp(p,a,b):ramp(p,b,z);
+  const q=source?a:z;
+  const pose=spatialPose(q,mobile),zoom=source?t:1-t;
+  const mask=ramp(p,.485,.505)*(1-ramp(p,.515,.54));
+  return {pose:{...pose,fov:pose.fov+((mobile?48:36)-pose.fov)*zoom},mask,active:true,side:source?'server':'corridor',mesh:'editorial optical cut'};
+ }

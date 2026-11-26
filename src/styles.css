@@ -91,3 +91,11 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
  @media(max-width:720px){.chapter[data-side] .copy{top:clamp(85px,61svh,calc(100svh - 215px));width:calc(100vw - 44px)}.chapter[data-side] h1,.chapter[data-side] h2{font-size:clamp(23px,6vw,32px)}.chapter[data-side] p{font-size:13px;line-height:1.4}#stage[data-renderer="three"][data-visual-chapter] ~ main .chapter[data-side] .copy{bottom:58px}}
 }
 @media(prefers-reduced-motion:reduce){.chapter[data-side] .copy{text-align:center;margin-inline:auto}.chapter[data-side] .eyebrow{justify-content:center}.chapter[data-side] p{margin-inline:auto}}
+
+/* V0.21: short in-world sector labels, no duplicated full headlines or lateral overlay. */
+@media(prefers-reduced-motion:no-preference){
+ #stage[data-renderer="three"][data-typography-mode="labels"] ~ main .chapter[data-side] :is(h1,h2,.eyebrow){opacity:1}
+ #stage[data-renderer="three"][data-typography-mode="labels"] ~ main .chapter[data-side] .copy{width:min(600px,calc(100vw - 44px));bottom:clamp(52px,8svh,80px);text-shadow:0 1px 3px #030709,0 2px 8px #030709}
+ #stage[data-renderer="three"][data-typography-mode="labels"] ~ main .chapter[data-side] :is(h1,h2){font-size:clamp(23px,2.5vw,36px);letter-spacing:-.025em}
+ #stage[data-renderer="three"][data-wall-cut="active"] ~ main .chapter[data-side] .copy{visibility:hidden}
+}
