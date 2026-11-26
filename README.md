@@ -1,8 +1,8 @@
-# Zolvency Labs — V0.2 Camera Journey (greybox)
+# Zolvency Labs — V0.9 experimental release candidate
 
-Experimental three-act Woven Systems study: Origin → Exploration → Connection. Independent Technology Company; Stellar as the initial focus. Not a commercial launch or a final visual identity.
+Independent Technology Company · Building beyond the known. Six-act Woven Systems prototype, not final institutional launch. React/Vite/Three.js; static hosting, no backend, no forced scroll, no paid assets.
 
-## Run
+## Development
 Node 22.12+.
 ```sh
 npm install
@@ -12,16 +12,16 @@ npm run build
 npx playwright install chromium
 npm run test:browser
 ```
-
-The browser script tests the local production build, records desktop and mobile screenshots in artifacts/, logs the actual renderer, checks exact scroll reversal, keyboard End, reduced motion, fallback and static geometry allocation. Browser/CI screenshots are software-rendered where available and do not establish physical-device performance. Use ?renderer=canvas to force fallback. Inspect #stage data-pose, data-renderer, data-geometries and data-draw-calls.
+Preview with `npm run preview`. Force Canvas2D using `?renderer=canvas`. The diagnostic attributes on #stage expose pose, renderer, draw calls, triangles and CPU submission time. They do not measure GPU frame time or physical-device FPS.
 
 ## Architecture
-- camera.js: separate position and target keyframes, fixed 42°/58° lens, deterministic scroll mapping, stationary final reading window.
-- world.js: persistent original strands, elliptical threshold, nave and distant node.
-- threeScene.js: one-time tube meshes and opaque basic greybox materials; render on demand.
-- fallback.js: shared centerlines projected in Canvas2D.
-- React semantic copy in flow; brand absolute rather than fixed.
-- The remaining three acts of the full website are deferred until this proof is reviewed.
+Immutable oval-profile swept ribbons, three material batches, procedural studio reflection, scroll-indexed emissive shader, separate deterministic camera and target tracks, six HTML chapters, native scrolling and reduced-motion fallback. No runtime CDN. Capture artifacts include six chapter images per viewport, fallback, and metrics.
 
-References and acceptance: https://app.notion.com/p/4249c563042581e5ac44efa7afc4a6c2
-No backend, no paid assets, no scroll lock, no external browser benchmark. Vercel Vite build outputs dist. Physical WebGL performance and final artistic approval remain gates.
+## Release checklist
+- Verify current CI, Vercel preview and visual evidence.
+- Physical desktop/mobile GPU testing, actual zoom and touch testing, contrast/accessibility audit and production Lighthouse metrics remain gates.
+- Founder approval of artwork, copy, and contact information; verify commercial hosting plan before launch.
+- Preview is intentionally noindex/nofollow. Do not remove until authorized.
+- Roll back via prior Vercel deployment or revert the corresponding merge commit, preserving history.
+
+Roadmap: https://app.notion.com/p/4249c5630425814b94fcfbd2f28bce25
