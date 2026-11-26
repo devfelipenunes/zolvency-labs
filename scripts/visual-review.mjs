@@ -10,7 +10,7 @@ try{
  browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
  const holds=[.055,.205,.405,.625,.73,.935,.992];
  for(const [label,viewport] of [['desktop',{width:960,height:540}],['mobile',{width:390,height:844}]]){
-  for(const [mode,params,poses] of [['baseline','look=v28&plate=1',[.205,.405]],['facade','route=facade&glass=split&plate=1',[.205,.405]],['clear','glass=clear&plate=1',[.205,.405]],['split','glass=split&plate=1',holds],['smoke','glass=smoke&plate=1',[.205,.405]],['reflection','glass=reflection&plate=1',[.205,.405]],['world','glass=split',[.005,.025,.055,.075,.105,.145,.17,.205,.24,.31,.365,.405,.425,.625,.73,.935,.992]]]){
+  for(const [mode,params,poses] of [['baseline','look=v28&plate=1',[.205,.405]],['facade','route=facade&glass=split&plate=1',[.205,.405]],['clear','glass=clear&plate=1',[.205,.405]],['split','glass=split&plate=1',holds],['smoke','glass=smoke&plate=1',[.205,.405]],['reflection','glass=reflection&plate=1',[.205,.405]],['world','glass=split',[.005,.025,.055,.075,.105,.145,.17,.185,.205,.24,.31,.365,.405,.425,.625,.73,.935,.992]]]){
    const page=await browser.newPage({viewport,deviceScaleFactor:1}),errors=[];
    page.on('pageerror',e=>errors.push(e.message));
    try{await page.goto(base+'/?diagnostics=1&benchmark=1&'+params);
