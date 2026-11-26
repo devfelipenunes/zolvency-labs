@@ -1,20 +1,21 @@
 {
   "name": "zolvency-labs",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "private": true,
   "type": "module",
   "scripts": {
     "export:models": "node scripts/export-models.mjs",
-    "predev": "npm run export:models && npm run assets:stage && npm run composition:stage",
+    "predev": "npm run facility:stage",
     "dev": "vite --host 0.0.0.0",
-    "prebuild": "npm run export:models && npm run assets:stage && npm run composition:stage",
+    "prebuild": "npm run facility:stage",
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test",
     "test:browser": "node scripts/browser-check.mjs",
     "assets:verify": "node scripts/audition-assets.mjs",
     "assets:stage": "node scripts/audition-assets.mjs --stage",
-    "composition:stage": "node scripts/audition-composition.mjs --stage && python3 scripts/stage-kenney.py && node scripts/stage-decoders.mjs"
+    "composition:stage": "node scripts/audition-composition.mjs --stage && python3 scripts/stage-kenney.py && node scripts/stage-decoders.mjs",
+    "facility:stage": "node scripts/stage-facility.mjs && node scripts/stage-decoders.mjs"
   },
   "engines": {
     "node": ">=22.12.0 <23"

@@ -1,78 +1,58 @@
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import {externalSpecs,adaptExternal,animateExternal} from './externalAssets.js';
-import {signalPaths,signalPoint} from './signal.js';
-import {createSpatialPlates} from './spatialType.js';
-import {createComposition} from './compositionAssets.js';
-import { cameraPose } from './camera.js';
-import { makeScene,objectTransform,importedModels } from './world.js';
-import { geometries,materials,partMatrix } from './meshFactory.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {KTX2Loader} from 'three/addons/loaders/KTX2Loader.js';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {cameraPose,facilityMotion} from './facilityCamera.js';
+import {facility} from './facilityLayout.js';
 export async function createThreeScene(host,onLost){
- const loader=new GLTFLoader();
- const loaded=[];const loading=new Set();
- const r=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
- r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.03;
- const scene=new THREE.Scene();scene.background=new THREE.Color(0x0e1519);scene.fog=new THREE.FogExp2(0x0e1519,.024);
- const camera=new THREE.PerspectiveCamera(47,1,.10,190);
- const mats=materials(true),geo=geometries(),world=makeScene();
- const assetRoots=[];
- const spatial=createSpatialPlates(world.plates,scene);
- // Spatial batches avoid rendering distant chapters; independent parts remain movable.
- const zone=o=>Math.floor(o.position[2]/22);
- const groups=new Map();
- for(const o of world.objects){const key=[o.asset??'world',o.kind,o.shape,zone(o),o.float||o.hero||o.gate||o.station||o.proofDoor?'moving':'static'].join(':');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(o);}
- const batches=[];
- for(const group of groups.values()){
- const first=group[0],mesh=new THREE.InstancedMesh(geo[first.shape],mats[first.kind],group.length),dynamic=group.some(o=>o.float||o.hero||o.gate||o.station||o.proofDoor);
- mesh.instanceMatrix.setUsage(dynamic?THREE.DynamicDrawUsage:THREE.StaticDrawUsage);
- const update=p=>{group.forEach((o,i)=>{const t=objectTransform(o,p);mesh.setMatrixAt(i,partMatrix(o,t.position,t.rotation));});mesh.instanceMatrix.needsUpdate=true;};
- update(0);mesh.computeBoundingSphere();if(dynamic)mesh.frustumCulled=false;scene.add(mesh);
- batches.push({mesh,group,dynamic,update,z:zone(first)*22+11});
+ const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
+ renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;
+ const scene=new THREE.Scene();scene.background=new THREE.Color(0x0a1116);scene.fog=new THREE.FogExp2(0x0a1116,.008);
+ const camera=new THREE.PerspectiveCamera(64,1,.055,80);
+ const ktx=new KTX2Loader().setTranscoderPath(import.meta.env.BASE_URL+'models/basis/').detectSupport(renderer);
+ const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).setKTX2Loader(ktx);
+ const pmrem=new THREE.PMREMGenerator(renderer),studio=new RoomEnvironment(),environment=pmrem.fromScene(studio,.05);studio.dispose();pmrem.dispose();scene.environment=environment.texture;scene.environmentIntensity=.52;
+ scene.add(new THREE.HemisphereLight(0xd1e4ef,0x2b3332,1.1));
+ const light=(color,intensity,distance,position)=>{const l=new THREE.PointLight(color,intensity,distance,2);l.position.set(...position);scene.add(l);return l};
+ const key=new THREE.DirectionalLight(0xe2e9f0,1.25);key.position.set(-5,11,8);scene.add(key);
+ light(0x99d8c4,110,18,[0,7,5]);light(0xc8d8ed,95,15,[0,7,-7]);light(0x89d5b4,32,7,[5.8,2.7,6.8]);light(0xc3d9eb,27,6,[-5.5,2.7,-1.5]);const quantumLight=light(0x9edfcf,70,11,[4.7,5.8,-8.6]);
+ const head=light(0xf0f6f8,11,5,[0,2,0]);
+ const roots=new Map(),bones=[],failures=[],materials=new Set(),textures=new Set(),geometries=new Set();let disposed=false,mobile=false;
+ const base=import.meta.env.BASE_URL+'models/facility/';
+ function collect(root){root.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material]){materials.add(m);for(const v of Object.values(m))if(v?.isTexture)textures.add(v);}});}
+ function add(spec,g){
+  const root=g.scene;collect(root);
+  if(spec.openFront){const front=root.getObjectByName('wall_front');if(front)front.visible=false;}
+  if(spec.hideHologram){const h=root.getObjectByName('hologram-projector_hologram_glow');if(h)h.visible=false;}
+  root.traverse(o=>{
+   const name=o.name??'';
+   if(spec.id==='hangar'&&name==='blast_door')bones.push({id:'blast',o,axis:'y',base:o.position.y});
+   if(spec.id==='hangar'&&name==='crane_bridge')bones.push({id:'crane',o,axis:'z',base:o.position.z});
+   if(spec.id==='servers'&&name==='door')bones.push({id:'serverDoor',o,axis:'ry',base:o.rotation.y});
+   if(spec.id==='portal'&&/^(door_left|door_right)$/.test(name))bones.push({id:name,o,axis:'x',base:o.position.x});
+   if(spec.id==='gpu'&&/fan_\d+_rotor/.test(name))bones.push({id:'fan',o,axis:'ry',base:o.rotation.y});
+  });
+  const seen=new Set();root.traverse(o=>{if(!o.isMesh)return;for(const m of Array.isArray(o.material)?o.material:[o.material]){if(seen.has(m))continue;seen.add(m);if(m.color&&!/glass|light|glow|led|screen|holo/i.test(m.name??'')){m.color.multiply(new THREE.Color(spec.id==='pcb'?0xaabbbb:0x9caeae));m.roughness=Math.max(m.roughness??.35,.34);}if(/led|glow/i.test(m.name??'')){m.emissive?.setHex(0x75c9a3);m.emissiveIntensity=Math.min(1.4,Math.max(.5,m.emissiveIntensity??1));}}});
+  const holder=new THREE.Group();holder.name='facility-'+spec.id;holder.add(root);
+  if(spec.size){root.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(root),s=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),scale=spec.size/Math.max(s.x,s.y,s.z);root.scale.multiplyScalar(scale);root.position.x-=c.x*scale;root.position.z-=c.z*scale;root.position.y-=b.min.y*scale;}else root.scale.multiplyScalar(spec.scale);
+  holder.position.set(...spec.position);scene.add(holder);roots.set(spec.id,holder);
  }
- const pathGroups=new Map();
- for(const p of world.paths){const z=p.points.reduce((a,v)=>a+v[2],0)/p.points.length,key=p.kind+':'+Math.floor(z/22);if(!pathGroups.has(key))pathGroups.set(key,[]);pathGroups.get(key).push(p);}
- const lines=[];
- for(const group of pathGroups.values()){
- const gs=group.map(p=>{const curve=new THREE.CatmullRomCurve3(p.points.map(v=>new THREE.Vector3(...v)));return new THREE.TubeGeometry(curve,Math.min(96,p.points.length-1),p.radius,6,false);});
- const g=mergeGeometries(gs,false);gs.forEach(x=>x.dispose());const mesh=new THREE.Mesh(g,mats[group[0].kind]);scene.add(mesh);
- const z=group[0].points[0][2];lines.push({mesh,z});
- }
- // Procedural reflection environment: softboxes, not licensed external HDRI.
- const studio=new THREE.Scene();studio.background=new THREE.Color(0x3f5058);
- const panelGeo=new THREE.PlaneGeometry(14,9),panelMat=new THREE.MeshBasicMaterial({color:0xffffff});
- for(const [x,y,z] of [[-14,8,10],[12,8,-8],[0,14,-4]]){const p=new THREE.Mesh(panelGeo,panelMat);p.position.set(x,y,z);p.lookAt(0,0,0);studio.add(p);}
- const pmrem=new THREE.PMREMGenerator(r),env=pmrem.fromScene(studio,.07);scene.environment=env.texture;scene.environmentIntensity=.68;pmrem.dispose();panelGeo.dispose();panelMat.dispose();
- scene.add(new THREE.HemisphereLight(0xc7e4d8,0x17252b,.85));
- const key=new THREE.DirectionalLight(0xe0ece4,2.2);key.position.set(-5,12,8);scene.add(key);
- const rim=new THREE.DirectionalLight(0x8fb3c9,1.65);rim.position.set(10,7,-8);scene.add(rim);
- const glowCanvas=document.createElement('canvas');glowCanvas.width=64;glowCanvas.height=64;const gc=glowCanvas.getContext('2d'),gradient=gc.createRadialGradient(32,32,0,32,32,32);gradient.addColorStop(0,'rgba(130,255,200,.42)');gradient.addColorStop(.25,'rgba(130,255,200,.12)');gradient.addColorStop(1,'rgba(130,255,200,0)');gc.fillStyle=gradient;gc.fillRect(0,0,64,64);const glowTexture=new THREE.CanvasTexture(glowCanvas),glowMat=new THREE.SpriteMaterial({map:glowTexture,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});const glows=[];for(const pos of [[0,2,0],[18,4,-24],[0,3.85,-48],[-22,4,-75],[12,3.85,-100],[-6,1,-124],[10,4,-153]]){const s=new THREE.Sprite(glowMat);s.position.set(...pos);s.scale.set(3.5,3.5,1);scene.add(s);glows.push(s);}
- const pulses=signalPaths(world.paths),pulseGeo=new THREE.SphereGeometry(.095,8,6),pulseMat=new THREE.MeshBasicMaterial({color:0xaaffd8}),pulseMesh=new THREE.InstancedMesh(pulseGeo,pulseMat,pulses.length),pulseDummy=new THREE.Object3D();pulseMesh.frustumCulled=false;scene.add(pulseMesh);
- const fill=new THREE.PointLight(0xafd7cd,110,28,2);scene.add(fill);
- let mobile=false,disposed=false,last=0;
- function releaseRoot(root){const gs=new Set(),ms=new Set(),ts=new Set();root.traverse(m=>{if(m.geometry)gs.add(m.geometry);if(m.material)for(const mat of Array.isArray(m.material)?m.material:[m.material])ms.add(mat);});gs.forEach(g=>g.dispose());for(const m of ms){if(Object.values(mats).includes(m))continue;for(const value of Object.values(m))if(value?.isTexture)ts.add(value);m.dispose();}ts.forEach(t=>t.dispose());}
- async function fetchModel(o){
- if(loading.has(o.name))return;loading.add(o.name);
- const spec=externalSpecs[o.name];let external=null,g=null;
- try{g=await loader.loadAsync(import.meta.env.BASE_URL+'models/external/'+spec.file+'.glb');if(disposed){releaseRoot(g.scene);return;}external=adaptExternal(g.scene,spec,o.position);}
- catch(e){if(g)releaseRoot(g.scene);if(disposed)return;console.warn('External model unavailable; keeping authored fallback',o.name);if(o.name==='rack')return;try{g=await loader.loadAsync(import.meta.env.BASE_URL+'models/'+o.name+'.glb');}catch{return;}}
- if(disposed){releaseRoot(external?.root??g.scene);return;}
- const root=external?.root??g.scene;
- if(!external){root.position.set(...o.position);root.traverse(m=>{if(m.isMesh&&mats[m.name]){m.material.dispose();m.material=mats[m.name];}});}
- scene.add(root);assetRoots.push({...o,root,external:external?{...external,file:spec.file}:null});loaded.push(o.name);draw(last);
- }
- const composition=createComposition(r,scene,releaseRoot,()=>draw(last));
- function resize(){if(disposed)return;mobile=innerWidth<720;r.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.15:1.6));r.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/Math.max(1,innerHeight);camera.updateProjectionMatrix();}
- function draw(p){if(disposed)return;last=p;const start=performance.now(),pose=cameraPose(p,mobile);camera.position.set(...pose.position);camera.up.set(0,1,0);camera.lookAt(...pose.target);camera.fov=pose.fov;camera.updateProjectionMatrix();fill.position.set(pose.position[0]-3,pose.position[1]+6,pose.position[2]-6);
- const z=pose.position[2],range=mobile?30:39;spatial.update(z,range);composition.update(p,z);
- for(const o of importedModels)if(Math.abs(o.position[2]-z)<48)fetchModel(o);for(const b of batches){b.mesh.visible=Math.abs(b.z-z)<range&&!loaded.includes(b.group[0].asset)&&!composition.loaded.has(b.group[0].asset);if(b.dynamic&&b.mesh.visible)b.update(p);}
- for(const b of lines)b.mesh.visible=Math.abs(b.z-z)<range+16;
- for(const a of assetRoots){a.root.visible=Math.abs(a.position[2]-z)<range;if(a.external)animateExternal(a.external,p);}for(const g of glows)g.visible=Math.abs(g.position.z-z)<range;
- let visible=0;for(let i=0;i<pulses.length;i++){const pos=signalPoint(pulses[i],p,i);if(Math.abs(pos[2]-z)>range)continue;pulseDummy.position.set(...pos);pulseDummy.updateMatrix();pulseMesh.setMatrixAt(visible++,pulseDummy.matrix);}pulseMesh.count=visible;pulseMesh.instanceMatrix.needsUpdate=true;
- r.render(scene,camera);
- host.dataset.composed=[...composition.loaded.keys()].sort().join(',');host.dataset.compositionFailures=[...composition.failures].join(',');host.dataset.compositionPose=JSON.stringify(composition.pose());host.dataset.plates=String(spatial.items.length);host.dataset.visiblePlates=String(spatial.items.filter(i=>i.holder.visible).length);host.dataset.pose=JSON.stringify(pose);host.dataset.progress=String(p);host.dataset.assets=String(loaded.length);host.dataset.externalAssets=assetRoots.filter(a=>a.external).map(a=>a.external.file).sort().join(',');host.dataset.mechanical=JSON.stringify(assetRoots.filter(a=>a.external).map(a=>({name:a.name,rotors:a.external.rotors.map(r=>r.o.rotation.y),door:a.external.door?.o.rotation.y??null,emission:a.external.emissions[0]?.emissiveIntensity??null})));host.dataset.geometries=String(batches.length+lines.length+importedModels.length);host.dataset.gpuGeometries=String(r.info.memory.geometries);host.dataset.drawCalls=String(r.info.render.calls);host.dataset.triangles=String(r.info.render.triangles);host.dataset.submitMs=String(performance.now()-start);
+ // Load the actual architectural shell first so the first visible frame is never an empty world.
+ try{const g=await loader.loadAsync(base+facility[0].file);add(facility[0],g);
+ await Promise.all(facility.slice(1).map(async spec=>{try{add(spec,await loader.loadAsync(base+spec.file));}catch(e){failures.push(spec.id);console.warn('Facility asset unavailable',spec.id,e);}}));
+ if(failures.length)throw Error('Facility assets missing: '+failures.join(','));
+ }catch(e){dispose();throw e;}
+ const ray=new THREE.Raycaster(),dirs=[new THREE.Vector3(1,0,0),new THREE.Vector3(-1,0,0),new THREE.Vector3(0,1,0),new THREE.Vector3(0,-1,0),new THREE.Vector3(0,0,1),new THREE.Vector3(0,0,-1)];
+ const debug=new URLSearchParams(location.search).has('diagnostics');
+ function clearance(){scene.updateMatrixWorld(true);let min=Infinity;for(const d of dirs){ray.set(camera.position,d);ray.far=.75;const hits=ray.intersectObjects([...roots.values()],true).filter(h=>{let o=h.object;while(o){if(!o.visible)return false;o=o.parent;}return true;});if(hits.length)min=Math.min(min,hits[0].distance);}return Number.isFinite(min)?min:.75;}
+ function resize(){if(disposed)return;mobile=innerWidth<720;renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.15:1.5));renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/Math.max(1,innerHeight);camera.updateProjectionMatrix();}
+ function draw(p){if(disposed)return;const pose=cameraPose(p,mobile),motion=facilityMotion(p);camera.position.set(...pose.position);camera.lookAt(...pose.target);camera.fov=pose.fov;camera.updateProjectionMatrix();head.position.copy(camera.position);head.position.y+=.5;
+ for(const b of bones){if(b.id==='blast')b.o.position.y=b.base+7.1*motion.blast;else if(b.id==='crane')b.o.position.z=b.base+4.0*motion.crane;else if(b.id==='serverDoor')b.o.rotation.y=b.base-1.0*motion.serverDoor;else if(b.id==='door_left')b.o.position.x=b.base+1.04*motion.portal;else if(b.id==='door_right')b.o.position.x=b.base-1.04*motion.portal;else if(b.id==='fan')b.o.rotation.y=b.base+motion.fans;}
+ quantumLight.intensity=55+40*motion.quantum;
+ renderer.render(scene,camera);host.dataset.pose=JSON.stringify(pose);host.dataset.progress=String(p);host.dataset.facility=[...roots.keys()].sort().join(',');host.dataset.assets=String(roots.size);host.dataset.authoredModels='0';host.dataset.mechanical=JSON.stringify(bones.map(b=>[b.id,b.o.position.x,b.o.position.y,b.o.position.z,b.o.rotation.y]));host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);host.dataset.clearance=debug?String(clearance()):'not sampled';
  }
  function lost(e){e.preventDefault();onLost();}
- function dispose(){if(disposed)return;disposed=true;r.domElement.removeEventListener('webglcontextlost',lost);for(const b of batches)b.mesh.dispose();for(const b of lines)b.mesh.geometry.dispose();for(const a of assetRoots){releaseRoot(a.root);a.external?.originalTextures.forEach(t=>t.dispose());}composition.dispose();spatial.dispose();pulseMesh.dispose();pulseGeo.dispose();pulseMat.dispose();glowMat.dispose();glowTexture.dispose();const textures=new Set();for(const m of Object.values(mats)){if(m.normalMap)textures.add(m.normalMap);if(m.roughnessMap)textures.add(m.roughnessMap);}textures.forEach(t=>t.dispose());Object.values(geo).forEach(g=>g.dispose());Object.values(mats).forEach(m=>m.dispose());env.dispose();r.dispose();r.domElement.remove();}
- r.domElement.id='three-scene';r.domElement.addEventListener('webglcontextlost',lost);host.insertBefore(r.domElement,host.querySelector('.veil'));return {resize,draw,dispose};
+ function dispose(){if(disposed)return;disposed=true;renderer.domElement.removeEventListener('webglcontextlost',lost);for(const g of geometries)g.dispose();for(const m of materials)m.dispose();for(const t of textures)t.dispose();ktx.dispose();environment.dispose();renderer.dispose();renderer.domElement.remove();}
+ renderer.domElement.id='three-scene';renderer.domElement.addEventListener('webglcontextlost',lost);host.insertBefore(renderer.domElement,host.querySelector('.veil'));return {resize,draw,dispose};
 }

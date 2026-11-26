@@ -1,0 +1,68 @@
+[
+  {
+    "name": "straight",
+    "files": [
+      {
+        "file": "straight.glb",
+        "url": "https://tevy.dev/models/scifi-corridor-straight/v1/lod1.glb",
+        "bytes": 208352,
+        "sha256": "b43c64885af121f245b414aa0447c23a63f4d9925cef3b171cc5badc9f33781b"
+      }
+    ]
+  },
+  {
+    "name": "corner",
+    "files": [
+      {
+        "file": "corner.glb",
+        "url": "https://tevy.dev/models/scifi-corridor-corner/v1/lod1.glb",
+        "bytes": 252260,
+        "sha256": "cd74f14b9e6e19abdc11c1df8bfc89306cacd6a20f893dbd10e61da9f0e5245d"
+      }
+    ]
+  },
+  {
+    "name": "junction",
+    "files": [
+      {
+        "file": "junction.glb",
+        "url": "https://tevy.dev/models/scifi-corridor-t-junction/v1/lod1.glb",
+        "bytes": 247372,
+        "sha256": "d315b43c62f881b50ba73729dfbf564071693e467935ee7e0e88c257c9678d5b"
+      }
+    ]
+  },
+  {
+    "name": "bridge",
+    "files": [
+      {
+        "file": "bridge.glb",
+        "url": "https://tevy.dev/models/scifi-bridge-room/v2/lod1.glb",
+        "bytes": 304520,
+        "sha256": "4c716f521985b47096ec78154466208c932561a8f6aed57863a944594ed9ad96"
+      }
+    ]
+  },
+  {
+    "name": "hangar",
+    "files": [
+      {
+        "file": "hangar.glb",
+        "url": "https://tevy.dev/models/scifi-hangar/v2/lod1.glb",
+        "bytes": 565420,
+        "sha256": "12c510ed98605097c230ad390e6b0b01e7b24376a2c05e78bbc24e0f3bf10fb8"
+      }
+    ]
+  },
+  {
+    "name": "control-room",
+    "files": [
+      {
+        "file": "control-room.glb",
+        "url": "https://tevy.dev/models/control-room/v1/lod1.glb",
+        "bytes": 747884,
+        "sha256": "be7b7a96d9fe27c62ffe9aabc17fa92389e581a14540974fa9ee374304d180be"
+      }
+    ]
+  }
+]
