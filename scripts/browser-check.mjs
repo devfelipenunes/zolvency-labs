@@ -21,7 +21,7 @@ try{
  const end=await scroll(1);await page.screenshot({path:'artifacts/'+label+'-connection.png'});
  assert.notEqual(start,middle);assert.notEqual(middle,end);assert.equal(await scroll(.43),middle);assert.equal(await scroll(0),start);
  if(mode==='three')assert.equal(await page.locator('#stage').getAttribute('data-geometries'),before);
- await page.keyboard.press('End');await page.waitForTimeout(180);assert.equal(await pose(),end);
+ await page.keyboard.press('End');await page.waitForFunction(()=>Number(document.querySelector('#stage')?.dataset.progress)===1);assert.equal(await pose(),end);
  assert.equal(await page.locator('main section').count(),3);assert.match(await page.locator('main').innerText(),/Stellar/);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errors,[]);
  await page.goto(base+'/?renderer=canvas');await page.waitForSelector('#stage[data-renderer="canvas"][data-pose]');const first=await scroll(0);assert.notEqual(await scroll(1),first);assert.equal(await scroll(0),first);await page.screenshot({path:'artifacts/'+label+'-fallback.png'});
