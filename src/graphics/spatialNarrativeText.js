@@ -20,7 +20,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false}
  }
  function meshFor(gs,color,lit=false){
   const geometry=mergeGeometries(gs,false);for(const g of gs)g.dispose();if(!geometry)throw Error('glyph geometry merge failed');geometry.computeBoundingBox();
-  const material=lit?new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.58,metalness:.25,roughness:.44,transparent:true,depthWrite:false}):new THREE.MeshBasicMaterial({color,transparent:true,depthWrite:false,toneMapped:false});
+  const material=lit||world?new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:lit?.58:.85,metalness:lit?.25:.05,roughness:.44,transparent:true,depthWrite:false}):new THREE.MeshBasicMaterial({color,transparent:true,depthWrite:false,toneMapped:false});
   return new THREE.Mesh(geometry,material);
  }
  function build(card,mobile){
@@ -87,7 +87,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false}
   if(!entries.has(card.name))build(card,mobile);
   for(const e of entries.values())e.group.visible=false;active=entries.get(card.name)??null;
   if(!active)return {ready:false,visible:false,shot:card.name};
-  if(!active.anchors&&!placeWorld(active,mobile,a,roots))return {ready:false,visible:false,shot:card.name};
+  if(!active.anchors){if(roots.size<8)return {ready:false,visible:false,shot:card.name};if(active.attemptedSize===roots.size)return {ready:false,visible:false,shot:card.name};active.attemptedSize=roots.size;if(!placeWorld(active,mobile,a,roots))return {ready:false,visible:false,shot:card.name};}
   const {group}=active;group.position.set(0,0,0);group.quaternion.identity();group.scale.setScalar(1);group.visible=anim.alpha>.02;
   const t=anim.local;
   for(const [i,m] of group.children.entries()){
