@@ -10,8 +10,8 @@ import {createFallback} from './graphics/fallback.js';
 const sides=chapters.map(()=> 'center');
 const query=new URLSearchParams(location.search),gated=editorial&&query.get('direction')==='staged'&&query.get('renderer')!=='canvas';
 const initialLoading=()=>gated&&!matchMedia('(prefers-reduced-motion: reduce)').matches?{phase:'assets',done:0,total:1}:null;
-function LoadingScreen({status}){if(!status||status.phase==='ready')return null;const {phase,done,total}=status;const percent=phase==='assets'?Math.round(65*done/Math.max(1,total)):phase==='environment'?65+Math.round(10*done):phase==='warming'?75+Math.round(25*done/Math.max(1,total)):0;const label={assets:'Loading facility',environment:'Preparing environment',warming:'Preparing cinematic sequence',error:'3D experience unavailable'}[phase];function flat(){const url=new URL(location.href);url.searchParams.set('renderer','canvas');location.assign(url);}
-return <div className="experience-loader" data-phase={phase} role="dialog" aria-modal="true" aria-label="Preparing Zolvency Labs"><div className="experience-loader-inner"><img src={import.meta.env.BASE_URL+'brand/zolvency.svg'} alt="Zolvency"/><div className="loader-kicker">INDEPENDENT TECHNOLOGY COMPANY</div><div role="status" aria-live="polite">{label}</div>{phase!=='error'&&<><progress aria-label="Experience preparation" value={percent} max="100"/><div className="loader-count">{String(percent).padStart(2,'0')}% · {done}/{total}</div></>}<button type="button" onClick={flat}>{phase==='error'?'Continue in 2D':'Use lightweight version'}</button>{phase==='error'&&<button type="button" onClick={()=>location.reload()}>Retry 3D</button>}</div></div>;}
+function LoadingScreen({status}){if(!status||status.phase==='ready')return null;const {phase,done,total}=status;const percent=phase==='assets'?Math.round(65*done/Math.max(1,total)):phase==='environment'?65+Math.round(5*done):phase==='textures'?70+Math.round(15*done/Math.max(1,total)):phase==='warming'?85+Math.round(14*done/Math.max(1,total)):phase==='revealing'?100:0;const label={assets:'Loading facility',environment:'Preparing environment',textures:'Preparing graphics',warming:'Preparing cinematic sequence',revealing:'Welcome to Zolvency Labs',error:'3D experience unavailable'}[phase];function flat(){const url=new URL(location.href);url.searchParams.set('renderer','canvas');location.assign(url);}
+return <div className="experience-loader" data-phase={phase} role="dialog" aria-modal="true" aria-label="Preparing Zolvency Labs"><div className="experience-loader-inner"><img src={import.meta.env.BASE_URL+'brand/zolvency.svg'} alt="Zolvency"/><div className="loader-kicker">INDEPENDENT TECHNOLOGY COMPANY</div><div role="status" aria-live="polite">{label}</div>{phase!=='error'&&<><progress aria-label="Experience preparation" value={percent} max="100"/><div className="loader-count">{String(percent).padStart(2,'0')}% · {done}/{total}</div></>}<button type="button" disabled={phase==='revealing'} onClick={flat}>{phase==='error'?'Continue in 2D':'Use lightweight version'}</button>{phase==='error'&&<button type="button" onClick={()=>location.reload()}>Retry 3D</button>}</div></div>;}
 
 function Stage({progress,reduced,side,controller,onLoading}){
  const host=useRef(null),fallback=useRef(null),engine=useRef(null),latest=useRef({progress,reduced});
@@ -21,17 +21,18 @@ function Stage({progress,reduced,side,controller,onLoading}){
  useEffect(()=>{if(!editorial)return;controller.current=(next,snap)=>{latest.current=next;const p=next.reduced?0:next.progress;shown.current=p;host.current.dataset.targetProgress=String(p);host.current.parentElement?.style.setProperty('--native-progress',String(p));engine.current?.draw(p,{snap});};return()=>{controller.current=null;};},[controller]);
  useEffect(()=>{
  const node=host.current,canvas=fallback.current,flat=createFallback(canvas);
- let active=true,gl=null,current=flat;
+ let active=true,expired=false,gl=null,current=flat,deadline=null,revealTimer=null;
  function redraw(){const p=latest.current;current.resize();current.draw(p.reduced?0:shown.current,{snap:true});}
  engine.current=flat;canvas.hidden=false;setMode('canvas');
- function restore(){if(!active)return;if(gated&&!latest.current.reduced)onLoading({phase:'error',done:0,total:1});gl?.dispose();gl=null;current=flat;engine.current=flat;canvas.hidden=false;setMode('canvas');redraw();}
+ function restore(){if(!active)return;expired=true;clearTimeout(deadline);clearTimeout(revealTimer);if(gated&&!latest.current.reduced)onLoading({phase:'error',done:0,total:1});gl?.dispose();gl=null;current=flat;engine.current=flat;canvas.hidden=false;setMode('canvas');redraw();}
  redraw();if(gated)onLoading(latest.current.reduced?null:{phase:'assets',done:0,total:1});addEventListener('resize',redraw,{passive:true});
+ if(gated&&!latest.current.reduced)deadline=setTimeout(()=>restore(),100000);
  if(!latest.current.reduced&&new URLSearchParams(location.search).get('renderer')!=='canvas')import('./graphics/threeScene.js').then(async({createThreeScene})=>{
- if(!active||latest.current.reduced)return;
- try{const next=await createThreeScene(node,restore);if(!active){next.dispose();return;}gl=next;if(gated){let timer;try{await Promise.race([next.prepare(status=>{if(active&&gl===next&&status.phase!=='ready')onLoading(status);}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Preparation deadline exceeded')),100000);})]);}finally{clearTimeout(timer);}if(!active||gl!==next){next.dispose();return;}}current=gl;engine.current=gl;redraw();canvas.hidden=true;setMode('three');if(gated)onLoading({phase:'ready',done:1,total:1});}
+ if(!active||expired||latest.current.reduced)return;
+ try{const next=await createThreeScene(node,restore);if(!active||expired){next.dispose();return;}gl=next;if(gated){await next.prepare(status=>{if(active&&!expired&&gl===next&&status.phase!=='ready')onLoading(status);});if(!active||expired||gl!==next){next.dispose();return;}}current=gl;engine.current=gl;redraw();canvas.hidden=true;setMode('three');if(gated){clearTimeout(deadline);onLoading({phase:'revealing',done:1,total:1});revealTimer=setTimeout(()=>{if(active&&!expired)onLoading({phase:'ready',done:1,total:1});},420);}}
  catch(e){if(active){console.warn('WebGL/model unavailable; using Canvas2D',e);restore();}}
  }).catch(e=>{if(active){console.warn('Graphics unavailable',e);restore();}});
- return()=>{active=false;removeEventListener('resize',redraw);gl?.dispose();flat.dispose();engine.current=null;};
+ return()=>{active=false;clearTimeout(deadline);clearTimeout(revealTimer);removeEventListener('resize',redraw);gl?.dispose();flat.dispose();engine.current=null;};
  },[reduced]);
  return <div id="stage" data-renderer={mode} data-target-progress={editorial?undefined:reduced?0:progress} data-experience={editorial?'editorial':'legacy'} data-side={side} ref={host} aria-hidden="true"><canvas ref={fallback}/><div className="veil"/></div>;
 }

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {getPacing} from '../src/graphics/cameraPacing.js';
-import {travelMapper,createTravelMotion} from '../src/graphics/travelMotion.js';
+import {travelMapper,createTravelMotion,createBaselineTravelMotion,sceneSpeedLimit} from '../src/graphics/travelMotion.js';
 import {directedNarrative,beats} from '../src/graphics/directedNarrative.js';
 import {shotCards} from '../src/graphics/shotCards.js';
 test('all seven reading holds remain fully legible within browser sampling tolerance',()=>{
@@ -28,5 +28,29 @@ test('camera starts gently, brakes and submits the fully masked splice positions
   for(const cut of [.51,.81,.965])assert.ok(frames.some(p=>Math.abs(p-cut)<1e-9),'missing forward cut '+cut);
   d.set(0);const reverse=[];for(let i=0;i<2000&&d.pending;i++){reverse.push(d.step(ts));ts+=16.667;}
   assert.equal(d.value,0);for(const cut of [.51,.81,.965])assert.ok(reverse.some(p=>Math.abs(p-cut)<1e-9),'missing reverse cut '+cut);
+ }
+});
+
+test('staged motion preserves the baseline control and bounds jerk during normal acceleration and reversal',()=>{
+ for(const mobile of [false,true]){
+  const pacing=getPacing(mobile),map=travelMapper(pacing);
+  const stats=[];
+  for(const [name,create] of [['baseline',createBaselineTravelMotion],['candidate',createTravelMotion]]){
+   const d=create(pacing);let ts=0,prev=d.value,prevA=0,peak=0,peakJerk=0,reversals=0,maxStep=0;
+   d.set(.92);
+   for(let i=0;i<2000&&d.pending;i++){
+    if(i===35)d.set(.12);
+    const p=d.step(ts),step=Math.abs(map.to(p)-map.to(prev))*map.total;
+    maxStep=Math.max(maxStep,step);peak=Math.max(peak,Math.abs(d.velocity));
+    if(name==='candidate'&&d.pending&&d.velocity!==0){peakJerk=Math.max(peakJerk,Math.abs(d.acceleration-prevA)/.016667);assert.ok(Math.abs(d.acceleration)<=18.000001);}
+    if(p<prev)reversals++;
+    prevA=d.acceleration??0;prev=p;ts+=16.667;
+   }
+   assert.ok(Math.abs(d.value-.12)<1e-8);assert.ok(reversals>0);assert.ok(maxStep<=.350001);
+   if(name==='candidate'){assert.ok(peakJerk<=120.01);assert.ok(peak<=5.50001);}
+   stats.push({name,simulatedMs:Math.round(ts),peak,maxStep,peakJerk:name==='candidate'?peakJerk:null});
+  }
+  for(let i=0;i<=1000;i++){const p=i/1000;assert.ok(sceneSpeedLimit(p,pacing)>=3.8&&sceneSpeedLimit(p,pacing)<=5.5);}
+  console.log('travel comparison',JSON.stringify({mobile,stats}));
  }
 });

@@ -277,3 +277,6 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
 .loader-count{font:11px ui-monospace,monospace;letter-spacing:.13em}
 .experience-loader button{background:transparent;color:#b5e0ce;border:1px solid #59716d;border-radius:3px;min-height:44px;padding:8px 16px;font:12px system-ui,sans-serif;cursor:pointer}
 .experience-loader button:focus-visible{outline:2px solid #b5e0ce;outline-offset:4px}
+
+.experience-loader[data-phase="revealing"]{opacity:0;transition:opacity 400ms ease-in-out;}
+@media(prefers-reduced-motion:reduce){.experience-loader[data-phase="revealing"]{transition:none}}
