@@ -1,4 +1,5 @@
 import {windows,clamp} from './facilityCamera.js';
+import prepared from './generatedPacing.json' with {type:'json'};
 import {reviewPose} from './visualReview.js';
 import {stabilizedPose} from './editorialCamera.js';
 import {directedCut} from './cinematicCut.js';
@@ -23,6 +24,9 @@ export function createPacing({mobile=false,samples=1600,poseFor=(p)=>directedCut
   const vh=Math.max(i===6?1.65:1.6,Math.min(i===4?5.5:4.5,sum*.55));
   chapters.push({lo,hi,curve,vh,cost:total});
  }
+ return pacingFromChapters(chapters);
+}
+export function pacingFromChapters(chapters){
  function progress(index,local){
   const c=chapters[index],x=clamp(local);if(x===0)return c.lo;if(x===1)return c.hi;
   let a=0,b=c.curve.length-1;while(b-a>1){const m=(a+b)>>1;if(c.curve[m]<=x)a=m;else b=m;}
@@ -41,4 +45,4 @@ export function pacedStoryProgress(scroll,starts,max,pacing){
 }
 
 const pacingCache=new Map();
-export function getPacing(mobile=false){if(!pacingCache.has(mobile))pacingCache.set(mobile,createPacing({mobile}));return pacingCache.get(mobile);}
+export function getPacing(mobile=false){if(!pacingCache.has(mobile)){const table=prepared[mobile?'mobile':'desktop'];pacingCache.set(mobile,Array.isArray(table)&&table.length===windows.length-1?pacingFromChapters(table):createPacing({mobile}));}return pacingCache.get(mobile);}
