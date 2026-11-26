@@ -18,6 +18,8 @@ export const reviewCases=[
  {name:'composition-final',group:'composition',params:'composition=final-hero&floor=geometry-matte',poses:[.985,.992,1]},
  {name:'composition-ops',group:'composition',params:'composition=ops-hero&light=subject',poses:[.705,.715,.73,.74,.755]},
  {name:'composition-light',group:'composition',params:'light=subject&plate=1',poses:holds},
+ {name:'composition-ops-clear',group:'composition',params:'composition=ops-clear&light=subject',poses:[.705,.715,.73,.74,.755]},
+ {name:'composition-final-clean',group:'composition',params:'composition=final-clean&floor=geometry-matte',poses:[.985,.992,1]},
  {name:'composition-combined',group:'composition',params:'composition=composition-first&light=subject&floor=geometry-matte&motion=crane',poses:[.025,.055,.075,.205,.405,.625,.73,.935,.985,.992,1]},
  {name:'public-scroll',group:'motion',params:'',motion:true},
  ...['default','no-ao','no-bloom','neither'].map(effect=>({name:'effects-'+effect,group:'effects',params:'effects='+effect+'&plate=1',poses:[.055,.405,.935],desktopOnly:true}))
