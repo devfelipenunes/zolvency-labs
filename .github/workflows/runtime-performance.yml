@@ -31,7 +31,7 @@ jobs:
       fail-fast: false
       matrix:
         view: [desktop, mobile]
-        variant: [motion-hysteresis]
+        variant: [fixed-scale]
     env:
       DEVICE_VIEW: ${{ matrix.view }}
       DEVICE_SOFTWARE: '1'
