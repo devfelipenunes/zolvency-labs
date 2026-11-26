@@ -25,6 +25,9 @@ try{
    assert.ok(Math.abs(Math.max(...forward.map(r=>r.position[2]))-Math.min(...forward.map(r=>r.position[2]))-4)<1e-5);
    const spatial=await page.evaluate(()=>document.querySelector('#stage').inspectCraneSpatialSweep());
    assert.equal(spatial.rows.length,161);assert.ok(spatial.rows.every((r,i)=>Math.abs(r.offset-i*.025)<1e-8&&r.movingMeshes>0&&r.otherMeshes>0));for(const row of spatial.rows)for(const hit of row.hits)for(const key of ['movingBounds','otherBounds','overlapBounds'])assert.ok(hit[key].min.every((v,j)=>Number.isFinite(v)&&Number.isFinite(hit[key].max[j])&&v<=hit[key].max[j]));
+   // One independent clearance audition per viewport; the other variant shares identical physical offsets.
+   const hoistCandidates=candidate?null:await page.evaluate(()=>document.querySelector('#stage').inspectHoistOffsetCandidates());
+   if(hoistCandidates){assert.equal(hoistCandidates.trials.length,4);for(const trial of hoistCandidates.trials){assert.equal(trial.rows.length,41);assert.ok(trial.rows.every((r,i)=>Math.abs(r.offset-i*.1)<1e-8&&Array.isArray(r.external)&&Array.isArray(r.assembly)));}await writeFile(out+'/hoist-offset-'+viewport.width+'.json',JSON.stringify(hoistCandidates,null,2));}
    const clearance=await page.evaluate(()=>document.querySelector('#stage').inspectOpeningClearance());
    const interior=await page.evaluate(()=>{const s=document.querySelector('#stage');return {floor:s.inspectInteriorFloor(),clearance:s.inspectInteriorClearance()};});
    assert.ok(clearance.every(r=>r.distance>.06));
