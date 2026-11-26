@@ -2,9 +2,18 @@ name: Render performance benchmark
 on:
   pull_request:
     branches: [main]
+    paths:
+      - 'src/graphics/**'
+      - 'src/App.jsx'
+      - 'scripts/benchmark-render.mjs'
+      - 'assets/**'
+      - '.github/workflows/render-performance.yml'
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   renderer:
     runs-on: ubuntu-24.04
