@@ -22,6 +22,14 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm test
       - run: npm run build
+      - name: Verify warm cache without network downloads
+        run: npm run facility:offline
+      - name: Restore staged models offline from verified cache
+        run: |
+          rm -rf public/models
+          npm run facility:offline
+          test -f public/models/manifest.json
+          test -f public/models/basis/basis_transcoder.wasm
       - run: npx playwright install --with-deps chromium
       - run: npm run test:smoke
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
