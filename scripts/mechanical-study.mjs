@@ -25,10 +25,12 @@ try{
    assert.ok(Math.abs(Math.max(...forward.map(r=>r.position[2]))-Math.min(...forward.map(r=>r.position[2]))-4)<1e-5);
    const clearance=await page.evaluate(()=>document.querySelector('#stage').inspectOpeningClearance());
    assert.ok(clearance.every(r=>r.distance>.06));
+   // Preserve computed evidence even if subsequent screenshot/video capture fails.
+   reports.push({viewport,...report,clearance});await writeFile(out+'/report.json',JSON.stringify(reports,null,2));
    const name=viewport.width+'-'+(candidate?'candidate':'control');
-   for(const p of [0,.025,.055,.075,.105]){await page.evaluate(p=>document.querySelector('#stage').benchmarkFrame(p),p);await page.screenshot({path:out+'/'+name+'-'+p+'.png'});}
+   for(const p of [0,.025,.055,.075,.105]){await page.evaluate(p=>document.querySelector('#stage').benchmarkFrame(p),p);await page.screenshot({path:out+'/'+name+'-'+p+'.png',timeout:120000,animations:'disabled'});}
    for(const direction of ['forward','reverse'])for(let i=0;i<=12;i++){const p=.115*(direction==='forward'?i:12-i)/12;await page.evaluate(p=>document.querySelector('#stage').benchmarkFrame(p),p);await page.waitForTimeout(90);}
-   assert.deepEqual(errors,[]);reports.push({viewport,...report,clearance});await writeFile(out+'/report.json',JSON.stringify(reports,null,2));await page.close();
+   assert.deepEqual(errors,[]);await page.close();
   }
  }
  const comparisons=[];
