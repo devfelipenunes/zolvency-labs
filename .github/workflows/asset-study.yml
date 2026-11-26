@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/asset-study*'
+      - 'scripts/bake-hangar-study.py'
       - '.github/workflows/asset-study.yml'
   workflow_dispatch:
 permissions:
@@ -11,7 +12,7 @@ permissions:
 jobs:
   assets:
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -23,8 +24,12 @@ jobs:
       - run: node scripts/stage-decoders.mjs
       - run: npx playwright install --with-deps chromium
       - run: node scripts/asset-study.mjs
+      - run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends blender
+      - run: blender -b -t 2 --python-exit-code 1 --python scripts/bake-hangar-study.py -- artifacts/asset-study/hangar-shell.json artifacts/bake-study
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: operations-asset-study
-          path: artifacts/asset-study/
+          path: |
+            artifacts/asset-study/
+            artifacts/bake-study/
