@@ -6,15 +6,16 @@ const visible=o=>{for(let n=o;n;n=n.parent)if(!n.visible)return false;return tru
 const V=a=>new THREE.Vector3(...a);
 export function wallCutEnvelope(p){return {active:p>=start&&p<=end,side:p<cut?'server':'corridor',approach:p<cut?ramp(p,start,cut):1-ramp(p,cut,end),mask:ramp(p,.485,cut)*(1-ramp(p,cut,.535))};}
 // An opt-in editorial splice: camera never crosses the wall itself.
-export function createWallCut(roots,clearance=null){
- const ray=new THREE.Raycaster(),cache=new Map();
- function endpoint(side,mobile){
+export function createWallCut(roots,clearance=null,{deferred=false}={}){
+ const ray=new THREE.Raycaster(),cache=new Map(),work=new Map();let visiting=false,choice=null;
+ function* findEndpoint(side,mobile){
   const root=roots.get(side==='server'?'servers':'corridor');if(!root)return null;
   const key=side+mobile;if(cache.has(key))return cache.get(key);
   const base=spatialPose(side==='server'?start:end,mobile),eye=V(base.position),dir=V(base.target).sub(eye).normalize();
   const cam=new THREE.PerspectiveCamera(base.fov,mobile?.46:1.6,.075,65);cam.position.copy(eye);cam.lookAt(V(base.target));cam.updateMatrixWorld(true);cam.updateProjectionMatrix();
   const all=[...roots.values()],candidates=[];
   for(const x of [0,-.25,.25,-.5,.5,-.72,.72])for(const y of [0,.25,-.25,.5]){
+   yield;
    ray.setFromCamera(new THREE.Vector2(x,y),cam);ray.near=.35;ray.far=7;
    const h=ray.intersectObjects(all,true).find(h=>visible(h.object));if(!h?.face)continue;
    let o=h.object;while(o&&o!==root)o=o.parent;if(!o)continue;
@@ -24,16 +25,19 @@ export function createWallCut(roots,clearance=null){
    if(Math.abs(n.y)>.42||Math.abs(n.dot(d))<.55)continue;
    const travel=Math.min(1.4,Math.max(0,h.distance-.32)),position=eye.clone().addScaledVector(d,travel);
    if(travel<.12||!clearance)continue;
-   let safe=true;for(let j=0;j<=16;j++){const q=eye.clone().lerp(position,j/16);if(clearance(q)<.18){safe=false;break;}}if(!safe)continue;
+   let safe=true;for(let j=0;j<=16;j++){yield;const q=eye.clone().lerp(position,j/16);if(clearance(q)<.18){safe=false;break;}}if(!safe)continue;
    const verify=new THREE.PerspectiveCamera(mobile?48:36,mobile?.46:1.6,.075,65);verify.position.copy(position);verify.lookAt(position.clone().add(d));verify.updateMatrixWorld(true);verify.updateProjectionMatrix();
-   let hits=0;for(const u of [-.8,-.4,0,.4,.8])for(const v of [-.8,-.4,0,.4,.8]){ray.setFromCamera(new THREE.Vector2(u,v),verify);ray.near=.075;ray.far=3;const match=ray.intersectObjects(all,true).find(h=>visible(h.object));if(match?.object===h.object)hits++;}
+   let hits=0;for(const u of [-.8,-.4,0,.4,.8])for(const v of [-.8,-.4,0,.4,.8]){yield;ray.setFromCamera(new THREE.Vector2(u,v),verify);ray.near=.075;ray.far=3;const match=ray.intersectObjects(all,true).find(h=>visible(h.object));if(match?.object===h.object)hits++;}
    if(hits>=21)candidates.push({base,position:position.toArray(),direction:d.toArray(),mesh:h.object.name,distance:h.distance,coverage:hits/25,score:hits-Math.abs(x)*2-Math.abs(y)});
   }
   const result=candidates.sort((a,b)=>b.score-a.score)[0]??null;cache.set(key,result);return result;
  }
- return {pose(p,mobile){
-  const e=wallCutEnvelope(p),fallback=spatialPose(p,mobile);if(!e.active)return {pose:fallback,mask:0,active:false};
-  const a=endpoint('server',mobile),b=endpoint('corridor',mobile);if(!a||!b)return {pose:fallback,mask:0,active:false,reason:'no matched opaque wall'};
+ function endpoint(side,mobile){const key=side+mobile;if(cache.has(key))return cache.get(key);if(deferred)return null;const it=findEndpoint(side,mobile);let s=it.next();while(!s.done)s=it.next();return s.value;}
+ function prepareStep(mobile){for(const side of ['server','corridor']){const key=side+mobile;if(cache.has(key))continue;let it=work.get(key);if(!it){it=findEndpoint(side,mobile);work.set(key,it);}const s=it.next();if(s.done){cache.set(key,s.value??null);work.delete(key);}return true;}return false;}
+ return {prepareStep,ready(mobile){return cache.has('server'+mobile)&&cache.has('corridor'+mobile);},leave(){visiting=false;choice=null;},pose(p,mobile){
+  const e=wallCutEnvelope(p),fallback=spatialPose(p,mobile);if(!e.active){visiting=false;choice=null;return {pose:fallback,mask:0,active:false};}
+  if(!visiting||!deferred){visiting=true;choice=[endpoint('server',mobile),endpoint('corridor',mobile)];}
+  const [a,b]=choice;if(!a||!b)return {pose:fallback,mask:0,active:false,reason:'no matched opaque wall'};
   const v=e.side==='server'?a:b,k=e.approach;
   const position=v.base.position.map((x,i)=>x+(v.position[i]-x)*k);
   const baseDir=V(v.base.target).sub(V(v.base.position)).normalize(),direction=baseDir.lerp(V(v.direction),k).normalize();const target=position.map((x,i)=>x+direction.getComponent(i)*5);
@@ -68,9 +72,10 @@ export function auditSuspension(roots){
  const edits=[{a:.415,b:.51,z:.59,name:'server-to-security',zoom:34},{a:.755,b:.81,z:.865,name:'operations-to-quantum',zoom:40}];
  export function directedCut(p,mobile=false,wall=null){
   const e=edits.find(s=>p>=s.a&&p<=s.z);
-  if(!e)return {pose:spatialPose(p,mobile),mask:0,active:false};
+  if(!e){wall?.leave?.();return {pose:spatialPose(p,mobile),mask:0,active:false};}
   const source=p<e.b,q=source?e.a:e.z,k=source?ramp(p,e.a,e.b):1-ramp(p,e.b,e.z),pose=spatialPose(q,mobile);
   const mask=ramp(p,e.b-.024,e.b-.005)*(1-ramp(p,e.b+.005,e.b+.024));
+  if(e.name!=='server-to-security')wall?.leave?.();
   if(e.name==='server-to-security'&&wall){
    const candidate=wall.pose(p,mobile);
    if(candidate.active)return {...candidate,mask,name:e.name};
