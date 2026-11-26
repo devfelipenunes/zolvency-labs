@@ -53,7 +53,7 @@ try{
  for(const p of holds)await capture(p,'forward');
  for(const p of [...holds].reverse())await capture(p,'reverse');
  // Genuine native keyboard and wheel; no diagnostic rendering API.
- await page.keyboard.press('Home');await page.waitForFunction(()=>scrollY<=1&&Number(document.querySelector('#stage').dataset.progress)<.002,null,{timeout:120000});
+ await page.keyboard.press('Home');try{await page.waitForFunction(()=>scrollY<=1&&Number(document.querySelector('#stage').dataset.progress)<.002,null,{timeout:120000});}catch(error){await writeFile(out+'/home-timeout.json',JSON.stringify(await page.evaluate(()=>({scrollY,max:document.documentElement.scrollHeight-innerHeight,active:document.activeElement?.tagName,stage:{...document.querySelector('#stage').dataset},frames:window.__measure?.slice(-100)})),null,2));throw error;}
  await page.mouse.wheel(0,Math.round(viewport.height*.85));await page.waitForFunction(()=>scrollY>10&&Number(document.querySelector('#stage').dataset.progress)>0,null,{timeout:120000});
  await page.keyboard.press('End');await page.waitForFunction(()=>Math.abs(Number(document.querySelector('#stage').dataset.progress)-1)<.002,null,{timeout:120000});
  const frames=await page.evaluate(()=>window.__measure);const active=frames.filter((f,i)=>i&&f.progress!==frames[i-1].progress),gpu=active.filter((f,i)=>f.gpuSerial&&f.gpuSerial!==active[i-1]?.gpuSerial);
