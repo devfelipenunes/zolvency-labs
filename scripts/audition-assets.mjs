@@ -1,6 +1,16 @@
 // Pin the exact reviewed publisher bytes. Never fetch from a visitor's browser.
 import {mkdir,writeFile,readFile,copyFile,rm} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+// Bounded retries for transport and temporary HTTP errors; pinned bytes are still verified below.
+async function fetchPinned(url,timeout=45000){
+ let last;
+ for(let i=0;i<3;i++){
+  try{const r=await fetch(url,{redirect:'error',signal:AbortSignal.timeout(timeout)});if(r.ok||![408,429,500,502,503,504].includes(r.status))return r;last=Error('HTTP '+r.status);await r.body?.cancel();}
+  catch(e){last=e;}
+  if(i<2)await new Promise(resolve=>setTimeout(resolve,1000*(i+1)));
+ }
+ throw last;
+}
 const lock=JSON.parse(await readFile(new URL('../assets/external-lock.json',import.meta.url),'utf8'));
 const root='artifacts/asset-audition',stage=process.argv.includes('--stage'),dest='public/models/external';
 await mkdir(root,{recursive:true});
@@ -8,7 +18,7 @@ if(stage){await rm(dest,{recursive:true,force:true});await mkdir(dest,{recursive
 const report=[];
 for(const a of lock.assets){
  try{
- const response=await fetch(a.url,{signal:AbortSignal.timeout(30000),redirect:'error'});
+ const response=await fetchPinned(a.url,30000);
  if(!response.ok)throw Error('HTTP '+response.status);
  const reader=response.body.getReader();let total=0;const chunks=[];
  while(true){const {done,value}=await reader.read();if(done)break;total+=value.length;if(total>a.bytes){await reader.cancel();throw Error('asset exceeds pinned size');}chunks.push(Buffer.from(value));}
