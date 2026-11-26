@@ -1,0 +1,34 @@
+name: External asset opportunities
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'assets/opportunity-catalog.json'
+      - 'scripts/audition-opportunities.mjs'
+      - 'scripts/opportunity-contact-sheet.py'
+      - '.github/workflows/opportunity-audition.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audition:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: node scripts/audition-opportunities.mjs
+      - if: always()
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends python3-pil
+          /usr/bin/python3 scripts/opportunity-contact-sheet.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: external-opportunity-previews-and-glbs
+          path: artifacts/opportunity-audition/
