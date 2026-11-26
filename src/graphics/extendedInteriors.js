@@ -17,6 +17,7 @@ export function extendedPose(p,mobile=false){
  return {...pose,position:offset(pose.position),target:offset(pose.target)};
 }
 // Both switches occur inside the fully opaque plateau of the directed cuts.
-export const interiorSet=p=>p>=.51&&p<.81?'security-wing':'facility';
+export const interiorSet=p=>p>=.51&&p<.81?'security-wing':p>=.81&&p<.965?'quantum-wing':'facility';
 const wing=new Set(['corridor','portal','access-panel','corridor-extension','bridge']);
-export function setMember(id,p){return interiorSet(p)==='facility'||wing.has(id);}
+const hall=new Set(['hangar','servers','rooftop-cable-tray','cable']);
+export function setMember(id,p){const set=interiorSet(p);return set==='security-wing'?wing.has(id):set==='quantum-wing'?id==='hangar'||id==='quantum':hall.has(id);}
