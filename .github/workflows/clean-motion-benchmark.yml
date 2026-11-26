@@ -1,7 +1,7 @@
 name: Clean motion A-B benchmark
 on:
   pull_request:
-    branches: [main, feat/v0.31-directed-experience]
+    branches: [main, feat/v0.31-directed-experience, feat/v0.31-clean-motion-benchmark]
     paths:
       - 'scripts/device-motion-compare.mjs'
       - '.github/workflows/clean-motion-benchmark.yml'

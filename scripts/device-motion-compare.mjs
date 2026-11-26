@@ -8,7 +8,7 @@ import {windows} from '../src/graphics/facilityCamera.js';
 const mobile=process.env.DEVICE_VIEW==='mobile';
 const software=process.env.DEVICE_SOFTWARE==='1';
 const profile=process.env.DEVICE_PROFILE??'economy';
-const order=process.env.DEVICE_ORDER==='BA'?['candidate','baseline']:['baseline','candidate'];
+const modes=(process.env.DEVICE_MODES??'baseline,candidate,responsive').split(',');assert.ok(modes.every(m=>['baseline','candidate','responsive'].includes(m)));const order=process.env.DEVICE_ORDER==='BA'?[...modes].reverse():modes;
 const viewport=mobile?{width:390,height:844}:{width:1280,height:720};
 const base='http://127.0.0.1:4196',out='artifacts/device-motion';
 const pacing=getPacing(mobile),holds=[.055,.205,.405,.625,.73,.935,.992];
@@ -46,7 +46,7 @@ try{
     window.__motionTrial={active:false,frames:[],last:'',started:0,first:null};
     function frame(now){const q=window.__motionTrial,d=document.querySelector('#stage').dataset;
      if(q.active&&d.renderCount!==q.last){q.last=d.renderCount;const n=k=>d[k]===''||d[k]==null?null:Number(d[k]);const p=n('progress');if(q.first===null&&p!==null&&p!==q.startProgress)q.first=Math.max(0,now-q.started);
-      q.frames.push({now,progress:p,target:n('targetProgress'),interval:n('activeFrameIntervalMs'),cpu:n('cpuFrameMs'),gpu:n('gpuMs'),gpuSerial:d.gpuSampleSerial,draws:n('drawCalls'),triangles:n('triangles'),scale:n('resolutionScale')});
+      q.frames.push({now,progress:p,target:n('targetProgress'),lagVh:n('travelLagVh'),interval:n('activeFrameIntervalMs'),cpu:n('cpuFrameMs'),gpu:n('gpuMs'),gpuSerial:d.gpuSampleSerial,draws:n('drawCalls'),triangles:n('triangles'),scale:n('resolutionScale')});
      }requestAnimationFrame(frame);
     }requestAnimationFrame(frame);
    });
@@ -62,7 +62,7 @@ try{
    }
    const moving=trials.flatMap(x=>x.frames.filter((f,i,a)=>i===0?Number.isFinite(f.interval):f.progress!==a[i-1].progress));
    const seen=new Set(),gpu=moving.filter(f=>{if(!f.gpuSerial||seen.has(f.gpuSerial))return false;seen.add(f.gpuSerial);return true;});
-   const report={travel,profile,viewport,startup,trialCount:trials.length,activeSamples:moving.length,frameInterval:summary(moving.map(f=>f.interval)),cpu:summary(moving.map(f=>f.cpu)),gpu:summary(gpu.map(f=>f.gpu)),draws:summary(moving.map(f=>f.draws)),triangles:summary(moving.map(f=>f.triangles)),resolutionScale:summary(moving.map(f=>f.scale)),firstMotionMs:summary(trials.map(t=>t.firstMotionMs)),settleMs:summary(trials.map(t=>t.settleMs)),gapsOver50ms:moving.filter(f=>f.interval>50).length,gapsOver250ms:moving.filter(f=>f.interval>250).length,errors};
+   const report={travel,profile,viewport,startup,trialCount:trials.length,activeSamples:moving.length,frameInterval:summary(moving.map(f=>f.interval)),cpu:summary(moving.map(f=>f.cpu)),gpu:summary(gpu.map(f=>f.gpu)),draws:summary(moving.map(f=>f.draws)),triangles:summary(moving.map(f=>f.triangles)),resolutionScale:summary(moving.map(f=>f.scale)),targetGap:summary(moving.map(f=>Number.isFinite(f.target)?Math.abs(f.target-f.progress):null)),lagVh:summary(moving.map(f=>f.lagVh)),firstMotionMs:summary(trials.map(t=>t.firstMotionMs)),settleMs:summary(trials.map(t=>t.settleMs)),gapsOver50ms:moving.filter(f=>f.interval>50).length,gapsOver250ms:moving.filter(f=>f.interval>250).length,errors};
    await writeFile(out+'/'+travel+'-trials.json',JSON.stringify(trials));
    await writeFile(out+'/'+travel+'-report.json',JSON.stringify(report,null,2));
    assert.deepEqual(errors,[]);assert.ok(moving.length>0);

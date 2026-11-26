@@ -82,3 +82,40 @@ export function createBaselineTravelMotion(pacing,initial=0){
    get velocity(){return v;},get acceleration(){return a;}
   };
  }
+
+// R26: wall-clock-aware recovery with bounded steps and mandatory optical cuts.
+export function createResponsiveTravelMotion(pacing,initial=0){
+ const map=travelMapper(pacing),total=map.total,stops=[.51,.81,.965].map(p=>map.to(p)*total);
+ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+ let x=map.to(initial)*total,target=x,v=0,a=0,last=null,ema=1/60;
+ return {
+  set(p,{snap=false}={}){target=map.to(clamp(p,0,1))*total;if(snap){x=target;v=a=0;last=null;ema=1/60;}},
+  step(now){
+   const elapsed=last===null?1/60:clamp((now-last)/1000,0,.25);last=now;
+   if(!elapsed)return map.from(x/total);
+   ema=ema*.7+elapsed*.3;
+   const delta=target-x,dir=Math.sign(delta),gap=Math.abs(delta);
+   if(gap<.002){x=target;v=a=0;return map.from(x/total);}
+   // Reversal reset is intentional: responsive input takes precedence over jerk.
+   if(v*dir<0){v=a=0;}
+   const lag=Math.min(1,gap/2),limit=sceneSpeedLimit(map.from(x/total),pacing)+2.4*lag;
+   const desired=dir*Math.min(limit,Math.sqrt(2*24*gap),gap*12);
+   const steps=Math.ceil(elapsed/(1/120)),h=elapsed/steps;let distance=0;
+   for(let i=0;i<steps;i++){
+    const command=clamp((desired-v)*14,-24,24);
+    a+=clamp(command-a,-180*h,180*h);
+    const nv=clamp(v+a*h,-7.9,7.9),next=nv*dir<0?0:nv;
+    distance+=(v+next)*.5*h;v=next;
+   }
+   const cap=.35+.35*clamp((ema-.05)/.15,0,1);
+   const step=dir*Math.min(gap,Math.abs(distance),cap);
+   const next=clamp(x+step,0,total),crossed=stops.filter(s=>next>x?s>x+1e-9&&s<=next:s<x-1e-9&&s>=next);
+   x=crossed.length?(next>x?crossed[0]:crossed.at(-1)):next;
+   if(x===target||x===0||x===total)v=a=0;
+   return map.from(x/total);
+  },
+  resetClock(){last=null;ema=1/60;},get pending(){return x!==target||v!==0||a!==0;},
+  get value(){return map.from(x/total);},get target(){return map.from(target/total);},get velocity(){return v;},get acceleration(){return a;},
+  get lag(){return Math.abs(target-x);}
+ };
+}
