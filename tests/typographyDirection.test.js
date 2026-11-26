@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {stations,modes,typeMode,wrapWords,readability} from '../src/graphics/typographyDirection.js';
+import {stations,modes,typeMode,wrapWords,readability,titleReadability} from '../src/graphics/typographyDirection.js';
 import {chapters} from '../src/story.js';
 import {windows} from '../src/graphics/facilityCamera.js';
 test('all seven chapters have distinct scene directions and windows',()=>{
@@ -13,5 +13,5 @@ test('word wrap preserves content',()=>{const text='Building beyond the known.';
 test('do not remove HTML when sign is clipped, occluded or too small',()=>{
  const b={inside:true,clear:true,width:440,height:200,titlePx:30,bodyPx:15};
  assert.equal(readability(b),true);for(const k of ['inside','clear'])assert.equal(readability({...b,[k]:false}),false);
- assert.equal(readability({...b,bodyPx:11}),false);assert.equal(readability({...b,titlePx:18}),false);
+ assert.equal(readability({...b,bodyPx:11}),false);assert.equal(titleReadability({...b,bodyPx:11}),true);assert.equal(readability({...b,titlePx:18}),false);
 });
