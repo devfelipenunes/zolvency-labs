@@ -5,7 +5,7 @@ export function mechanicalPose(progress){
  const clamp=x=>Math.max(0,Math.min(1,x));
  const ai=clamp((progress-.575)/.155),stellar=clamp((progress-.435)/.14),q=clamp((progress-.73)/.135);
  const smooth=t=>t*t*(3-2*t);
- return {rotor:Math.PI*12*smooth(ai),door:-Math.PI*.43*Math.sin(Math.PI*stellar),quantum:.3+1.15*Math.sin(Math.PI*q)};
+ return {rotor:Math.PI*12*smooth(ai),door:stellar<=0||stellar>=1?0:-Math.PI*.43*Math.sin(Math.PI*stellar),quantum:.3+1.15*Math.sin(Math.PI*q)};
 }
 function neutralTexture(original,cache){
  if(cache.has(original))return cache.get(original);
@@ -14,7 +14,7 @@ function neutralTexture(original,cache){
  const frame=ctx.getImageData(0,0,c.width,c.height),v=frame.data;
  for(let i=0;i<v.length;i+=4){const gray=.2126*v[i]+.7152*v[i+1]+.0722*v[i+2];v[i]=gray*.76;v[i+1]=gray*.82;v[i+2]=gray*.85;}
  ctx.putImageData(frame,0,0);
- const t=original.clone();t.image=c;t.needsUpdate=true;cache.set(original,t);return t;
+ const t=original.clone();t.source=new THREE.Source(c);t.needsUpdate=true;cache.set(original,t);return t;
 }
 export function adaptExternal(root,spec,position){
  const originalBounds=new THREE.Box3().setFromObject(root),center=originalBounds.getCenter(new THREE.Vector3()),size=originalBounds.getSize(new THREE.Vector3());
