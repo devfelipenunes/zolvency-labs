@@ -45,6 +45,7 @@ try{
     }else{
      for(const p of item.poses){await capture(page,label,item.name,p,true);if(item.group==='effects'||item.group==='realism'){const samples=await page.evaluate(async p=>{const s=document.querySelector('#stage'),next=()=>new Promise(r=>requestAnimationFrame(r));await next();s.benchmarkFrame(p);let previous=await next();const rows=[];for(let i=0;i<5;i++){const now=await next();rows.push({...s.benchmarkFrame(p),rafMs:now-previous});previous=now;}return rows;},p);reports.at(-1).effectSamples=samples;await save();}}
     }
+    if(item.group==='realism'&&['realism-baseline','realism-motion','realism-combined','hero-brand'].includes(item.name)){const route=await page.evaluate(()=>document.querySelector('#stage').inspectOpeningClearance());await writeFile(out+'/'+label+'-'+item.name+'-opening-clearance.json',JSON.stringify(route,null,2));assert.ok(route.every(x=>x.distance>.06),'opening clearance '+JSON.stringify(route.filter(x=>x.distance<=.06)));}
     if(item.group==='realism'&&['realism-baseline','realism-combined'].includes(item.name)){const surfaces=await page.evaluate(()=>document.querySelector('#stage').inspectSurfaceAudit());await writeFile(out+'/'+label+'-'+item.name+'-surfaces.json',JSON.stringify(surfaces,null,2));assert.equal(surfaces.length,expectedAssets);}
     assert.deepEqual(errors,[]);
    }catch(e){failures.push({label,mode:item.name,error:String(e),pageErrors:errors});await save();}
