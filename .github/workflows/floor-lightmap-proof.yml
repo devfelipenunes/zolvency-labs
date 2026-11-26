@@ -1,0 +1,48 @@
+name: Floor lightmap proof
+on:
+  pull_request:
+    branches: [main, feat/v0.30-composition-first]
+    paths:
+      - 'scripts/*floor-lightmap*'
+      - 'src/graphics/floorLightmapTransfer.js'
+      - 'tests/floorLightmapTransfer.test.js'
+      - '.github/workflows/floor-lightmap-proof.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: floor-lightmap-proof-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: python3 scripts/test-floor-lightmap-atlas.py
+      - run: node --test tests/floorLightmapTransfer.test.js
+      - run: node scripts/stage-decoders.mjs
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/asset-study.mjs
+      - run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends blender
+      - run: blender -b -t 2 --python-exit-code 1 --python scripts/bake-floor-lightmap.py -- artifacts/asset-study/hangar-shell.json artifacts/floor-bake
+      - name: Audit exact base resolution
+        if: always()
+        run: |
+          if test -f artifacts/floor-bake/uv-mapping.json; then
+            python3 scripts/audit-lightmap-uv.py artifacts/floor-bake/uv-mapping.json artifacts/floor-bake/uv-audit.json --sizes 1024 2048
+          fi
+      - run: node scripts/floor-lightmap-review.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: floor-lightmap-proof
+          path: |
+            artifacts/floor-bake/
+            artifacts/floor-review/
