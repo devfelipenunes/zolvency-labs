@@ -9,7 +9,7 @@ export const glassTreatments={
  reflection:{roughness:.035,tint:0xf5ffff,env:.15}
 };
 export function originalFinish(m){return {color:m.color?.clone(),roughness:m.roughness,emissive:m.emissive?.clone(),emissiveIntensity:m.emissiveIntensity,envMapIntensity:m.envMapIntensity};}
-export function finishMaterial(m,original,id,variant='split'){
+export function finishMaterial(m,original,id,variant='split',floorVariant='default'){
  const name=m.name??'';
  if(id==='servers'&&/glass/i.test(name)){
   const g=glassTreatments[variant]??glassTreatments.clear;
@@ -26,7 +26,7 @@ export function finishMaterial(m,original,id,variant='split'){
   // Retain original transmission, thickness, IOR, texture maps and attenuation.
   return 'server-glass';
  }
- if(id==='hangar'&&/floor/i.test(name)){if(original.color)m.color?.copy(original.color).multiply(new THREE.Color(0x687a7a));m.roughness=Math.max(.65,m.roughness??0);}
+ if(id==='hangar'&&/floor/i.test(name)){if(original.color)m.color?.copy(original.color);if(floorVariant==='original'){m.roughness=original.roughness??m.roughness;}else{if(original.color)m.color?.multiply(new THREE.Color(floorVariant==='matte'?0x566568:0x687a7a));m.roughness=Math.max(floorVariant==='matte'?.88:.65,m.roughness??0);}}
  else if(/ceiling_light/i.test(name)){
   m.color?.setHex(0x657d86);m.emissive?.setHex(0x90b0ba);m.emissiveIntensity=id==='corridor'||id==='portal'||id==='corridor-extension'?.075:id==='servers'?.12:.24;
  }else if(id==='servers'&&/led/i.test(name)){
@@ -41,9 +41,9 @@ export function finishMaterial(m,original,id,variant='split'){
  return null;
 }
 // Lift subject exposure locally rather than raising all rooms at once.
-export function reviewGrade(look,p){
+export function reviewGrade(look,p,lightVariant='default'){
  const base=noirGrade(look),rack=ramp(p,.105,.17)*(1-ramp(p,.415,.49)),ops=ramp(p,.68,.715)*(1-ramp(p,.74,.81)),quantum=ramp(p,.84,.90)*(1-ramp(p,.95,.97));
- return {...base,fill:look.fill*(.39+.20*rack+.10*ops),key:look.key*.47,head:look.head*(.24+.08*rack+.18*ops),hall:look.hall*.40,env:look.env*(.43+.10*rack+.12*quantum),exposure:look.exposure*(.80-.025*rack+.025*ops),fog:base.fog};
+ return {...base,fill:look.fill*(.39+.20*rack+.10*ops),key:look.key*.47,head:look.head*(.24+.08*rack+.18*ops+(lightVariant==='ops-focus'?.10*ops:0)),hall:look.hall*.40*(1-(lightVariant==='ops-focus'?.18*ops:0)),env:look.env*(.43+.10*rack+.12*quantum),exposure:look.exposure*(.80-.025*rack+.025*ops),fog:base.fog};
 }
 export const visualShots=[
  {name:'ORIGIN',a:0,b:.035,c:.08,z:.115,hold:.055,aim:[-3.7,3.8,-8],fov:53},
