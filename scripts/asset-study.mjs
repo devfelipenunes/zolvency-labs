@@ -6,7 +6,7 @@ import {stageAssets} from './facility-assets.mjs';
 const interiors=JSON.parse(await readFile('assets/interior-lock.json','utf8'));
 const external=JSON.parse(await readFile('assets/external-lock.json','utf8')).assets;
 const rack=external.find(x=>x.name==='server-rack');
-const assets=[...interiors.filter(x=>['bridge','control-room'].includes(x.name)).flatMap(x=>x.files),{file:'server-rack.glb',url:rack.url,sha256:rack.sha256,bytes:rack.bytes}];
+const assets=[...interiors.filter(x=>['bridge','control-room','hangar'].includes(x.name)).flatMap(x=>x.files),{file:'server-rack.glb',url:rack.url,sha256:rack.sha256,bytes:rack.bytes}];
 await stageAssets(assets,{dir:'public/models/asset-study'});
 const out='artifacts/asset-study',base='http://127.0.0.1:4191';
 await mkdir(out,{recursive:true});
@@ -21,6 +21,7 @@ try{
   for(const [angle,inside] of [[40,false],[180,false],[0,true],[90,true]].filter(([,inside])=>!inside||asset.file!=='server-rack.glb')){
    await page.evaluate(({angle,inside})=>window.renderAngle(angle,inside),{angle,inside});await page.screenshot({path:out+'/'+asset.file+'-'+angle+'-'+inside+'.png'});
   }
+  if(asset.file==='hangar.glb'){const geometry=await page.evaluate(()=>window.exportStaticShell());await writeFile(out+'/hangar-shell.json',JSON.stringify({...geometry,sha256:asset.sha256}));}
   assert.deepEqual(errors,[]);reports.push({...audit,sha256:asset.sha256,source:asset.url,bytes:asset.bytes});
   await writeFile(out+'/report.json',JSON.stringify(reports,null,2));await page.close();
  }
