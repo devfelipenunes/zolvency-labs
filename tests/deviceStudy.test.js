@@ -20,3 +20,10 @@ test('native scroll timing is consumed once and only after a valid active frame'
  study.start();study.markScroll(100);study.markScroll(110);study.record(d,false,125);study.record(d,false,140);
  const result=study.stop(d,{width:1280,height:720});assert.equal(result.metrics.scrollToSubmitMs.samples,1);assert.equal(result.metrics.scrollToSubmitMs.p95,15);
 });
+
+test('inclusive cadence preserves long stalls, bounds samples, and resets between trials',()=>{
+ const study=createDeviceStudy({maxSamples:4});const d={activeFrameIntervalMs:'16',cpuFrameMs:'4'};
+ study.start();for(const interval of [16,60,300,1200,800])study.record({...d,activeFrameIntervalMs:String(interval)});study.record({...d,activeFrameIntervalMs:'9000'},true);
+ const result=study.stop(d,{width:390,height:844});assert.equal(result.samples,2);assert.deepEqual(result.allActiveIntervals,{samples:4,p50:60,p95:1200,max:1200,over50ms:3,over250ms:2,truncated:1});assert.equal(result.excludedHiddenFrames,1);
+ study.start();study.record(d);assert.deepEqual(study.stop(d,{}).allActiveIntervals,{samples:1,p50:16,p95:16,max:16,over50ms:0,over250ms:0,truncated:0});
+});
