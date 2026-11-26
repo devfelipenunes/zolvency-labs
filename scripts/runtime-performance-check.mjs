@@ -8,7 +8,7 @@ import {windows} from '../src/graphics/facilityCamera.js';
 const mobile=process.env.DEVICE_VIEW==='mobile';
 const software=process.env.DEVICE_SOFTWARE==='1';
 const profile=process.env.DEVICE_PROFILE??'economy';
-const candidate=process.env.RUNTIME_VARIANT??'bounded';assert.ok(['lean','bounded','combined','motion-scale','motion-hysteresis'].includes(candidate));
+const candidate=process.env.RUNTIME_VARIANT??'bounded';assert.ok(['lean','bounded','combined','motion-scale','motion-hysteresis','fixed-scale'].includes(candidate));
 const order=mobile?[candidate,'control']:['control',candidate];
 const viewport=mobile?{width:390,height:844}:{width:1280,height:720};
 const base='http://127.0.0.1:4196',out='artifacts/runtime-performance';
@@ -37,7 +37,7 @@ try{
    const startup=await page.evaluate(()=>{
     const s=document.querySelector('#stage'),c=s.querySelector('canvas#three-scene'),gl=c?.getContext('webgl2'),ext=gl?.getExtension('WEBGL_debug_renderer_info'),name=ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):'';
     const type=/swiftshader|llvmpipe|softpipe|software|basic render/i.test(name)?'software':name?'reported-non-software':'unknown';
-    return {type,preflightMs:Number(s.dataset.preflightMs)||null,warmedTextures:Number(s.dataset.warmedTextures)||null,warmedViews:Number(s.dataset.warmedViews)||null,gpuPreflight:s.dataset.gpuPreflight??null,phases:JSON.parse(s.dataset.preflightPhases??'{}'),warmRows:JSON.parse(s.dataset.preflightWarmRows??'[]'),travelMode:s.dataset.travelMode,runtime:s.dataset.runtime};
+    return {type,preflightMs:Number(s.dataset.preflightMs)||null,warmedTextures:Number(s.dataset.warmedTextures)||null,warmedViews:Number(s.dataset.warmedViews)||null,gpuPreflight:s.dataset.gpuPreflight??null,phases:JSON.parse(s.dataset.preflightPhases??'{}'),warmRows:JSON.parse(s.dataset.preflightWarmRows??'[]'),travelMode:s.dataset.travelMode,runtime:s.dataset.runtime,resizeCount:Number(s.dataset.bufferResizeCount),motionScale:Number(s.dataset.motionScale)};
    });
    startup.totalMs=Math.round(performance.now()-start);
    assert.equal(startup.travelMode,'responsive');assert.equal(startup.runtime,runtime);assert.equal(startup.warmRows.length,16);assert.equal(startup.warmedViews,mobile?17:8);assert.ok(startup.warmedTextures>0);
@@ -57,7 +57,7 @@ try{
      await page.evaluate(y=>{const q=window.__motionTrial,d=document.querySelector('#stage').dataset;q.frames=[];q.first=null;q.startProgress=Number(d.progress);q.last=d.renderCount;q.started=performance.now();q.active=true;window.scrollTo({top:y,behavior:'instant'});},scrollAt(p));
      await page.waitForFunction(p=>{const d=document.querySelector('#stage').dataset;return Math.abs(Number(d.progress)-p)<.003&&d.motionPending==='false';},p,{timeout:120000});
      const settled=await page.evaluate(()=>performance.now());
-     await page.waitForFunction(()=>Number(document.querySelector('#stage').dataset.motionScale??1)===1,null,{timeout:120000});
+     await page.waitForFunction(expected=>Number(document.querySelector('#stage').dataset.motionScale??1)===expected,runtime==='fixed-scale' ? .8 : 1,{timeout:120000});
      const result=await page.evaluate(settled=>{const q=window.__motionTrial;q.active=false;return {frames:q.frames,firstMotionMs:q.first,settleMs:settled-q.started,restoreMs:performance.now()-settled};},settled);
      assert.ok(result.frames.length>0,'No observed frames');
      trials.push({direction,p,...result});
@@ -66,10 +66,10 @@ try{
    const moving=trials.flatMap(x=>x.frames.filter((f,i,a)=>i===0?Number.isFinite(f.interval):f.progress!==a[i-1].progress));
    const seen=new Set(),gpu=moving.filter(f=>{if(!f.gpuSerial||seen.has(f.gpuSerial))return false;seen.add(f.gpuSerial);return true;});
    const gate=await page.locator('#stage').evaluate(s=>JSON.parse(s.dataset.submissionGate??'null'));
-   const allFrames=trials.flatMap(x=>x.frames),resizeFrames=allFrames.filter(f=>f.resizeMs>0);const report={allCpu:summary(allFrames.map(f=>f.cpu)),resizeCost:summary(resizeFrames.map(f=>f.resizeMs)),qualityRestoreMs:summary(trials.map(t=>t.restoreMs)),runtime,profile,viewport,startup,gate,trialCount:trials.length,activeSamples:moving.length,frameInterval:summary(moving.map(f=>f.interval)),cpu:summary(moving.map(f=>f.cpu)),gpu:summary(gpu.map(f=>f.gpu)),draws:summary(moving.map(f=>f.draws)),triangles:summary(moving.map(f=>f.triangles)),resolutionScale:summary(moving.map(f=>f.scale)),motionScale:summary(moving.map(f=>f.motionScale)),firstMotionMs:summary(trials.map(t=>t.firstMotionMs)),settleMs:summary(trials.map(t=>t.settleMs)),gapsOver50ms:moving.filter(f=>f.interval>50).length,gapsOver250ms:moving.filter(f=>f.interval>250).length,errors};
+   const allFrames=trials.flatMap(x=>x.frames),resizeFrames=allFrames.filter(f=>f.resizeMs>0);const finalResizeCount=await page.locator('#stage').evaluate(s=>Number(s.dataset.bufferResizeCount));const report={resizeEventsAfterStartup:finalResizeCount-startup.resizeCount,allCpu:summary(allFrames.map(f=>f.cpu)),resizeCost:summary(resizeFrames.map(f=>f.resizeMs)),qualityRestoreMs:summary(trials.map(t=>t.restoreMs)),runtime,profile,viewport,startup,gate,trialCount:trials.length,activeSamples:moving.length,frameInterval:summary(moving.map(f=>f.interval)),cpu:summary(moving.map(f=>f.cpu)),gpu:summary(gpu.map(f=>f.gpu)),draws:summary(moving.map(f=>f.draws)),triangles:summary(moving.map(f=>f.triangles)),resolutionScale:summary(moving.map(f=>f.scale)),motionScale:summary(moving.map(f=>f.motionScale)),firstMotionMs:summary(trials.map(t=>t.firstMotionMs)),settleMs:summary(trials.map(t=>t.settleMs)),gapsOver50ms:moving.filter(f=>f.interval>50).length,gapsOver250ms:moving.filter(f=>f.interval>250).length,errors};
    await writeFile(out+'/'+runtime+'-trials.json',JSON.stringify(trials));
    await writeFile(out+'/'+runtime+'-report.json',JSON.stringify(report,null,2));
-   assert.deepEqual(errors,[]);assert.ok(moving.length>0);
+   assert.deepEqual(errors,[]);assert.ok(moving.length>0);if(runtime==='fixed-scale'){assert.equal(startup.motionScale,.8);assert.equal(finalResizeCount,startup.resizeCount,'Fixed scale must not resize the drawing buffer during unchanged viewport scroll');assert.ok(allFrames.every(f=>f.motionScale===.8&&f.scale===1));}
    if(gate){assert.ok(gate.maxPending<=2);assert.ok(gate.submitted>0,'no fenced submissions');assert.equal(gate.failure,null,'candidate submission gate failed open');}reports.push(report);console.log(JSON.stringify(report,null,2));
   }finally{await context.close();}
  }
