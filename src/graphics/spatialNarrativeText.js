@@ -9,7 +9,7 @@ const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 // All visible narrative text is triangulated, extruded glyph geometry, including body copy.
 // One merged mesh per role keeps draw calls low. The editorial rig follows the shot,
 // with controlled perspective, depth and rotation; it is not a physical wall sign.
-export function createSpatialNarrativeText(scene,onReady){
+export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false}={}){
  let font=null,logo=null,disposed=false,aspect=0,active=null;const entries=new Map(),ray=new THREE.Raycaster();
  new FontLoader().loadAsync(import.meta.env.BASE_URL+'models/fonts/helvetiker_regular.typeface.json').then(f=>{if(!disposed){font=f;onReady();}}).catch(()=>{});
  new SVGLoader().loadAsync(import.meta.env.BASE_URL+'brand/zolvency.svg').then(d=>{if(!disposed){logo=d.paths.flatMap(p=>SVGLoader.createShapes(p));onReady();}}).catch(()=>{});
@@ -40,7 +40,68 @@ export function createSpatialNarrativeText(scene,onReady){
   scene.add(group);const e={card,group,titleLines,bodyLines,roles:group.children.map(o=>o.name),height:box.getSize(V()).y};entries.set(card.name,e);return e;
  }
  function clear(){for(const e of entries.values()){e.group.removeFromParent();for(const m of e.group.children){m.geometry.dispose();m.material.dispose();}}entries.clear();active=null;}
+
+ // Layouts are fixed in the shot's world coordinates after the first successful placement.
+ // Each role has a different depth and position. Only authored motion changes that transform.
+ const layouts={
+ ORIGIN:[[0,.24,.66,3.5],[-.38,-.23,.38,4.6],[.39,-.53,.38,3.2],[0,-.78,.24,2.2]],
+ BLOCKCHAIN:[[-.40,.38,.36,2.7],[-.44,-.04,.36,2.3],[-.42,-.46,.38,2.9]],
+ STELLAR:[[.34,.38,.36,2.7],[.40,-.06,.37,2.3],[.38,-.50,.36,2.8]],
+ CRYPTOGRAPHY:[[0,.52,.60,3.3],[-.42,.03,.38,2.4],[.37,-.53,.39,2.8]],
+ INTELLIGENCE:[[.37,.49,.43,3.1],[-.39,.02,.40,2.7],[-.40,-.48,.38,3.3]],
+ QUANTUM:[[-.62,.38,.27,3.8],[-.57,-.04,.34,4.1],[-.54,-.52,.36,3.6]],
+ CONVERGENCE:[[.11,.30,.62,4.5],[-.37,-.19,.38,3.7],[.37,-.48,.38,4.1]]
+ };
+ function isBlocked(origin,point,roots){
+  const dir=point.clone().sub(origin),dist=dir.length();ray.set(origin,dir.normalize());ray.near=.08;ray.far=Math.max(.09,dist-.035);
+  return ray.intersectObjects(roots,true).some(h=>{for(let o=h.object;o;o=o.parent)if(!o.visible)return false;const m=Array.isArray(h.object.material)?h.object.material[h.face?.materialIndex??0]:h.object.material;return !m?.transparent&&(m?.transmission??0)<.5;});
+ }
+ function placeWorld(e,mobile,a,roots){
+  const pose=rail(e.card.hold,mobile),cam=new THREE.PerspectiveCamera(pose.fov,a,.075,65);
+  cam.position.fromArray(pose.position);cam.lookAt(new THREE.Vector3(...pose.target));cam.updateProjectionMatrix();cam.updateMatrixWorld(true);
+  const dir=V();cam.getWorldDirection(dir);const right=V().setFromMatrixColumn(cam.matrixWorld,0),up=V().setFromMatrixColumn(cam.matrixWorld,1),all=[...roots.values()].filter(o=>o.visible);
+  const result=[];
+  for(const [i,m] of e.group.children.entries()){
+   const b=m.geometry.boundingBox,center=b.getCenter(V()),size=b.getSize(V());
+   const [rx,ry,rs,depth]=layouts[e.card.name][i];
+   const mobileY=e.card.name==='QUANTUM'?[-.15,-.43,-.69,-.86]:[.27,-.18,-.55,-.82];
+   const x=mobile?0:rx,y=mobile?mobileY[i]:ry,span=mobile?Math.min(.80,rs*1.8):rs;
+   let anchor=null;
+   for(const d of [depth,depth*.76,depth*.55,depth*.36,.48]){
+    const h=d*Math.tan(THREE.MathUtils.degToRad(cam.fov/2)),w=h*a;
+    const scale=Math.min(2*w*span/Math.max(.001,size.x),h*(i===2?.48:.40)/Math.max(.001,size.y));
+    const cx=THREE.MathUtils.clamp(x,-.94+size.x*scale/(2*w),.94-size.x*scale/(2*w));
+    const cy=THREE.MathUtils.clamp(y,-.92+size.y*scale/(2*h),.92-size.y*scale/(2*h));
+    const point=cam.position.clone().addScaledVector(dir,d).addScaledVector(right,cx*w).addScaledVector(up,cy*h);
+    const corners=[point,...[-1,1].flatMap(u=>[-1,1].map(v=>point.clone().addScaledVector(right,u*size.x*scale*.5).addScaledVector(up,v*size.y*scale*.5)))];
+    if(corners.some(q=>isBlocked(cam.position,q,all)))continue;
+    const rotation=cam.quaternion.clone().multiply(new THREE.Quaternion().setFromAxisAngle(V(0,1,0),mobile?0:(i%2?-.09:.10)));
+    anchor={point,rotation,scale,center,right:right.clone(),up:up.clone(),depth:d};break;
+   }
+   if(!anchor)return false;result.push(anchor);
+  }
+  e.anchors=result;return true;
+ }
+ function updateWorld(p,camera,mobile,a,mask,roots){
+  if(Math.abs(a-aspect)>.1){clear();aspect=a;}const anim=shotAnimation(p,mask),card=anim.card;
+  if(!entries.has(card.name))build(card,mobile);
+  for(const e of entries.values())e.group.visible=false;active=entries.get(card.name)??null;
+  if(!active)return {ready:false,visible:false,shot:card.name};
+  if(!active.anchors&&!placeWorld(active,mobile,a,roots))return {ready:false,visible:false,shot:card.name};
+  const {group}=active;group.position.set(0,0,0);group.quaternion.identity();group.scale.setScalar(1);group.visible=anim.alpha>.02;
+  const t=anim.local;
+  for(const [i,m] of group.children.entries()){
+   const anchor=active.anchors[i],alpha=anim.alpha*(i===0?1:Math.min(1,Math.max(0,(t-i*.065)*8)));
+   m.visible=alpha>.025;m.material.opacity=alpha;
+   m.scale.setScalar(anchor.scale);m.quaternion.copy(anchor.rotation);
+   m.position.copy(anchor.point).sub(anchor.center.clone().multiplyScalar(anchor.scale).applyQuaternion(anchor.rotation));
+   m.position.addScaledVector(anchor.up,(1-alpha)*.055).addScaledVector(anchor.right,Math.sin(t*Math.PI)*.045*(i%2?1:-1));
+  }
+  group.updateMatrixWorld(true);
+  return {ready:true,visible:group.visible,shot:card.name,roles:active.roles,alpha:anim.alpha,focus:card.focus,intent:card.intent,bodyLines:active.bodyLines.length};
+ }
  function update(p,camera,mobile,a,mask,roots){
+  if(world&&rail)return updateWorld(p,camera,mobile,a,mask,roots);
   if(Math.abs(a-aspect)>.1){clear();aspect=a;}const anim=shotAnimation(p,mask),card=anim.card;
   if(!entries.has(card.name))build(card,mobile);
   for(const e of entries.values())e.group.visible=false;active=entries.get(card.name)??null;if(!active)return {ready:false,visible:false,shot:card.name};
@@ -61,6 +122,6 @@ export function createSpatialNarrativeText(scene,onReady){
   group.updateMatrixWorld(true);
   return {ready:true,visible:group.visible,shot:card.name,roles:active.roles,alpha:anim.alpha,focus:card.focus,intent:card.intent,span,bodyLines:active.bodyLines.length};
  }
- function inspect(camera){if(!active)return [];const {group,card,roles}=active;return group.children.filter(m=>m.visible&&group.visible).map(m=>{m.updateMatrixWorld(true);const b=m.geometry.boundingBox,points=[];for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z])points.push(V(x,y,z).applyMatrix4(m.matrixWorld).project(camera));return {name:card.name,role:m.name,inside:points.every(q=>Math.abs(q.x)<1&&Math.abs(q.y)<1&&Math.abs(q.z)<1),span:(Math.max(...points.map(q=>q.x))-Math.min(...points.map(q=>q.x)))/2,opacity:m.material.opacity,triangles:(m.geometry.index?.count??m.geometry.attributes.position.count)/3};});}
- return {update,inspect,ready:()=>!!font&&!!logo,dispose(){disposed=true;clear();},diagnostics(){return [...entries.values()].map(e=>({name:e.card.name,roles:e.roles,bodyLines:e.bodyLines,titleLines:e.titleLines,focus:e.card.focus,intent:e.card.intent}));}};
+ function inspect(camera){if(!active)return [];const {group,card,roles}=active;return group.children.filter(m=>m.visible&&group.visible).map(m=>{m.updateMatrixWorld(true);const b=m.geometry.boundingBox,points=[];for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z])points.push(V(x,y,z).applyMatrix4(m.matrixWorld).project(camera));return {name:card.name,role:m.name,worldAnchor:active.anchors?.[group.children.indexOf(m)]?.point.toArray()??null,inside:points.every(q=>Math.abs(q.x)<1&&Math.abs(q.y)<1&&Math.abs(q.z)<1),span:(Math.max(...points.map(q=>q.x))-Math.min(...points.map(q=>q.x)))/2,opacity:m.material.opacity,triangles:(m.geometry.index?.count??m.geometry.attributes.position.count)/3};});}
+ return {update,inspect,ready:()=>!!font&&!!logo,dispose(){disposed=true;clear();},diagnostics(){return [...entries.values()].map(e=>({name:e.card.name,roles:e.roles,bodyLines:e.bodyLines,anchors:e.anchors?.map(a=>({point:a.point.toArray(),depth:a.depth}))??[],titleLines:e.titleLines,focus:e.card.focus,intent:e.card.intent}));}};
 }
