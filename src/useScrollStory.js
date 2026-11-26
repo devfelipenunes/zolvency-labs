@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react';
 import {storyProgress} from './graphics/facilityCamera.js';
 import {boundaryKey} from './graphics/boundaryKey.js';
+import {composedRailMode} from './graphics/composedRail.js';
 export function useScrollStory(story,{editorial=false,edition='control',onProgress}={}){
  const [state,setState]=useState(()=>({progress:0,index:0,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches}));
  useEffect(()=>{
@@ -8,7 +9,7 @@ export function useScrollStory(story,{editorial=false,edition='control',onProgre
  function measure(){
   const sections=[...story.current.querySelectorAll('section')],mobile=innerWidth<720;
   if(editorial&&!media.matches&&pacingModule){
-   if(!pacing||pacing.mobile!==mobile){pacing=pacingModule.getPacing(mobile,edition);pacing.mobile=mobile;}
+   if(!pacing||pacing.mobile!==mobile){pacing=pacingModule.getPacing(mobile,edition,composedRailMode(location.search));pacing.mobile=mobile;}
    for(let i=0;i<sections.length;i++)sections[i].style.setProperty('--pace-height',(pacing.chapters[i].vh+(i===6?1:0))*100+'svh');
   }else{for(const s of sections)s.style.removeProperty('--pace-height');}
   starts=sections.map((s,i)=>i===0?0:s.getBoundingClientRect().top+scrollY);max=document.documentElement.scrollHeight-innerHeight;dirty=false;

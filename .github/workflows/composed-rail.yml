@@ -1,0 +1,52 @@
+name: Composed camera rail browser validation
+on:
+  pull_request:
+    branches: [feat/v0.31-directed-experience]
+    paths:
+      - 'src/graphics/composedRail.js'
+      - 'scripts/composed-rail-check.mjs'
+      - 'scripts/editorial-experience-check.mjs'
+      - '.github/workflows/composed-rail.yml'
+      - 'package.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: composed-rail-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  seven-acts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        view: [desktop]
+    env:
+      EDITORIAL_INTEGRATED: '1'
+      EDITORIAL_DIRECTION: staged
+      EDITORIAL_TRAVEL: responsive
+      EDITORIAL_PROFILE: economy
+      EDITORIAL_RAIL: composed
+      EDITORIAL_COPY: manifesto
+      EDITORIAL_VIEW: ${{ matrix.view }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/composed-rail-check.mjs
+      - run: node scripts/editorial-experience-check.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: composed-rail-${{ matrix.view }}
+          path: |
+            artifacts/composed-rail/
+            artifacts/integrated-cinematic/
