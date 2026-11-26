@@ -4,13 +4,13 @@ import {directedNarrative} from './directedNarrative.js';
 // One immutable world transform per chapter; camera used once to discover a surface,
 // never parented to the live camera. Failed support/readability checks keep HTML.
 export const worldTypeSpecs=Object.freeze([
- {name:'ORIGIN',hold:.055,root:'hangar',screen:[-.25,-.25],span:.46,min:1.5,max:5.8},
+ {name:'ORIGIN',hold:.055,root:'hangar',screen:[-.25,-.48],span:.40,min:1.5,max:5.8},
  {name:'BLOCKCHAIN',hold:.205,root:'servers',screen:[-.45,.12],span:.43,min:.35,max:1.8},
  {name:'STELLAR',hold:.405,root:'servers',screen:[.42,.05],span:.43,min:.35,max:1.8},
- {name:'CRYPTOGRAPHY',hold:.625,root:'portal',screen:[-.38,.15],span:.40,min:.35,max:1.7},
- {name:'INTELLIGENCE',hold:.73,root:'bridge',screen:[.42,.10],span:.43,min:.40,max:2.0},
- {name:'QUANTUM',hold:.935,root:'reactor-room',screen:[.48,-.05],span:.39,min:.8,max:4.0},
- {name:'CONVERGENCE',hold:.992,root:'hangar',screen:[0,-.24],span:.49,min:1.5,max:6.0}
+ {name:'CRYPTOGRAPHY',hold:.625,root:'portal',screen:[-.34,-.02],span:.40,min:.35,max:1.7},
+ {name:'INTELLIGENCE',hold:.73,root:'bridge',screen:[.42,-.22],span:.40,min:.40,max:2.0},
+ {name:'QUANTUM',hold:.935,root:'reactor-room',screen:[.53,-.15],span:.35,min:.8,max:4.0},
+ {name:'CONVERGENCE',hold:.992,root:'hangar',screen:[0,-.34],span:.45,min:1.5,max:6.0}
 ].map(Object.freeze));
 export const TEX_WIDTH=1024,TEX_HEIGHT=512;
 const up=new THREE.Vector3(0,1,0),V=(...v)=>new THREE.Vector3(...v);
@@ -54,12 +54,12 @@ function anchor(spec,camera,root,roots,ray){
     for(const u of [-.45,0,.45])for(const v of [-.42,0,.42]){
      const q=center.clone().addScaledVector(right,u*w).addScaledVector(up,v*h).addScaledVector(n,.09);
      ray.set(q,n.clone().negate());ray.near=0;ray.far=.18;
-     if(ray.intersectObject(root,true).some(k=>allowed(k)&&k.object===hit.object))support++;
+     const contact=ray.intersectObject(root,true).find(allowed);if(contact){const sn=contact.face.normal.clone().applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(contact.object.matrixWorld));if(Math.abs(sn.dot(n))>.96&&Math.abs(contact.point.clone().sub(center).dot(n))<.065)support++;}
     }
-    if(support<8)continue;
+    if(support<9)continue;
     const m=frameMetrics(camera,center,right,up,w,h,roots,ray);
     if(m.inFrame<1||m.clear<.89||m.spanX<.18||m.spanY<.085)continue;
-    candidates.push({center,right,normal:n,width:w,height:h,mesh:hit.object.name,metrics:m,facing,support: support/9,score:m.spanX*3+facing*.4-support*.0-Math.hypot(dx,dy)*.45});
+    candidates.push({center,right,normal:n,width:w,height:h,mesh:hit.object.name,metrics:m,facing,support: support/9,score:m.spanX*2+facing*.4-Math.hypot(dx,dy)*1.25});
    }
   }
  }
@@ -79,7 +79,7 @@ function spatialAnchor(spec,camera,roots,ray){
    const w=THREE.MathUtils.clamp(2*depth*Math.tan(THREE.MathUtils.degToRad(camera.fov)/2)*camera.aspect*spec.span,spec.min*.4,spec.max),h=w/2;
    const metrics=frameMetrics(camera,center,right,vertical,w,h,roots,ray);
    if(metrics.inFrame<1||metrics.clear<1||metrics.spanX<.24||metrics.spanY<.10)continue;
-   candidates.push({center,right,vertical,normal,width:w,height:h,mesh:hit.object.name,metrics,facing:1,support:0,kind:'spatial-free-plane',score:metrics.spanX*2+ratio*.6-Math.hypot(dx,dy)*.45});
+   candidates.push({center,right,vertical,normal,width:w,height:h,mesh:hit.object.name,metrics,facing:1,support:0,kind:'spatial-free-plane',score:metrics.spanX*2+ratio*.6-Math.hypot(dx,dy)*1.25});
   }
  }
  return candidates.sort((a,b)=>b.score-a.score)[0]??null;
@@ -106,7 +106,7 @@ export function createWorldType(scene,chapters,mode='flat'){
   const b=directedNarrative(p,mask),e=entries[b.index];let active=!!e?.mesh;
   // The portrait camera is independently composed. No invisible/reflowed world text;
   // keep HTML until a dedicated portrait plane has been verified.
-  if(mobile||aspect<1.25||aspect>2.1)active=false;
+  if(mobile||aspect<1.55||aspect>1.95)active=false;
   for(const x of entries)if(x.mesh){x.mesh.visible=active&&!suppress&&x===e&&b.alpha>.02;x.mesh.material.opacity=b.alpha;}
   return {active,name:e?.spec.name??'',reason:active?e.reason:mobile?'portrait-fallback':e?.reason??'unprepared'};
  }
