@@ -3,7 +3,7 @@ import {ramp,windows} from './facilityCamera.js';
 // All coordinates are metres in the facility's existing world space.
 export const referenceFrames=[
  {name:'ORIGIN',p:.055,subject:'hangar / physical wordmark',palette:'graphite / teal'},
- {name:'BLOCKCHAIN',p:.205,subject:'live server faces',palette:'steel / muted mint'},
+ {name:'STELLAR',p:.405,subject:'live server faces',palette:'steel / muted mint'},
  {name:'QUANTUM',p:.935,subject:'suspended cryostat',palette:'amber / petrol'}
 ];
 export const brandSurfaces={
