@@ -55,3 +55,17 @@ test('successful partial downloads are retained even when another file fails',as
  assert.equal((await stageAssets([a,b],{...o,fetchImpl:async u=>{assert.ok(u.pathname.endsWith('b.glb'));return new Response('next');}})).local,1);
  assert.ok((await readdir(o.cacheDir)).every(x=>/^[0-9a-f]{64}$/.test(x)));
 });
+
+test('published recovery uses fixed HTTPS mirror but preserves the upstream lock and offline cache',async t=>{
+ const o=await fixture(t),f=entry('rack.glb','good');let calls=0;
+ const res=await stageAssets([f],{...o,published:true,fetchImpl:async(url,options)=>{calls++;assert.equal(url.href,'https://zolvency-labs.vercel.app/models/facility/rack.glb');assert.equal(options.redirect,'error');return new Response('good');}});
+ assert.equal(res.downloaded,1);assert.equal(calls,1);
+ const manifest=JSON.parse(await readFile(path.join(o.dir,'manifest.json'),'utf8'));assert.equal(manifest.assets[0].url,f.url);
+ await rm(o.dir,{recursive:true});assert.equal((await stageAssets([f],{...o,offline:true,fetchImpl:async()=>assert.fail('unexpected network')})).cache,1);
+});
+test('published recovery rejects wrong bytes and retains TLS verification',async t=>{
+ const o=await fixture(t),f=entry('rack.glb','good');
+ await assert.rejects(stageAssets([f],{...o,published:true,fetchImpl:async()=>new Response('evil')}),/SHA-256/);
+ await assert.rejects(readFile(dest(o,f)),{code:'ENOENT'});
+ await assert.rejects(stageAssets([f],{...o,published:true,fetchImpl:async()=>{throw Object.assign(Error('fetch failed'),{cause:{code:'SELF_SIGNED_CERT_IN_CHAIN'}});}}),/zolvency-labs.vercel.app.*SELF_SIGNED_CERT_IN_CHAIN/s);
+});
