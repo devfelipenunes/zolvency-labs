@@ -1,7 +1,7 @@
 import {createPacing} from '../src/graphics/cameraPacing.js';
-import {writeFile} from 'node:fs/promises';
-// The committed empty fallback allows plain node --test and the generator itself
-// to work from a fresh checkout. predev/prebuild replaces it with exact tables.
-const desktop=createPacing({mobile:false}).chapters,mobile=createPacing({mobile:true}).chapters;
-await writeFile(new URL('../src/graphics/generatedPacing.json',import.meta.url),JSON.stringify({desktop,mobile})+'\n');
-console.log('Prepared exact desktop/mobile pacing tables',desktop.length,mobile.length);
+import {readFile,writeFile} from 'node:fs/promises';
+const path=new URL('../src/graphics/generatedPacing.json',import.meta.url);
+const next={desktop:createPacing({mobile:false}).chapters,mobile:createPacing({mobile:true}).chapters};
+let previous;try{previous=JSON.parse(await readFile(path,'utf8'));}catch{}
+const equivalent=(a,b)=>a&&b&&a.length===b.length&&a.every((v,i)=>['lo','hi','vh','cost'].every(k=>Math.abs(v[k]-b[i][k])<1e-10)&&v.curve.length===b[i].curve.length&&v.curve.every((x,j)=>Math.abs(x-b[i].curve[j])<1e-10));
+if(!equivalent(previous?.desktop,next.desktop)||!equivalent(previous?.mobile,next.mobile)){await writeFile(path,JSON.stringify(next)+'\n');console.log('Regenerated pacing tables after authored route change');}else console.log('Verified committed pacing tables; no source changes');
