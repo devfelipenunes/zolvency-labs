@@ -1,0 +1,2 @@
+# Front 3 — lighting, materials, finale (#91 #92 #108 #113)
+Independent bounded final-act adjustment, no added geometry or changes to Quantum. Compare same camera, local lighting, refraction and preflight with control at seven holds, desktop/portrait. Candidate must reduce bright floor without losing full original logo. Image luminance is not proof of subject legibility. Material/physical GPU review remains pending.
