@@ -24,7 +24,7 @@ export function cameraPose(progress,isMobile=false){
  const p=clamp(Number.isFinite(progress)?progress:0),keys=isMobile?mobile:desktop;
  let i=keys.findIndex((k,j)=>j<keys.length-1 && p<=keys[j+1][0]);if(i<0)i=keys.length-2;
  const a=keys[i],b=keys[i+1],t=ease((p-a[0])/(b[0]-a[0]));
- return {position:mix(a[1],b[1],t),target:mix(a[2],b[2],t),fov:isMobile?58:42};
+ return {position:mix(a[1],b[1],t),target:mix(a[2],b[2],t).map((v,i)=>i===0&&!isMobile?v-3.4:v),fov:isMobile?58:42};
 }
 // Section starts in actual document coordinates; the final segment ends at max scroll.
 export function storyProgress(scroll,starts,maxScroll){
