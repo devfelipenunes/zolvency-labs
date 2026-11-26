@@ -23,8 +23,8 @@ export function brandPlane(name,mobile,mode){
 }
 const envelope=(p,a,b,c,d)=>ramp(p,a,b)*(1-ramp(p,c,d));
 export function subjectGrade(look,p,variant){
- if(variant!=='subject')return look;
- const origin=1-ramp(p,.075,.115),rack=envelope(p,.115,.175,.42,.49),security=envelope(p,.51,.59,.64,.68),ops=envelope(p,.68,.715,.74,.81),final=ramp(p,.97,.995);
+ if(variant!=='subject'&&variant!=='ops-subject')return look;
+ const localOnly=variant==='ops-subject',origin=localOnly?0:1-ramp(p,.075,.115),rack=localOnly?0:envelope(p,.115,.175,.42,.49),security=localOnly?0:envelope(p,.51,.59,.64,.68),ops=envelope(p,.68,.715,.74,.81),final=localOnly?0:ramp(p,.97,.995);
  // No global exposure lift in Quantum. Brighten the opaque subject, not the rack glass.
  return {...look,fill:look.fill*(1+.20*origin+.18*rack+.16*ops+.12*final),head:look.head*(1+.25*rack+.12*ops),hall:look.hall*(1-.12*security-.16*final),exposure:look.exposure*(1+.05*origin+.06*rack+.07*ops),env:look.env};
 }
