@@ -45,13 +45,13 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false}
  // Layouts are fixed in the shot's world coordinates after the first successful placement.
  // Each role has a different depth and position. Only authored motion changes that transform.
  const layouts={
- ORIGIN:[[-.12,.18,.65,4.8],[-.30,-.28,.46,4.3],[-.27,-.61,.39,3.7],[0,-.80,.24,2.2]],
- BLOCKCHAIN:[[-.42,.46,.42,2.0],[-.42,-.12,.42,2.1],[-.42,-.59,.38,2.1]],
- STELLAR:[[-.41,.46,.40,2.5],[-.40,-.08,.38,2.1],[-.41,-.58,.37,2.4]],
+ ORIGIN:[[-.20,.25,.61,7.5],[-.28,-.28,.42,5.5],[-.28,-.59,.30,4.4],[0,-.80,.20,3.2]],
+ BLOCKCHAIN:[[.37,.45,.40,2.6],[.37,-.08,.36,2.5],[.37,-.58,.29,2.5]],
+ STELLAR:[[.38,.44,.37,2.5],[.39,-.08,.35,2.2],[.39,-.58,.29,2.4]],
  CRYPTOGRAPHY:[[0,.52,.60,3.3],[-.42,.03,.38,2.4],[.37,-.53,.39,2.8]],
- INTELLIGENCE:[[-.37,.48,.42,3.1],[-.43,-.14,.38,2.7],[-.42,-.57,.37,3.3]],
+ INTELLIGENCE:[[.37,.47,.38,3.5],[.39,-.12,.35,3.0],[.39,-.60,.29,3.3]],
  QUANTUM:[[-.61,.42,.27,3.8],[-.60,-.13,.30,4.1],[-.58,-.60,.32,3.6]],
- CONVERGENCE:[[.05,.31,.60,5.5],[.07,-.22,.43,4.8],[.08,-.58,.38,4.4]]
+ CONVERGENCE:[[.02,.36,.57,7.2],[.03,-.18,.37,5.2],[.03,-.58,.29,4.4]]
  };
  function isBlocked(origin,point,roots){
   const dir=point.clone().sub(origin),dist=dir.length();ray.set(origin,dir.normalize());ray.near=.08;ray.far=Math.max(.09,dist-.035);
@@ -92,7 +92,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false}
   const {group}=active;group.position.set(0,0,0);group.quaternion.identity();group.scale.setScalar(1);group.visible=anim.alpha>.02;
   const t=anim.local;
   for(const [i,m] of group.children.entries()){
-   const anchor=active.anchors[i],enter=i===0?1:ramp(t,i===1?.16:i===2?.32:.05,i===1?.34:i===2?.46:.18);const hold=(card.hold-windows[anim.index])/(windows[anim.index+1]-windows[anim.index]);const exit=anim.index===6?1:1-ramp(t,Math.max(hold+.025,i===0?.69:.74),Math.max(hold+.075,i===0?.86:.88));const alpha=anim.alpha*enter*exit;
+   const anchor=active.anchors[i],hold=(card.hold-windows[anim.index])/(windows[anim.index+1]-windows[anim.index]);const delayed=card.name!=='QUANTUM'&&i===2;const enter=i===0?1:delayed?ramp(t,Math.max(.16,hold-.12),Math.min(.95,hold+.13)):ramp(t,i===1?.16:i===2?.32:.05,i===1?.34:i===2?.46:.18);const exit=anim.index===6?1:1-ramp(t,Math.max(hold+.025,i===0?.69:.74),Math.max(hold+.075,i===0?.86:.88));const alpha=anim.alpha*enter*exit;
    m.visible=alpha>.025;m.material.opacity=alpha;
    // Put fully revealed lettering into the opaque pass so transmissive surfaces cannot erase it.
    const opaque=alpha>.995;if(m.material.transparent===opaque){m.material.transparent=!opaque;m.material.depthWrite=opaque;m.material.needsUpdate=true;}
