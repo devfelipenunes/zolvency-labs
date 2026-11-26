@@ -1,0 +1,48 @@
+name: Offline facility startup
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'assets/**'
+      - 'scripts/*facility*.mjs'
+      - 'scripts/stage-decoders.mjs'
+      - 'package.json'
+      - 'tests/facilityAssets.test.js'
+      - '.github/workflows/offline-facility.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cold:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Cold preparation with network fetch forbidden
+        run: |
+          rm -rf public/models .cache/facility
+          node --input-type=module -e "globalThis.fetch=()=>{throw Error('Unexpected asset network access')};await import('./scripts/stage-facility.mjs')"
+          rm -rf public/models .cache/facility
+          npm run build
+          rm -rf public/models .cache/facility
+      - name: Ordinary development command on empty cache
+        run: |
+          npm run dev > /tmp/zolvency-dev.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true; cat /tmp/zolvency-dev.log' EXIT
+          for attempt in $(seq 1 45); do
+            if curl --fail --silent http://127.0.0.1:5173/ >/tmp/index.html; then break; fi
+            sleep 1
+          done
+          grep -q 'bundled: 21 downloaded: 0' /tmp/zolvency-dev.log
+          curl --fail --silent http://127.0.0.1:5173/models/facility/hangar.glb >/tmp/hangar.glb
+          cmp /tmp/hangar.glb assets/vendor/facility/hangar.glb
+          curl --fail --silent http://127.0.0.1:5173/models/basis/basis_transcoder.wasm >/tmp/basis.wasm
+          cmp /tmp/basis.wasm node_modules/three/examples/jsm/libs/basis/basis_transcoder.wasm
+      - run: node --test tests/facilityAssets.test.js
