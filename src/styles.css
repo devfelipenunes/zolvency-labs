@@ -285,3 +285,10 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
 #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ .track{--track-progress:var(--visual-progress,0)}
 #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ .track [data-native-label]{display:none}
 #stage[data-experience="editorial"][data-direction="staged"][data-renderer="three"] ~ .track [data-camera-label]{display:inline}
+
+/* Portrait audition: preserve native scroll, avoid safe-area collisions, no extra controls. */
+@media(max-width:719px) and (orientation:portrait){
+ #stage[data-framing="portrait"][data-direction="staged"][data-renderer="three"] ~ main .chapter[data-side] .copy,
+ #stage[data-framing="portrait"][data-direction="staged"][data-renderer="three"] ~ main :is(.chapter[data-name="ORIGIN"],.chapter[data-name="CONVERGENCE"],.chapter[data-name="STELLAR"],.chapter[data-name="CRYPTOGRAPHY"],.chapter[data-name="INTELLIGENCE"],.chapter[data-name="QUANTUM"]) .copy{bottom:calc(62px + env(safe-area-inset-bottom,0px))}
+ #stage[data-framing="portrait"][data-direction="staged"] ~ .track{bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+}
