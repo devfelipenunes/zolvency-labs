@@ -20,6 +20,7 @@ const external=(id,position,extra={})=>({id,file:id+'-lod1.glb',lowFile:id+'-lod
 export function spatialFacility(mode){
  if(mode==='baseline')return facility;
  const base=[...facility.filter(s=>s.id!=='cable'),external('rooftop-cable-tray',[5.5,0,5],{mount:'server-roof',priority:1})];
+ if(mode==='connected')return base.map(s=>s.id==='bridge'?{...s,openFront:false,aperture:{left:-6.9,right:-4.1,bottom:-.2,top:2.65}}:s);
  if(mode==='lab')return [...base,external('cleanroom-airlock',[0,0,-2.20],{priority:3}),external('lab-drawer-bench',[7.7,0,-9.4],{priority:5})];
  return base;
 }
