@@ -62,6 +62,6 @@ export function reviewPose(p,mobile=false,reactor=true,route='aisle',angle='devi
  const w=(s.a===0?1:ramp(p,s.a,s.b))*(s.c===s.z?1:1-ramp(p,s.c,s.z));
  const aim=route==='facade'&&s.name==='BLOCKCHAIN'?[6.35,1.65,5]:(art?artAim(s.name,mobile,angle,composition):null)??s.aim;
  const blend=art&&s.name==='STELLAR'?1:.90;
- const lens=s.name==='ORIGIN'&&composition==='close'?42:s.fov;
+ const lens=s.name==='ORIGIN'&&['close','brand-hero'].includes(composition)?42:s.fov;
  return {...pose,target:pose.target.map((x,i)=>x+(aim[i]-x)*w*blend),fov:pose.fov+(lens+(mobile?9:0)-pose.fov)*w*.8};
 }
