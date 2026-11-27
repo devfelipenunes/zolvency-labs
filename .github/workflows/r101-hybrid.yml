@@ -1,7 +1,7 @@
 name: Hybrid experience foundation
 on:
   pull_request:
-    branches: [preview/r94-immersive-roadmap, preview/r88-integrated-candidate, main]
+    branches: [preview/r95-r101-hybrid-foundation, preview/r94-immersive-roadmap, preview/r88-integrated-candidate, main]
     paths: ['src/experience/**','src/App.jsx','src/useScrollStory.js','tests/r95-facility-range.test.js','tests/r102-mandate-policy.test.js','scripts/r101-hybrid-check.mjs','.github/workflows/r101-hybrid.yml']
   workflow_dispatch:
 permissions:
