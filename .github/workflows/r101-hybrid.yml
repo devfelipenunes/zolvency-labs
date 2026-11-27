@@ -28,8 +28,12 @@ jobs:
       - run: node scripts/r101-hybrid-check.mjs
         env:
           HYBRID_LIVE: ${{ matrix.live }}
+      - run: node scripts/r106-editorial-budget.mjs
+        if: matrix.live == '0'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: hybrid-${{ matrix.live }}
-          path: artifacts/hybrid/
+          path: |
+            artifacts/hybrid/
+            artifacts/editorial-budget/
