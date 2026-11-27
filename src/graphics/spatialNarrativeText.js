@@ -13,13 +13,14 @@ import {livingCopy,selectedCopy} from './livingCopy.js';
 import {motion as livingMotion} from './livingTypeMotion.js';
 import {glyphPhase,glyphTransform} from './glyphChoreography.js';
 import {createGlyphRig} from './glyphRig.js';
+import {createContinuousTitle} from './continuousTitle.js';
 
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 // All visible narrative text is triangulated, extruded glyph geometry, including body copy.
 // One merged mesh per role keeps draw calls low. The editorial rig follows the shot,
 // with controlled perspective, depth and rotation; it is not a physical wall sign.
-export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default',brandOnly=false,reusePlacement=false,flow3d=false,livingType=false,glyphType=false,architectureType=false,selectedType=false,curvedType=false,typeFinish='mineral',holdPose=null}={}){
- let font=null,logo=null,disposed=false,aspect=0,active=null,layoutMobile=null,builds=0,placementResets=0;const entries=new Map(),ray=new THREE.Raycaster();
+export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default',brandOnly=false,reusePlacement=false,flow3d=false,livingType=false,glyphType=false,architectureType=false,selectedType=false,curvedType=false,continuousType=false,typeFinish='mineral',holdPose=null}={}){
+ let font=null,logo=null,disposed=false,aspect=0,active=null,layoutMobile=null,builds=0,placementResets=0;const entries=new Map(),ray=new THREE.Raycaster();let continuous=null;
  if(!brandOnly)new FontLoader().loadAsync(import.meta.env.BASE_URL+'models/fonts/helvetiker_regular.typeface.json').then(f=>{if(!disposed){font=f;onReady();}}).catch(()=>{});
  new SVGLoader().loadAsync(import.meta.env.BASE_URL+'brand/zolvency.svg').then(d=>{if(!disposed){logo=d.paths.flatMap(p=>SVGLoader.createShapes(p));onReady();}}).catch(()=>{});
  function width(s){let x=0;for(const c of s)x+=(font.data.glyphs[c]?.ha??font.data.glyphs['?']?.ha??600)/font.data.resolution;return x;}
@@ -114,7 +115,8 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
    // Origin logo is already present at opening; moves out with the other letters.
    if(phase.index!==0||phase.kind==='exit'){mark.position.x+=v[0]*halfW/scale;mark.position.y+=v[1]*halfH/scale;mark.position.z+=v[2]*halfH/scale;mark.rotation.y=v[4];}else mark.rotation.y=0;mark.visible=group.visible;}
   group.updateMatrixWorld(true);
-  return {ready:true,visible:group.visible,shot:card.name,roles:active.roles,alpha:group.visible?1:0,focus:card.focus,intent:card.intent,bodyLines:active.bodyLines.length,copyVisible:group.visible};
+  const bridging=continuous?.update(p,mask)??false;if(bridging)headline.visible=false;
+  return {ready:true,visible:group.visible,shot:card.name,roles:bridging?active.roles.filter(r=>r!=='headline').concat('continuous-title'):active.roles,alpha:group.visible?1:0,focus:card.focus,intent:card.intent,bodyLines:active.bodyLines.length,copyVisible:group.visible,transition:continuous?.diagnostics()??null};
  }
  function buildFlow(card,mobile){
   if(glyphType)return buildGlyphs(card);
@@ -131,7 +133,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   for(const m of group.children)m.position.sub(center);
   scene.add(group);const e={card,group,titleLines,bodyLines,roles:group.children.map(m=>m.name),height:size.y,width:size.x};entries.set(card.name,e);return e;
  }
- function prebuild(mobile){if(!flow3d)return;if(layoutMobile!==mobile){clear();layoutMobile=mobile;}for(const card of cards)if(!entries.has(card.name))buildFlow(card,mobile);}
+ function prebuild(mobile){if(!flow3d)return;if(layoutMobile!==mobile){clear();layoutMobile=mobile;}for(const card of cards)if(!entries.has(card.name))buildFlow(card,mobile);if(continuousType&&!continuous&&entries.size===cards.length)continuous=createContinuousTitle(entries.get(cards[1].name),entries.get(cards[2].name),scene);}
  function updateFlow(p,camera,mobile,a,mask,roots){
   if(layoutMobile!==mobile||entries.size!==cards.length)prebuild(mobile);
   if(glyphType)return updateGlyphFlow(p,camera,a,mask,mobile,roots);
@@ -168,7 +170,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   const box=new THREE.Box3().setFromObject(group);for(const m of group.children)m.position.y-=box.getCenter(V()).y;
   scene.add(group);const e={card,group,titleLines,bodyLines,roles:group.children.map(o=>o.name),height:box.getSize(V()).y};entries.set(card.name,e);return e;
  }
- function clear(){for(const e of entries.values()){e.group.removeFromParent();for(const m of e.group.children){m.geometry.dispose();m.material.dispose();}}entries.clear();active=null;}
+ function clear(){continuous?.dispose();continuous=null;for(const e of entries.values()){e.group.removeFromParent();for(const m of e.group.children){m.geometry.dispose();m.material.dispose();}}entries.clear();active=null;}
 
  // Layouts are fixed in the shot's world coordinates after the first successful placement.
  // Each role has a different depth and position. Only authored motion changes that transform.

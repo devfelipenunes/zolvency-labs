@@ -40,5 +40,5 @@ export function createGlyphRig({font,lines,size,x,y,step,depth,bevel,color,role,
   }
   pos.needsUpdate=true;if(lit)geometry.attributes.normal.needsUpdate=true;
  }
- mesh.userData.glyphRig={update,diagnostics:()=>last,restBounds:geometry.boundingBox.clone(),glyphCount:glyphs.length};return mesh;
+ mesh.userData.glyphRig={update,diagnostics:()=>last,restData:()=>({glyphs,positions:rest,normals:restNormals??normals}),restBounds:geometry.boundingBox.clone(),glyphCount:glyphs.length};return mesh;
 }
