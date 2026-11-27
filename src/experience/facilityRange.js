@@ -7,5 +7,5 @@ export function facilityProgress(scroll,starts,end,viewport){
 }
 export function facilityWindow(scroll,portalTop,start,end,viewport){
  if(![scroll,portalTop,start,end,viewport].every(Number.isFinite)||viewport<=0||end<=start)return {near:false,visible:false};
- return {near:scroll>=portalTop-viewport*.75&&scroll<end+viewport*.35,visible:scroll>=start-viewport*.15&&scroll<end};
+ return {near:scroll>=portalTop-viewport*.75&&scroll<end-1,visible:scroll>=start-viewport*.15&&scroll<end-1};
 }
