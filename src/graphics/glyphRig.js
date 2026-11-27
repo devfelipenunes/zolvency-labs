@@ -7,6 +7,7 @@ import {directedBodyTransform} from './directedTypeLayout.js';
 import {livingImpulse,ambientBlend} from './aliveType.js';
 import {cameraRibbonGlyph} from './orderedRibbon.js';
 import {sculptedGlyph,cinematicGlyph} from './sculptedFlow.js';
+import {stageGlyphOffset} from './stageHandoff.js';
 import {bakeGlyphContact,sampleGlyphContact} from './r67/glyph-contact.js';
 import {createPalette,glyphMatrix,attachPalette} from './r67/gpu-benchmark.js';
 // One dynamic geometry per role; each glyph has a contiguous vertex range.
@@ -35,14 +36,14 @@ export function createGlyphRig({font,lines,size,x,y,step,depth,bevel,color,role,
  const palette=gpu?createPalette(glyphs.length):null;if(palette){const index=new Float32Array(pos.count);for(const [i,g] of glyphs.entries())index.fill(i,g.start,g.start+g.count);geometry.setAttribute('glyphIndex',new THREE.BufferAttribute(index,1));attachPalette(material,palette);pos.setUsage(THREE.StaticDrawUsage);geometry.attributes.normal.setUsage(THREE.StaticDrawUsage);}
  const mesh=new THREE.Mesh(geometry,material);mesh.name=role;mesh.frustumCulled=false;
  const baked=contact&&role==='headline'?bakeGlyphContact(glyphs):null;let key='',last=[],restored=true;const euler=new THREE.Euler(),rotation=new THREE.Matrix4();
- function update(act,phase,halfW,halfH,seconds=null){
-  const live=Number.isFinite(seconds),next=phase.kind==='hold'&&!live?'hold':[act,phase.kind,phase.u,halfW,halfH,seconds].join(':');if(next===key)return;key=next;
+ function update(act,phase,halfW,halfH,seconds=null,handoff=null){
+  const live=Number.isFinite(seconds),next=phase.kind==='hold'&&!live?'hold':[act,phase.kind,phase.u,halfW,halfH,seconds,handoff?.kind,handoff?.u,handoff?.direction].join(':');if(next===key)return;key=next;
   if(phase.kind==='hold'&&!live){
    if(!restored){if(palette){const identity=new THREE.Matrix4();for(let i=0;i<glyphs.length;i++)palette.set(i,identity);palette.commit();}else{pos.array.set(rest);pos.needsUpdate=true;if(lit){normals.set(restNormals);geometry.attributes.normal.needsUpdate=true;}}}restored=true;last=glyphs.map(g=>({char:g.char,translation:[0,0,0],rotation:[0,0,0]}));return;
   }
   restored=false;last=[];const a=pos.array;const offsets=baked&&act===1&&phase.kind==='enter'?sampleGlyphContact(baked,glyphs.length,phase.u):null;
   for(let i=0;i<glyphs.length;i++){
-   const g=glyphs[i],v=ribbon&&role==='headline'?[0,0,0,0,0,0]:phase.kind==='hold'?[0,0,0,0,0,0]:directedBody&&role==='body'?directedBodyTransform(i,glyphs.length,phase):curved?choreograph(act,i,glyphs.length,phase.u,phase.kind==='exit',role):glyphTransform(act,i,glyphs.length,phase,role),pulse=cinematic?cinematicGlyph(act,seconds,g,lineRanges.get(g.line),role):sculpted?sculptedGlyph(act,seconds,g,lineRanges.get(g.line),role):ribbon?cameraRibbonGlyph(act,i,glyphs.length,seconds,role):livingImpulse(act,i,glyphs.length,seconds,role),blend=ribbon?1:ambientBlend(phase),tx=v[0]*halfW+(ribbon?0:offsets?.[i]??0)+pulse[0]*blend,ty=v[1]*halfH+pulse[1]*blend,tz=v[2]*halfH+pulse[2]*blend;if(ribbon){v[3]+=pulse[3];v[4]+=pulse[4];v[5]+=pulse[5];}
+   const g=glyphs[i],v=ribbon&&role==='headline'?[0,0,0,0,0,0]:phase.kind==='hold'?[0,0,0,0,0,0]:directedBody&&role==='body'?directedBodyTransform(i,glyphs.length,phase):curved?choreograph(act,i,glyphs.length,phase.u,phase.kind==='exit',role):glyphTransform(act,i,glyphs.length,phase,role),pulse=cinematic?cinematicGlyph(act,seconds,g,lineRanges.get(g.line),role):sculpted?sculptedGlyph(act,seconds,g,lineRanges.get(g.line),role):ribbon?cameraRibbonGlyph(act,i,glyphs.length,seconds,role):livingImpulse(act,i,glyphs.length,seconds,role),blend=ribbon?1:ambientBlend(phase),tx=v[0]*halfW+(ribbon?0:offsets?.[i]??0)+pulse[0]*blend+(handoff?stageGlyphOffset(handoff,(g.center.x-lineRanges.get(g.line).min)/Math.max(.001,lineRanges.get(g.line).max-lineRanges.get(g.line).min),role)*halfW:0),ty=v[1]*halfH+pulse[1]*blend,tz=v[2]*halfH+pulse[2]*blend;if(ribbon){v[3]+=pulse[3];v[4]+=pulse[4];v[5]+=pulse[5];}
    rotation.makeRotationFromEuler(euler.set(v[3],v[4],v[5]));const m=rotation.elements,center=g.center;
    if(palette)palette.set(i,glyphMatrix(center,[tx,ty,tz],v.slice(3)));else for(let j=g.start*3,end=(g.start+g.count)*3;j<end;j+=3){const x=rest[j]-center.x,y=rest[j+1]-center.y,z=rest[j+2]-center.z;a[j]=m[0]*x+m[4]*y+m[8]*z+center.x+tx;a[j+1]=m[1]*x+m[5]*y+m[9]*z+center.y+ty;a[j+2]=m[2]*x+m[6]*y+m[10]*z+center.z+tz;if(lit){const nx=restNormals[j],ny=restNormals[j+1],nz=restNormals[j+2];normals[j]=m[0]*nx+m[4]*ny+m[8]*nz;normals[j+1]=m[1]*nx+m[5]*ny+m[9]*nz;normals[j+2]=m[2]*nx+m[6]*ny+m[10]*nz;}}
    last.push({char:g.char,translation:[tx,ty,tz],rotation:v.slice(3)});
