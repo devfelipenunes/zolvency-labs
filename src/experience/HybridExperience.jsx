@@ -13,7 +13,8 @@ function useFacilityWindow(portal,story,facility,research){
 }
 export default function HybridExperience({Stage,SoundControl,mobileMotion}){
  const portal=useRef(null),story=useRef(null),facility=useRef(null),research=useRef(null),controller=useRef(null);
- const {progress,index,reduced}=useScrollStory(story,{nativeMotion:mobileMotion,onProgress:controller,localRange:true});
+ const spatialEntry=new URLSearchParams(location.search).get('type-entry')!=='control';
+ const {progress,index,reduced}=useScrollStory(story,{nativeMotion:mobileMotion,onProgress:controller,localRange:true,spatialEntry});
  const {near,visible}=useFacilityWindow(portal,story,facility,research);
  const [loading,setLoading]=useState(null),[light,setLight]=useState(false),[late,setLate]=useState(false);const latestProgress=useRef(progress);latestProgress.current=progress;
  const onStageLoading=status=>{if(status?.phase==='ready'&&latestProgress.current>.02)setLate(true);setLoading(status);};const flat=new URLSearchParams(location.search).get('renderer')==='canvas';
@@ -21,7 +22,7 @@ export default function HybridExperience({Stage,SoundControl,mobileMotion}){
  const enabled=near&&!reduced&&!light&&!flat,ready=enabled&&loading?.phase==='ready'&&!late;
  useEffect(()=>{if(!enabled){setLoading(null);setLate(false);}},[enabled]);
  useEffect(()=>{if(progress<=.02&&late)setLate(false);},[progress,late]);
- return <div className="hybrid-page" data-hybrid="true">
+ return <div className="hybrid-page" data-hybrid="true" data-spatial-entry={spatialEntry}>
   <a className="hybrid-skip" href="#research">Skip immersive experience</a>
   <header className="hybrid-editorial hybrid-hero" id="top">
    <nav aria-label="Main navigation" className="hybrid-nav"><a href="#top" aria-label="Zolvency Labs home"><img src={import.meta.env.BASE_URL+'brand/zolvency.svg'} alt="Zolvency Labs" width="1707" height="210"/></a><div><a href="#gateway">Experience</a><a href="#research">Research</a><a href="#work">Our work</a></div></nav>
