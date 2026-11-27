@@ -1,0 +1,243 @@
+{
+  "version": "1.0-draft",
+  "baseline": "f0ebe00b4319e00c9a5b5eb2eea1da1b016a7d4e",
+  "status": "design-only; unvalidated Blender parameters",
+  "progress": "global normalized rendered-camera progress; no runtime wall-clock animation",
+  "publicCopyPolicy": "Blockchain network-agnostic. legacyId is internal compatibility metadata, never rendered as copy.",
+  "mobile": {
+    "widths": [
+      320,
+      390,
+      430
+    ],
+    "baselineViewport": [
+      390,
+      844
+    ],
+    "titleMinCssPixels": 24,
+    "bodyMinCssPixels": 15,
+    "safeInsetFraction": 0.06,
+    "additionalDrawCallsTarget": 12,
+    "additionalTrianglesTarget": 25000,
+    "additionalCompressedBytesTarget": 400000,
+    "physicalFrameIntervalP95TargetMs": 33.3
+  },
+  "model": {
+    "fonts": [
+      "Space Grotesk",
+      "Manrope",
+      "Inter"
+    ],
+    "extrusionHeightRatio": [
+      0.06,
+      0.1
+    ],
+    "bevelHeightRatio": [
+      0.005,
+      0.015
+    ],
+    "roughness": [
+      0.35,
+      0.55
+    ],
+    "maxOvershootGlyphHeight": 0.08,
+    "maxEntryRotationDeg": 12,
+    "settledPositionErrorGlyphHeight": 0.005,
+    "settledRotationErrorDeg": 0.5
+  },
+  "scenes": [
+    {
+      "id": "origin",
+      "legacyId": "ORIGIN",
+      "range": [
+        0,
+        0.115
+      ],
+      "hold": 0.055,
+      "enter": [
+        0,
+        0.043
+      ],
+      "read": [
+        0.043,
+        0.083
+      ],
+      "exit": [
+        0.083,
+        0.115
+      ],
+      "title": "Beyond the known.",
+      "body": "Engineering the next generation of digital infrastructure.",
+      "technique": "Magnetic assembly",
+      "placement": "Hangar axis, separate from existing brand mark; test support and silhouette.",
+      "entry": "Letters converge in depth and align from the edges toward the center.",
+      "response": "Small damped overshoot, no repeated bounce.",
+      "departure": "Move with the approaching camera and disappear behind the next framing."
+    },
+    {
+      "id": "blockchain",
+      "legacyId": "BLOCKCHAIN",
+      "range": [
+        0.115,
+        0.31
+      ],
+      "hold": 0.205,
+      "enter": [
+        0.125,
+        0.193
+      ],
+      "read": [
+        0.193,
+        0.275
+      ],
+      "exit": [
+        0.275,
+        0.31
+      ],
+      "title": "Trust by design.",
+      "body": "Building decentralized, verifiable and programmable systems.",
+      "technique": "Guided push / lock",
+      "placement": "Server frontage lateral plane, clear of doors and moving parts.",
+      "entry": "Word blocks travel along the aisle direction and settle against a virtual stop.",
+      "response": "One restrained recoil; title holds while the body settles.",
+      "departure": "Retreat along the same axis."
+    },
+    {
+      "id": "infrastructure",
+      "legacyId": "STELLAR",
+      "range": [
+        0.31,
+        0.51
+      ],
+      "hold": 0.405,
+      "enter": [
+        0.315,
+        0.393
+      ],
+      "read": [
+        0.393,
+        0.415
+      ],
+      "exit": [
+        0.415,
+        0.505
+      ],
+      "title": "Built for scale.",
+      "body": "Infrastructure for digital assets, payments and institutional operations.",
+      "technique": "Modular magnetic docking",
+      "placement": "Rack aisle, keep LEDs and equipment readable; do not cover glass.",
+      "entry": "Word modules converge from two adjacent planes with staggered docking.",
+      "response": "Sequential alignment, no loose fragments during reading.",
+      "departure": "Separate behind the existing optical mask."
+    },
+    {
+      "id": "cryptography",
+      "legacyId": "CRYPTOGRAPHY",
+      "range": [
+        0.51,
+        0.65
+      ],
+      "hold": 0.625,
+      "enter": [
+        0.54,
+        0.613
+      ],
+      "read": [
+        0.613,
+        0.638
+      ],
+      "exit": [
+        0.638,
+        0.65
+      ],
+      "title": "Verify without revealing.",
+      "body": "Privacy and security through advanced cryptographic systems.",
+      "technique": "Precision assembly",
+      "placement": "Security portal side, outside door swing and camera path.",
+      "entry": "Complete glyphs align from discrete offsets, using a controlled stagger rather than shattered triangles.",
+      "response": "Near-inelastic lock, no rotation during reading.",
+      "departure": "Retract behind the portal edge."
+    },
+    {
+      "id": "intelligence",
+      "legacyId": "INTELLIGENCE",
+      "range": [
+        0.65,
+        0.85
+      ],
+      "hold": 0.73,
+      "enter": [
+        0.681,
+        0.718
+      ],
+      "read": [
+        0.718,
+        0.755
+      ],
+      "exit": [
+        0.755,
+        0.805
+      ],
+      "title": "Intelligence in motion.",
+      "body": "Connecting artificial intelligence with autonomous digital systems.",
+      "technique": "Traveling impulse",
+      "placement": "Beside or behind console, do not obscure controls.",
+      "entry": "A single traveling push propagates through word groups with a small delay.",
+      "response": "Damped spring response once, then static.",
+      "departure": "Follow the optical transition toward the next room."
+    },
+    {
+      "id": "quantum",
+      "legacyId": "QUANTUM",
+      "range": [
+        0.85,
+        0.95
+      ],
+      "hold": 0.935,
+      "enter": [
+        0.875,
+        0.923
+      ],
+      "read": [
+        0.923,
+        0.943
+      ],
+      "exit": [
+        0.943,
+        0.95
+      ],
+      "title": "Beyond classical limits.",
+      "body": "Exploring the next frontier of computation and security.",
+      "technique": "Orbital convergence",
+      "placement": "Lateral cryostat composition; preserve machinery silhouette.",
+      "entry": "Letters arrive on shallow arcs around a common focal axis, not a spinning title.",
+      "response": "Angular damping and exact final alignment.",
+      "departure": "Separate along authored arcs under the masked transition."
+    },
+    {
+      "id": "convergence",
+      "legacyId": "CONVERGENCE",
+      "range": [
+        0.95,
+        1
+      ],
+      "hold": 0.992,
+      "enter": [
+        0.978,
+        0.988
+      ],
+      "read": [
+        0.988,
+        1
+      ],
+      "exit": null,
+      "title": "Engineering what comes next.",
+      "body": "Where blockchain, cryptography and emerging technologies converge.",
+      "technique": "Hero assembly",
+      "placement": "Final hangar brand composition, maintain logo dominance and clear floor.",
+      "entry": "Large word groups converge toward the final brand composition, avoiding a second duplicate logo.",
+      "response": "Minimal recoil, stable closing frame.",
+      "departure": "None; remain readable until user reverses."
+    }
+  ]
+}
