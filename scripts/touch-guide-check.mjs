@@ -1,8 +1,8 @@
 import {chromium} from 'playwright';import {spawn} from 'node:child_process';import {mkdir,writeFile} from 'node:fs/promises';import assert from 'node:assert/strict';
 import {windows} from '../src/graphics/facilityCamera.js';
-const base='http://127.0.0.1:4235',out='artifacts/touch-guide';await mkdir(out,{recursive:true});const server=spawn('npm',['run','preview','--','--host','127.0.0.1','--port','4235','--strictPort'],{stdio:'inherit'});let browser;
+const base='http://127.0.0.1:4235',out=process.env.TOUCH_OUT??'artifacts/touch-guide';await mkdir(out,{recursive:true});const server=spawn('npm',['run','preview','--','--host','127.0.0.1','--port','4235','--strictPort'],{stdio:'inherit'});let browser;
 try{let ready=false;for(let i=0;i<80;i++){try{if((await fetch(base)).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,250));}assert.ok(ready);browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
- const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:3,isMobile:true,hasTouch:true}),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(base+'/',{waitUntil:'domcontentloaded'});await page.waitForSelector('#stage[data-renderer="three"]',{timeout:120000});await page.waitForSelector('.experience-loader',{state:'detached',timeout:120000});
+ const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:3,isMobile:true,hasTouch:true}),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(base+(process.env.TOUCH_QUERY??'/'),{waitUntil:'domcontentloaded'});await page.waitForSelector('#stage[data-renderer="three"]',{timeout:120000});await page.waitForSelector('.experience-loader',{state:'detached',timeout:120000});
  const state=()=>page.locator('#stage').evaluate(e=>({...e.dataset}));const rows=[];const client=await page.context().newCDPSession(page);
  const emit=async(type,y)=>client.send('Input.dispatchTouchEvent',{type,touchPoints:type==='touchEnd'||type==='touchCancel'?[]:[{x:195,y,id:1}]});
  // Genuine browser-dispatched touch sequence from origin, not keyboard End
