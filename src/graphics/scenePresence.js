@@ -14,7 +14,10 @@ export function organicTravel(u){
  return (u-ramp*.5)/area;
 }
 export const sceneTravel=h=>h.kind==='hold'?0:h.kind==='exit'?organicTravel(h.u):1-organicTravel(h.u);
-export function sceneHandoff(p){const h=stageHandoff(p,sceneHandoffWindows);return {...h,travel:sceneTravel(h)};}
+export function sceneHandoff(p,polish=false){const h=stageHandoff(p,sceneHandoffWindows);return {...h,travel:sceneTravel(h),...(polish?{polish:true}:{})};}
+// R92: keep the word cohesive as it approaches/leaves the reading pose.
+// Only the relative character residual changes; the group trajectory is unchanged.
+export function dockingGain(travel){return .55+.45*ease((travel-.20)/.60);}
 // Each chapter has its own entrance and exit, with a common solid reading pose.
 // x/y in camera half-extents; z in camera half-height. The edge endpoint is
 // deliberately outside the viewport. No opacity, no unrelated animation clock.
@@ -45,7 +48,8 @@ export function sceneGlyphMotion(h,rank,role='headline'){
  // Rank-dependent depth and tilt make the letters travel independently,
  // without displacing their baseline slots or introducing a time clock.
  const wave=Math.sin(2*Math.PI*(r-.45*travel)),depth=Math.min(.043,profile.depth*.12)*arc*k*(.65*Math.sin(Math.PI*r)+.35*wave);
- return [axis[0]*delta,axis[1]*delta,depth,profile.twist*.4*k*arc*Math.cos(r*Math.PI),profile.twist*k*arc*(.7*Math.sin(r*Math.PI)+.3*wave),profile.twist*.5*k*arc*Math.cos(r*Math.PI)];
+ const residual=[axis[0]*delta,axis[1]*delta,depth,profile.twist*.4*k*arc*Math.cos(r*Math.PI),profile.twist*k*arc*(.7*Math.sin(r*Math.PI)+.3*wave),profile.twist*.5*k*arc*Math.cos(r*Math.PI)];
+ return h.polish?residual.map(x=>x*dockingGain(travel)):residual;
 }
 export const readingLayout=Object.freeze([{x:0,y:-.19},{x:-.035,y:-.21},{x:.02,y:-.20},{x:-.025,y:-.15},{x:.02,y:-.21},{x:-.025,y:-.24},{x:0,y:-.13}]);
 // Reserve room for the mobile safe area and browser chrome. Keep horizontal
