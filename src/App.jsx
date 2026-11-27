@@ -5,7 +5,7 @@ import {DeviceCapture} from './DeviceCapture.jsx';
 import {chapters as legacyChapters} from './story.js';
 import {livingCopy,selectedCopy,livingTypeEnabled} from './graphics/livingCopy.js';
 import {getEditorialChapters,editorialExperience,getEditorialEdition,getCopyStyle} from './editorialStory.js';
-const editorial=editorialExperience(location.search),edition=getEditorialEdition(location.search),copyStyle=getCopyStyle(location.search),chapters=editorial?getEditorialChapters(edition):livingTypeEnabled(location.search,innerWidth)?(new URLSearchParams(location.search).get('living-type')==='selected'?selectedCopy:livingCopy):legacyChapters;
+const editorial=editorialExperience(location.search),edition=getEditorialEdition(location.search),copyStyle=getCopyStyle(location.search),chapters=editorial?getEditorialChapters(edition):livingTypeEnabled(location.search,innerWidth)?(['selected','kinetic'].includes(new URLSearchParams(location.search).get('living-type'))?selectedCopy:livingCopy):legacyChapters;
 import {useScrollStory} from './useScrollStory.js';
 import {smoothProgress} from './graphics/scrollSmoothing.js';
 import {createFallback} from './graphics/fallback.js';
