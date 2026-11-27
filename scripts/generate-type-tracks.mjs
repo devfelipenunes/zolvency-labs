@@ -1,0 +1,2 @@
+import {readFile,writeFile} from 'node:fs/promises';import {motion} from './type-motion.mjs';
+const spec=JSON.parse(await readFile('docs/text-motion-bible.v1.json','utf8'));const result={note:'Analytic word motion; not a collision simulation.',scenes:Object.fromEntries(spec.scenes.map(s=>[s.id,Object.fromEntries(Array.from({length:12},(_,k)=>[k+1,Array.from({length:k+1},(_,i)=>Array.from({length:61},(_,j)=>motion(s.id,i,k+1,j/60)))]))]))};await writeFile(process.argv[2]??'artifacts/type-tracks.json',JSON.stringify(result));

@@ -1,0 +1,62 @@
+{
+  "baseline": "219f93835726efe961d3e21ebee99ef2f27a6094",
+  "results": [
+    {
+      "scene": "origin",
+      "samples": 6006,
+      "maxStepGlyphHeightsPerSample": 0.003108517829651533,
+      "maxRotationDeg": 0,
+      "maxEndError": 0,
+      "maxHoldError": 0
+    },
+    {
+      "scene": "blockchain",
+      "samples": 6006,
+      "maxStepGlyphHeightsPerSample": 0.0033292670319295947,
+      "maxRotationDeg": 0,
+      "maxEndError": 0,
+      "maxHoldError": 0
+    },
+    {
+      "scene": "infrastructure",
+      "samples": 6006,
+      "maxStepGlyphHeightsPerSample": 0.0020730452121872503,
+      "maxRotationDeg": 0,
+      "maxEndError": 0,
+      "maxHoldError": 0
+    },
+    {
+      "scene": "cryptography",
+      "samples": 6006,
+      "maxStepGlyphHeightsPerSample": 0.0012662164959830998,
+      "maxRotationDeg": 0,
+      "maxEndError": 0,
+      "maxHoldError": 0
+    },
+    {
+      "scene": "intelligence",
+      "samples": 6006,
+      "maxStepGlyphHeightsPerSample": 0.0012388101020756458,
+      "maxRotationDeg": 0,
+      "maxEndError": 0,
+      "maxHoldError": 0
+    },
+    {
+      "scene": "quantum",
+      "samples": 6006,
+      "maxStepGlyphHeightsPerSample": 0.0018209236538411938,
+      "maxRotationDeg": 9.740282517223996,
+      "maxEndError": 0,
+      "maxHoldError": 0
+    },
+    {
+      "scene": "convergence",
+      "samples": 6006,
+      "maxStepGlyphHeightsPerSample": 0.004040342086469404,
+      "maxRotationDeg": 0,
+      "maxEndError": 0,
+      "maxHoldError": 0
+    }
+  ],
+  "totalSamples": 42042
+}
