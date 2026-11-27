@@ -10,7 +10,7 @@ for(const width of (live?[Number(process.env.HYBRID_LIVE_WIDTH??390)]:[320,390,7
  await page.screenshot({path:out+'/hero-'+width+'.png'});
  await page.getByRole('link',{name:'Experience',exact:true}).click();
  if(live){
- await page.waitForSelector('#stage[data-renderer="three"]',{timeout:120000});await page.waitForSelector('#gateway[data-live="true"]',{timeout:120000});
+ await page.waitForSelector('#stage[data-renderer="three"]',{timeout:120000});await page.waitForSelector('#gateway[data-live="true"]',{timeout:120000});await page.waitForFunction(()=>Number(getComputedStyle(document.getElementById('gateway')).getPropertyValue('--ready-mix'))>.99);
  const bounds=await page.evaluate(()=>{const p=document.getElementById('gateway').getBoundingClientRect(),s=document.getElementById('story').getBoundingClientRect();return {portal:Math.round(p.top+scrollY),story:Math.round(s.top+scrollY),end:Math.round(s.bottom+scrollY),viewport:innerHeight};});
  const entrySpan=bounds.story-bounds.viewport-bounds.portal;
  const getState=()=>page.evaluate(()=>{const p=document.getElementById('gateway'),f=document.querySelector('.hybrid-facility'),s=document.getElementById('stage');return {entry:Number(p.style.getPropertyValue('--entry-progress')),cover:Number(getComputedStyle(p.querySelector('.hybrid-entry-cover')).opacity),copy:Number(getComputedStyle(p.querySelector('.hybrid-portal-heading')).opacity),exit:Number(f.style.getPropertyValue('--exit-cover')),stage:!!s,target:Number(s?.dataset.targetProgress),rendered:Number(s?.dataset.progress),stageRect:s?{width:s.getBoundingClientRect().width,height:s.getBoundingClientRect().height}:null,viewport:{width:innerWidth,height:innerHeight},clip:s?getComputedStyle(s).clipPath:null};});
