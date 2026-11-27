@@ -14,7 +14,7 @@ import {motion as livingMotion} from './livingTypeMotion.js';
 import {glyphPhase,glyphTransform} from './glyphChoreography.js';
 import {createGlyphRig} from './glyphRig.js';
 import {layoutCandidates,directedBodyPhase} from './directedTypeLayout.js';
-import {ribbonTravel} from './orderedRibbon.js';
+import {cameraRibbonTravel} from './orderedRibbon.js';
 import {createContinuousTitle,transitionWindows} from './continuousTitle.js';
 
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
@@ -112,7 +112,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   const anchor=audition?active.architectureAnchor:null;
   if(anchor){group.position.copy(anchor.point);group.quaternion.copy(anchor.rotation);scale=anchor.scale;halfW=anchor.hw;halfH=anchor.hh;}
   else{group.position.copy(camera.position).addScaledVector(forward,depth).addScaledVector(up,-.46*halfH);group.quaternion.copy(camera.quaternion);}
-  let ribbonMotion=null;if(ribbonType){const travel=ribbonTravel(phase.index,phase,seconds,ribbonIdle),nearDepth=phase.index===5?.30:.50,nh=nearDepth*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),nw=nh*a,ns=Math.min(2*nw*.72/Math.max(.001,active.width),2*nh*.35/Math.max(.001,active.height));const near=camera.position.clone().addScaledVector(forward,nearDepth).addScaledVector(up,(anchor?.layout?.y??-.46)*nh);group.position.lerp(near,travel.blend);group.quaternion.slerp(camera.quaternion,travel.blend);scale+=(ns-scale)*travel.blend;halfW+=(nw-halfW)*travel.blend;halfH+=(nh-halfH)*travel.blend;const r=V(1,0,0).applyQuaternion(group.quaternion),u=V(0,1,0).applyQuaternion(group.quaternion),f=V(0,0,-1).applyQuaternion(group.quaternion);group.position.addScaledVector(r,travel.x*halfW).addScaledVector(u,travel.y*halfH).addScaledVector(f,travel.z*halfH);ribbonMotion={...travel,point:group.position.toArray(),clock:seconds};}
+  let ribbonMotion=null;if(ribbonType){const travel=cameraRibbonTravel(phase.index,phase,seconds),nearDepth=phase.index===5?.30:.50,nh=nearDepth*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),nw=nh*a,ns=Math.min(2*nw*.72/Math.max(.001,active.width),2*nh*.35/Math.max(.001,active.height));const near=camera.position.clone().addScaledVector(forward,nearDepth).addScaledVector(up,(anchor?.layout?.y??-.46)*nh);group.position.lerp(near,travel.blend);group.quaternion.slerp(camera.quaternion,travel.blend);scale+=(ns-scale)*travel.blend;halfW+=(nw-halfW)*travel.blend;halfH+=(nh-halfH)*travel.blend;const r=V(1,0,0).applyQuaternion(group.quaternion),u=V(0,1,0).applyQuaternion(group.quaternion),f=V(0,0,-1).applyQuaternion(group.quaternion);group.position.addScaledVector(r,travel.x*halfW).addScaledVector(u,travel.y*halfH).addScaledVector(f,travel.z*halfH);ribbonMotion={...travel,point:group.position.toArray(),clock:seconds};}
   group.scale.setScalar(scale);group.visible=mask<.98;
   for(const m of [headline,body]){m.visible=group.visible;m.userData.glyphRig.update(phase.index,directedLayout&&m===body?directedBodyPhase(p,phase.index):phase,halfW/scale,halfH/scale,seconds);}
   if(mark){const v=ribbonType?[0,0,0,0,0,0]:glyphTransform(phase.index,0,1,phase);mark.position.copy(mark.userData.rest);
