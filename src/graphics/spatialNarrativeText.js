@@ -17,7 +17,7 @@ import {layoutCandidates,directedBodyPhase} from './directedTypeLayout.js';
 import {cameraRibbonTravel} from './orderedRibbon.js';
 import {sculptedPose,cinematicPose} from './sculptedFlow.js';
 import {stageHandoff,stageOffset} from './stageHandoff.js';
-import {sceneMotion,readingLayout} from './scenePresence.js';
+import {sceneMotion,readingFrame} from './scenePresence.js';
 import {createContinuousTitle,transitionWindows} from './continuousTitle.js';
 
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
@@ -107,9 +107,10 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
  }
  // Seven rays, not seven rays times four depth candidates. Candidate
  // footprints are proportional to depth, so each ray can be reused.
- function readingClearDepth(camera,ndcX,ndcY,aspect,e,roots){
-  const maxHalfW=Math.min((aspect>1?.62:presenceType?.84:.80),(presenceType?.43:.34)*e.width/Math.max(.001,e.height)/aspect);
-  const maxHalfH=Math.min(presenceType?.43:.34,maxHalfW*aspect*e.height/Math.max(.001,e.width));
+ function readingClearDepth(camera,ndcX,ndcY,aspect,e,roots,frame=null){
+  const height=frame?.halfHeight??.34,width=frame?.halfWidth??(aspect>1?.62:.80);
+  const maxHalfW=Math.min(width,height*e.width/Math.max(.001,e.height)/aspect);
+  const maxHalfH=Math.min(height,maxHalfW*aspect*e.height/Math.max(.001,e.width));
   const direction=camera.getWorldDirection(V());let safe=Infinity;
   for(const [x,y] of [[0,0],[-1,-1],[1,-1],[-1,1],[1,1],[0,-1],[0,1]]){
    ray.setFromCamera(new THREE.Vector2(ndcX+x*maxHalfW*.96,ndcY+y*maxHalfH*.96),camera);ray.near=.075;ray.far=1;
@@ -153,11 +154,11 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   else{group.position.copy(camera.position).addScaledVector(forward,depth).addScaledVector(up,-.46*halfH);group.quaternion.copy(camera.quaternion);}
   let ribbonMotion=null;if(ribbonType&&!visibleRibbon){const travel=cameraRibbonTravel(phase.index,phase,seconds),nearDepth=phase.index===5?.30:.50,nh=nearDepth*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),nw=nh*a,ns=Math.min(2*nw*.72/Math.max(.001,active.width),2*nh*.35/Math.max(.001,active.height));const near=camera.position.clone().addScaledVector(forward,nearDepth).addScaledVector(up,(anchor?.layout?.y??-.46)*nh);group.position.lerp(near,travel.blend);group.quaternion.slerp(camera.quaternion,travel.blend);scale+=(ns-scale)*travel.blend;halfW+=(nw-halfW)*travel.blend;halfH+=(nh-halfH)*travel.blend;const r=V(1,0,0).applyQuaternion(group.quaternion),u=V(0,1,0).applyQuaternion(group.quaternion),f=V(0,0,-1).applyQuaternion(group.quaternion);group.position.addScaledVector(r,travel.x*halfW).addScaledVector(u,travel.y*halfH).addScaledVector(f,travel.z*halfH);ribbonMotion={...travel,point:group.position.toArray(),clock:seconds};}
   if(visibleRibbon){
-   const travel=cameraRibbonTravel(phase.index,phase,seconds),sculpt=sculptedType&&Number.isFinite(seconds)?(cinematicFlow?cinematicPose(phase.index,p):sculptedPose(phase.index,p)):null,layout=presenceType?readingLayout[phase.index]:layoutCandidates(phase.index)[0],right=V(1,0,0).applyQuaternion(camera.quaternion),x=layout.x+(sculpt?.x??travel.x*.36)*(presenceType?.38:1),y=layout.y+(sculpt?.y??travel.y*.35)*(presenceType?.38:1),plate=mask>=.65;
+   const travel=cameraRibbonTravel(phase.index,phase,seconds),sculpt=sculptedType&&Number.isFinite(seconds)?(cinematicFlow?cinematicPose(phase.index,p):sculptedPose(phase.index,p)):null,layout=layoutCandidates(phase.index)[0],right=V(1,0,0).applyQuaternion(camera.quaternion),driftX=sculpt?.x??travel.x*.36,driftY=sculpt?.y??travel.y*.35,frame=presenceType?readingFrame(phase.index,a,driftX*.24,driftY*.24):null,x=frame?.x??layout.x+driftX,y=frame?.y??layout.y+driftY,plate=mask>=.65;
    const signature=[p,a,mask,roots.size].join('|');let chosen=active.readingPlane?.key===signature?active.readingPlane:null;
    if(!chosen){const all=[...roots.values()].filter(o=>o.visible);if(!plate)for(const root of all)root.updateMatrixWorld(true);
-    const safe=plate?Infinity:readingClearDepth(camera,x,y,a,active,all),preferred=sculpt?Math.min(sculpt.depth,phase.index===5?.38:1):phase.index===5?.23:.55;
-    const margin=cinematicFlow?.065:.018,emergency=!plate&&safe<(cinematicFlow?.22:.115)+margin,d=plate?.35:cinematicFlow&&emergency?.28:Math.max(.115,Math.min(preferred,safe-margin)),hh=d*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),hw=hh*a,sc=Math.min(2*hw*(a>1?.62:presenceType?.84:sculptedType?.70:.80)/Math.max(.001,active.width),2*hh*(presenceType?.43:.34)/Math.max(.001,active.height))*(sculpt?.scale??1),point=camera.position.clone().addScaledVector(forward,d).addScaledVector(right,x*hw).addScaledVector(up,y*hh);
+    const safe=plate?Infinity:readingClearDepth(camera,x,y,a,active,all,frame),preferred=sculpt?Math.min(sculpt.depth,phase.index===5?.38:1):phase.index===5?.23:.55;
+    const margin=cinematicFlow?.065:.018,emergency=!plate&&safe<(cinematicFlow?.22:.115)+margin,d=plate?.35:cinematicFlow&&emergency?.28:Math.max(.115,Math.min(preferred,safe-margin)),hh=d*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),hw=hh*a,sc=Math.min(2*hw*(frame?.halfWidth??(a>1?.62:sculptedType?.70:.80))/Math.max(.001,active.width),2*hh*(frame?.halfHeight??.34)/Math.max(.001,active.height))*(sculpt?.scale??1),point=camera.position.clone().addScaledVector(forward,d).addScaledVector(right,x*hw).addScaledVector(up,y*hh);
     chosen={key:signature,point,depth:d,hh,hw,scale:sc,clear:plate||safe>=d+margin?7:0,emergency};active.readingPlane=chosen;
    }
    group.position.copy(chosen.point);group.quaternion.copy(camera.quaternion);if(sculpt&&!plate)group.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(sculpt.pitch*(presenceType?.45:1),sculpt.yaw*(presenceType?.45:1),sculpt.roll*(presenceType?.45:1),'YXZ')));scale=chosen.scale;halfW=chosen.hw;halfH=chosen.hh;ribbonMotion={...travel,point:group.position.toArray(),clock:seconds,depth:chosen.depth,clear:chosen.clear,plate,emergency:chosen.emergency,sculpt};
