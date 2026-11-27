@@ -1,0 +1,6 @@
+# R77.1 — Visibility follow-up
+Initial R77 run 46035197345: native touch passed; all three visibility jobs stopped at Playwright's 30-second screenshot timeout, not a completed failed geometric visibility test. 390 artifact contains three screenshots only, no full report.
+- Reuse seven depth-independent camera rays per sample rather than recalculating across four possible depths; choose continuous bounded depth from first hit margin. Avoid unrelated fixed-anchor audition for visible ribbon.
+- If sampled physical space is insufficient even for the near plane, explicitly mark emergency and render the same extruded glyph geometry in a depth-cleared separate pass. This is a visibility fallback, not a physical collision solution. Normal scene uses standard depth testing. Cut plate retained. Diagnostics explicitly identify the fallback.
+- Preserve static camera synchronization and all existing geometric gates. Persist report after each sample before screenshot, increase screenshot timeout to 120s, lower capture frequency, record screenshot errors independently and still fail the gate if any occur. 
+- Requires visual review for fallback frequency, contrast and physical iPhone. No production promotion.

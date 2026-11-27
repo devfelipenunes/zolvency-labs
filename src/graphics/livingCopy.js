@@ -8,6 +8,6 @@ export const livingCopy=Object.freeze([
  {id:'quantum',name:'QUANTUM',label:'Quantum research',title:'Beyond classical limits.',body:'Exploring the next frontier of computation and security.'},
  {id:'convergence',name:'CONVERGENCE',label:'Zolvency Labs',title:'Engineering what comes next.',body:'Where blockchain, cryptography and emerging technologies converge.'}
 ]);
-export function livingTypeEnabled(search,width){const p=new URLSearchParams(search);return width<720&&['1','glyphs','architecture','selected','kinetic'].includes(p.get('living-type'))&&!p.has('experience')&&!p.has('type')&&!p.has('space')&&!p.has('cut')&&p.get('mobile-guide')!=='control'&&p.get('mobile-type')!=='control';}
+export function livingTypeEnabled(search,width){const p=new URLSearchParams(search);return (width<720||p.get('living-type')==='kinetic'&&p.get('type-formation')==='ribbon'&&p.get('type-visibility')==='continuous')&&['1','glyphs','architecture','selected','kinetic'].includes(p.get('living-type'))&&!p.has('experience')&&!p.has('type')&&!p.has('space')&&!p.has('cut')&&p.get('mobile-guide')!=='control'&&p.get('mobile-type')!=='control';}
 
 export const selectedCopy=Object.freeze(livingCopy.map((s,i)=>({...s,body:["Digital infrastructure for what comes next.","Decentralized. Verifiable. Programmable.","Digital assets and institutional finance.","Privacy through cryptographic verification.","Intelligence for autonomous systems.","Research in computation and security.","Blockchain, cryptography and emerging technology."][i]})));
