@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {checkMandate} from '../src/experience/mandatePolicy.js';
+test('illustrative policy denies by default and checks amount and permission',()=>{for(const v of [{amount:1,limit:100},{amount:101,limit:100,permission:true},{amount:NaN,limit:100,permission:true},{amount:-1,limit:100,permission:true},{amount:1,limit:Infinity,permission:true}])assert.equal(checkMandate(v).allowed,false);assert.equal(checkMandate({amount:100,limit:100,permission:true}).allowed,true);});
