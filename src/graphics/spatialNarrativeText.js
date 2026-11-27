@@ -18,7 +18,7 @@ const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 // All visible narrative text is triangulated, extruded glyph geometry, including body copy.
 // One merged mesh per role keeps draw calls low. The editorial rig follows the shot,
 // with controlled perspective, depth and rotation; it is not a physical wall sign.
-export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default',brandOnly=false,reusePlacement=false,flow3d=false,livingType=false,glyphType=false}={}){
+export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default',brandOnly=false,reusePlacement=false,flow3d=false,livingType=false,glyphType=false,architectureType=false,typeFinish='mineral',holdPose=null}={}){
  let font=null,logo=null,disposed=false,aspect=0,active=null,layoutMobile=null,builds=0,placementResets=0;const entries=new Map(),ray=new THREE.Raycaster();
  if(!brandOnly)new FontLoader().loadAsync(import.meta.env.BASE_URL+'models/fonts/helvetiker_regular.typeface.json').then(f=>{if(!disposed){font=f;onReady();}}).catch(()=>{});
  new SVGLoader().loadAsync(import.meta.env.BASE_URL+'brand/zolvency.svg').then(d=>{if(!disposed){logo=d.paths.flatMap(p=>SVGLoader.createShapes(p));onReady();}}).catch(()=>{});
@@ -69,21 +69,46 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   builds++;const group=new THREE.Group();group.name='glyph-type-'+card.livingId;group.visible=false;let cursor=0;const titleSize=.138,bodySize=.076;
   const titleLines=wrap(card.title,titleSize,.99),bodyLines=wrap(card.body,bodySize,.99);
   let mark=null;if(card.brand){const g=new THREE.ExtrudeGeometry(logo,{depth:12,bevelEnabled:false,curveSegments:2});g.scale(1,-1,1);g.computeBoundingBox();const b=g.boundingBox,sz=b.getSize(V());g.translate(-b.min.x,-b.max.y,-b.getCenter(V()).z);g.scale(.71/sz.x,.71/sz.x,.022/Math.max(.001,sz.z));g.translate(-.49,0,0);mark=flowMesh([g],0x65d8aa);mark.name='hero';mark.material.transparent=false;mark.material.depthWrite=true;group.add(mark);cursor-=sz.y*.71/sz.x+.05;}
-  const headline=createGlyphRig({font,lines:titleLines,size:titleSize,x:-.49,y:cursor,step:titleSize*1.14,depth:.13,bevel:.014,color:0xe6efea,role:'headline'});group.add(headline);
+  const headline=createGlyphRig({font,lines:titleLines,size:titleSize,x:-.49,y:cursor,step:titleSize*1.14,depth:architectureType?.19:.13,bevel:architectureType?.022:.014,color:0xe6efea,role:'headline',finish:architectureType?typeFinish:'control'});group.add(headline);
   cursor-=titleLines.length*titleSize*1.14+.027;
-  const body=createGlyphRig({font,lines:bodyLines,size:bodySize,x:-.49,y:cursor,step:bodySize*1.30,depth:.08,bevel:0,color:0xc2d9d1,role:'body'});group.add(body);
+  const body=createGlyphRig({font,lines:bodyLines,size:bodySize,x:-.49,y:cursor,step:bodySize*1.30,depth:.08,bevel:0,color:0xc2d9d1,role:'body',finish:architectureType?'mineral':'control'});group.add(body);
   group.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(group),center=box.getCenter(V()),size=box.getSize(V());
   for(const m of group.children){m.position.sub(center);m.userData.rest=m.position.clone();}
   scene.add(group);const e={card,group,titleLines,bodyLines,headline,body,mark,roles:group.children.map(m=>m.name),height:size.y,width:size.x};entries.set(card.name,e);return e;
  }
- function updateGlyphFlow(p,camera,a,mask){
+ // Sample fixed free-space planes against actual visible facility geometry.
+ function auditionArchitecture(e,mobile,a,roots){
+  if(!holdPose||!roots?.size)return null;
+  const pose=holdPose(e.card.hold,mobile),cam=new THREE.PerspectiveCamera(pose.fov,a,.075,65);
+  cam.position.fromArray(pose.position);cam.lookAt(...pose.target);cam.updateMatrixWorld(true);
+  const f=cam.getWorldDirection(V()),r=V(1,0,0).applyQuaternion(cam.quaternion),u=V(0,1,0).applyQuaternion(cam.quaternion);
+  const all=[...roots.values()].filter(o=>o.visible);if(!all.length)return null;for(const root of all)root.updateMatrixWorld(true);
+  const candidates=[];
+  for(const depth of [2.4,1.8,1.35,1.0,.72]){
+   const hh=depth*Math.tan(THREE.MathUtils.degToRad(cam.fov)/2),hw=hh*a;
+   const scale=Math.min(2*hw*.88/Math.max(.001,e.width),2*hh*.35/Math.max(.001,e.height));
+   const point=cam.position.clone().addScaledVector(f,depth).addScaledVector(u,-.46*hh);
+   let clear=0,total=0;for(const x of [-.5,-.25,0,.25,.5])for(const y of [-.5,0,.5]){
+    const q=point.clone().addScaledVector(r,x*e.width*scale).addScaledVector(u,y*e.height*scale);total++;if(!isBlocked(cam.position,q,all))clear++;
+   }candidates.push({depth,point,rotation:cam.quaternion.clone(),scale,hw,hh,clear,total});
+  }
+  e.architectureAudit=candidates.map(c=>({depth:c.depth,clear:c.clear,total:c.total}));
+  return candidates.find(c=>c.clear===c.total)??null;
+ }
+ function updateGlyphFlow(p,camera,a,mask,mobile,roots){
   const phase=glyphPhase(p),card=cards[phase.index];for(const e of entries.values())e.group.visible=false;active=entries.get(card.name)??null;
   if(!active)return {ready:false,visible:false,shot:card.name,roles:[],alpha:0,copyVisible:false};
-  const {group,headline,body,mark}=active,depth=.50,halfH=depth*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),halfW=halfH*a;
+  const {group,headline,body,mark}=active,depth=.50;let halfH=depth*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),halfW=halfH*a;
   camera.updateMatrixWorld(true);const forward=camera.getWorldDirection(V()),up=V(0,1,0).applyQuaternion(camera.quaternion);
-  const scale=Math.min(2*halfW*.88/Math.max(.001,active.width),2*halfH*.35/Math.max(.001,active.height));
-  group.position.copy(camera.position).addScaledVector(forward,depth).addScaledVector(up,-.46*halfH);
-  group.quaternion.copy(camera.quaternion);group.scale.setScalar(scale);group.visible=mask<.98;
+  let scale=Math.min(2*halfW*.88/Math.max(.001,active.width),2*halfH*.35/Math.max(.001,active.height));
+  const audition=architectureType&&[1,2].includes(phase.index);
+  if(audition&&phase.kind==='hold'&&Math.abs(p-card.hold)<.004&&active.architectureKey!==a.toFixed(3)+'|'+roots.size){
+   active.architectureKey=a.toFixed(3)+'|'+roots.size;active.architectureAnchor=auditionArchitecture(active,mobile,a,roots);
+  }
+  const anchor=audition?active.architectureAnchor:null;
+  if(anchor){group.position.copy(anchor.point);group.quaternion.copy(anchor.rotation);scale=anchor.scale;halfW=anchor.hw;halfH=anchor.hh;}
+  else{group.position.copy(camera.position).addScaledVector(forward,depth).addScaledVector(up,-.46*halfH);group.quaternion.copy(camera.quaternion);}
+  group.scale.setScalar(scale);group.visible=mask<.98;
   for(const m of [headline,body]){m.visible=group.visible;m.userData.glyphRig.update(phase.index,phase,halfW/scale,halfH/scale);}
   if(mark){const v=glyphTransform(phase.index,0,1,phase);mark.position.copy(mark.userData.rest);
    // Origin logo is already present at opening; moves out with the other letters.
@@ -107,9 +132,9 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   scene.add(group);const e={card,group,titleLines,bodyLines,roles:group.children.map(m=>m.name),height:size.y,width:size.x};entries.set(card.name,e);return e;
  }
  function prebuild(mobile){if(!flow3d)return;if(layoutMobile!==mobile){clear();layoutMobile=mobile;}for(const card of cards)if(!entries.has(card.name))buildFlow(card,mobile);}
- function updateFlow(p,camera,mobile,a,mask){
+ function updateFlow(p,camera,mobile,a,mask,roots){
   if(layoutMobile!==mobile||entries.size!==cards.length)prebuild(mobile);
-  if(glyphType)return updateGlyphFlow(p,camera,a,mask);
+  if(glyphType)return updateGlyphFlow(p,camera,a,mask,mobile,roots);
   const anim=flowTypeEnvelope(p,mask),card=cards[anim.index];for(const e of entries.values())e.group.visible=false;active=entries.get(card.name)??null;
   if(!active)return {ready:false,visible:false,shot:card.name,roles:[],alpha:0,copyVisible:false};
   const {group}=active,depth=.46+.06*(1-anim.enter),halfH=depth*Math.tan(THREE.MathUtils.degToRad(camera.fov)/2),halfW=halfH*a;
@@ -259,7 +284,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   return {ready:true,visible:group.visible,shot:card.name,roles:active.roles,alpha:anim.alpha,focus:card.focus,intent:card.intent,bodyLines:active.bodyLines.length,copyVisible:copyVisible(group)};
  }
  function update(p,camera,mobile,a,mask,roots){
-  if(flow3d)return updateFlow(p,camera,mobile,a,mask);
+  if(flow3d)return updateFlow(p,camera,mobile,a,mask,roots);
   if(world&&rail)return updateWorld(p,camera,mobile,a,mask,roots);
   refreshLayout(mobile,a);const anim=shotAnimation(p,mask),card=anim.card;
   if(!entries.has(card.name))build(card,mobile);
@@ -281,7 +306,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   group.updateMatrixWorld(true);
   return {ready:true,visible:group.visible,shot:card.name,roles:active.roles,alpha:anim.alpha,focus:card.focus,intent:card.intent,span,bodyLines:active.bodyLines.length,copyVisible:copyVisible(group)};
  }
- function inspect(camera,roots){if(!active)return [];const {group,card,roles}=active;return group.children.filter(m=>m.visible&&group.visible).map(m=>{m.updateMatrixWorld(true);if(m.userData.glyphRig)m.geometry.computeBoundingBox();const b=m.geometry.boundingBox,points=[];for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z])points.push(V(x,y,z).applyMatrix4(m.matrixWorld).project(camera));const visibleRoots=roots?[...roots.values()].filter(o=>o.visible):[],attr=m.geometry.attributes.position,samples=[];for(let j=0;j<Math.min(45,attr.count);j++){const k=Math.floor(j*attr.count/Math.min(45,attr.count));samples.push(V().fromBufferAttribute(attr,k).applyMatrix4(m.matrixWorld));}const clearSamples=samples.filter(q=>{const v=q.clone().project(camera);return Math.abs(v.x)<1&&Math.abs(v.y)<1&&Math.abs(v.z)<1&&!isBlocked(camera.position,q,visibleRoots);}).length;return {glyphs:m.userData.glyphRig?.diagnostics()??null,glyphCount:m.userData.glyphRig?.glyphCount??0,word:m.userData.word??null,offset:m.userData.rest?m.position.clone().sub(m.userData.rest).toArray():null,rotation:m.rotation.z,projectedHeight:(Math.max(...points.map(q=>q.y))-Math.min(...points.map(q=>q.y)))*innerHeight/2,visibilityEstimate:samples.length?clearSamples/samples.length:0,sampleCount:samples.length,name:card.name,role:m.name,worldAnchor:active.anchors?.[group.children.indexOf(m)]?.point.toArray()??null,mount:active.anchors?.[group.children.indexOf(m)]?.mount??null,inside:points.every(q=>Math.abs(q.x)<1&&Math.abs(q.y)<1&&Math.abs(q.z)<1),span:(Math.max(...points.map(q=>q.x))-Math.min(...points.map(q=>q.x)))/2,opacity:m.material.opacity,triangles:(m.geometry.index?.count??m.geometry.attributes.position.count)/3};});}
+ function inspect(camera,roots){if(!active)return [];const {group,card,roles}=active;return group.children.filter(m=>m.visible&&group.visible).map(m=>{m.updateMatrixWorld(true);if(m.userData.glyphRig)m.geometry.computeBoundingBox();const b=m.geometry.boundingBox,points=[];for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z])points.push(V(x,y,z).applyMatrix4(m.matrixWorld).project(camera));const visibleRoots=roots?[...roots.values()].filter(o=>o.visible):[],attr=m.geometry.attributes.position,samples=[];for(let j=0;j<Math.min(45,attr.count);j++){const k=Math.floor(j*attr.count/Math.min(45,attr.count));samples.push(V().fromBufferAttribute(attr,k).applyMatrix4(m.matrixWorld));}const clearSamples=samples.filter(q=>{const v=q.clone().project(camera);return Math.abs(v.x)<1&&Math.abs(v.y)<1&&Math.abs(v.z)<1&&!isBlocked(camera.position,q,visibleRoots);}).length;return {material:m.material.type,architecture:active.architectureAnchor?{point:active.architectureAnchor.point.toArray(),depth:active.architectureAnchor.depth,scale:active.architectureAnchor.scale}:null,anchorAudit:active.architectureAudit??[],glyphs:m.userData.glyphRig?.diagnostics()??null,glyphCount:m.userData.glyphRig?.glyphCount??0,word:m.userData.word??null,offset:m.userData.rest?m.position.clone().sub(m.userData.rest).toArray():null,rotation:m.rotation.z,projectedHeight:(Math.max(...points.map(q=>q.y))-Math.min(...points.map(q=>q.y)))*innerHeight/2,visibilityEstimate:samples.length?clearSamples/samples.length:0,sampleCount:samples.length,name:card.name,role:m.name,worldAnchor:active.anchors?.[group.children.indexOf(m)]?.point.toArray()??null,mount:active.anchors?.[group.children.indexOf(m)]?.mount??null,inside:points.every(q=>Math.abs(q.x)<1&&Math.abs(q.y)<1&&Math.abs(q.z)<1),span:(Math.max(...points.map(q=>q.x))-Math.min(...points.map(q=>q.x)))/2,opacity:m.material.opacity,triangles:(m.geometry.index?.count??m.geometry.attributes.position.count)/3};});}
  function copyVisible(group){return group.visible&&['headline','body'].every(role=>group.children.some(m=>m.name===role&&m.visible&&m.material.opacity>=.35));}
  function suppressCopy(){if(!active)return;for(const m of active.group.children)if(!active.card.brand||m.name!=='hero')m.visible=false;}
  return {update,inspect,prebuild,requiresWorldUpdate,suppressCopy,stats:()=>({builds,placementResets,entries:entries.size}),ready:()=>!!logo&&(brandOnly||!!font),dispose(){disposed=true;clear();},diagnostics(){return [...entries.values()].map(e=>({name:e.card.name,roles:e.roles,bodyLines:e.bodyLines,anchors:e.anchors?.map(a=>({point:a.point.toArray(),depth:a.depth,mount:a.mount}))??[],titleLines:e.titleLines,focus:e.card.focus,intent:e.card.intent}));}};

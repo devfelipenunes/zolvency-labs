@@ -4,7 +4,7 @@ import {TextGeometry} from 'three/addons/geometries/TextGeometry.js';
 import {glyphTransform} from './glyphChoreography.js';
 // One dynamic geometry per role; each glyph has a contiguous vertex range.
 // No draw call per letter. Immutable rest positions; only animate active card.
-export function createGlyphRig({font,lines,size,x,y,step,depth,bevel,color,role}){
+export function createGlyphRig({font,lines,size,x,y,step,depth,bevel,color,role,finish='control'}){
  const gs=[],glyphs=[];let cursor=0;
  const advance=c=>(font.data.glyphs[c]?.ha??font.data.glyphs['?']?.ha??600)/font.data.resolution*size;
  for(const [lineIndex,line] of lines.entries()){
@@ -20,22 +20,24 @@ export function createGlyphRig({font,lines,size,x,y,step,depth,bevel,color,role}
  const pos=geometry.attributes.position;pos.setUsage(THREE.DynamicDrawUsage);const rest=new Float32Array(pos.array);const normals=geometry.attributes.normal.array,colors=new Float32Array(normals.length),c=new THREE.Color(color);
  for(let i=0;i<normals.length;i+=3){const shade=Math.abs(normals[i+2])>.94?1:Math.abs(normals[i+2])>.15?.78:.44;colors[i]=c.r*shade;colors[i+1]=c.g*shade;colors[i+2]=c.b*shade;}
  geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));geometry.computeBoundingBox();
- const material=new THREE.MeshBasicMaterial({vertexColors:true,depthTest:true,depthWrite:true,toneMapped:false});
+ const lit=finish!=='control',restNormals=lit?new Float32Array(normals):null;
+ if(lit)geometry.attributes.normal.setUsage(THREE.DynamicDrawUsage);
+ const material=lit?new THREE.MeshStandardMaterial({color:finish==='titanium'?0x899a98:finish==='green'?0x67bfa1:color,metalness:finish==='titanium'?.62:finish==='green'?.32:.06,roughness:finish==='titanium'?.38:.46,emissive:0x3b4642,emissiveIntensity:.32,depthTest:true,depthWrite:true}):new THREE.MeshBasicMaterial({vertexColors:true,depthTest:true,depthWrite:true,toneMapped:false});
  const mesh=new THREE.Mesh(geometry,material);mesh.name=role;mesh.frustumCulled=false;
  let key='',last=[],restored=true;const euler=new THREE.Euler(),rotation=new THREE.Matrix4();
  function update(act,phase,halfW,halfH){
   const next=phase.kind==='hold'?'hold':[act,phase.kind,phase.u,halfW,halfH].join(':');if(next===key)return;key=next;
   if(phase.kind==='hold'){
-   if(!restored){pos.array.set(rest);pos.needsUpdate=true;}restored=true;last=glyphs.map(g=>({char:g.char,translation:[0,0,0],rotation:[0,0,0]}));return;
+   if(!restored){pos.array.set(rest);pos.needsUpdate=true;if(lit){normals.set(restNormals);geometry.attributes.normal.needsUpdate=true;}}restored=true;last=glyphs.map(g=>({char:g.char,translation:[0,0,0],rotation:[0,0,0]}));return;
   }
   restored=false;last=[];const a=pos.array;
   for(let i=0;i<glyphs.length;i++){
    const g=glyphs[i],v=glyphTransform(act,i,glyphs.length,phase,role),tx=v[0]*halfW,ty=v[1]*halfH,tz=v[2]*halfH;
    rotation.makeRotationFromEuler(euler.set(v[3],v[4],v[5]));const m=rotation.elements,center=g.center;
-   for(let j=g.start*3,end=(g.start+g.count)*3;j<end;j+=3){const x=rest[j]-center.x,y=rest[j+1]-center.y,z=rest[j+2]-center.z;a[j]=m[0]*x+m[4]*y+m[8]*z+center.x+tx;a[j+1]=m[1]*x+m[5]*y+m[9]*z+center.y+ty;a[j+2]=m[2]*x+m[6]*y+m[10]*z+center.z+tz;}
+   for(let j=g.start*3,end=(g.start+g.count)*3;j<end;j+=3){const x=rest[j]-center.x,y=rest[j+1]-center.y,z=rest[j+2]-center.z;a[j]=m[0]*x+m[4]*y+m[8]*z+center.x+tx;a[j+1]=m[1]*x+m[5]*y+m[9]*z+center.y+ty;a[j+2]=m[2]*x+m[6]*y+m[10]*z+center.z+tz;if(lit){const nx=restNormals[j],ny=restNormals[j+1],nz=restNormals[j+2];normals[j]=m[0]*nx+m[4]*ny+m[8]*nz;normals[j+1]=m[1]*nx+m[5]*ny+m[9]*nz;normals[j+2]=m[2]*nx+m[6]*ny+m[10]*nz;}}
    last.push({char:g.char,translation:[tx,ty,tz],rotation:v.slice(3)});
   }
-  pos.needsUpdate=true;
+  pos.needsUpdate=true;if(lit)geometry.attributes.normal.needsUpdate=true;
  }
  mesh.userData.glyphRig={update,diagnostics:()=>last,restBounds:geometry.boundingBox.clone(),glyphCount:glyphs.length};return mesh;
 }
