@@ -1,7 +1,7 @@
-name: R88 integrated motion and spatial comparison
+name: R90 version A cinematic pacing comparison
 on:
   pull_request:
-    branches: [preview/r80-stage-handoff, preview/r81-scene-presence, preview/r83-organic-motion, main]
+    branches: [preview/r80-stage-handoff, preview/r81-scene-presence, preview/r83-organic-motion, preview/r88-integrated-candidate, main]
     paths: ['src/App.jsx','src/graphics/**','test/**','tests/**','scripts/r85-camera-audit.mjs','scripts/r87-compare-revisions.mjs','scripts/r81-scene-presence.mjs','.github/workflows/r81-scene-presence.yml']
   workflow_dispatch:
 permissions:
@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         variant: [portrait-390, portrait-320, desktop-1280, native-touch]
-        spatial: [control, parallax]
+        pacing: [control, cinematic-a]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -34,9 +34,9 @@ jobs:
             npx playwright install-deps chromium
           fi
       - if: matrix.variant != 'native-touch'
-        run: TYPE_WIDTH=${{ matrix.variant == 'portrait-320' && '320' || matrix.variant == 'desktop-1280' && '1280' || '390' }} TYPE_QUERY_SUFFIX='&type-spatial=${{ matrix.spatial }}' TYPE_FINISH=mineral node scripts/r81-scene-presence.mjs
+        run: TYPE_WIDTH=${{ matrix.variant == 'portrait-320' && '320' || matrix.variant == 'desktop-1280' && '1280' || '390' }} TYPE_QUERY_SUFFIX='&type-spatial=control&type-pacing=${{ matrix.pacing }}' TYPE_FINISH=mineral node scripts/r81-scene-presence.mjs
       - if: matrix.variant == 'native-touch'
-        run: TOUCH_QUERY='/?living-type=kinetic&type-formation=ribbon&type-layout=directed&type-visibility=continuous&type-choreography=scene-presence&type-spatial=${{ matrix.spatial }}' TOUCH_OUT=artifacts/glyphs node scripts/touch-guide-check.mjs
+        run: TOUCH_QUERY='/?living-type=kinetic&type-formation=ribbon&type-layout=directed&type-visibility=continuous&type-choreography=scene-presence&type-spatial=control&type-pacing=${{ matrix.pacing }}' TOUCH_OUT=artifacts/glyphs node scripts/touch-guide-check.mjs
       - name: Analyze camera trajectory evidence
         if: always() && matrix.variant != 'native-touch'
         run: |
@@ -46,5 +46,5 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: r88-${{ matrix.spatial }}-${{ matrix.variant }}
+          name: r90-${{ matrix.pacing }}-${{ matrix.variant }}
           path: artifacts/

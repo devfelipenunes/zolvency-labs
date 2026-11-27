@@ -6,13 +6,21 @@ const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
 const length=v=>Math.hypot(...v);
 const sub=(a,b)=>a.map((x,i)=>x-b[i]);
 function angle(a,b){const u=sub(a.target,a.position),v=sub(b.target,b.position);return Math.acos(clamp(u.reduce((s,x,i)=>s+x*v[i],0)/Math.max(1e-9,length(u)*length(v)),-1,1))*180/Math.PI;}
-export function travelCost(poseAt,{samples=1000,metersPerSecond=4,degreesPerSecond=55,fovPerSecond=35}={}){
+// R90: apply a smooth, local time dilation around the audited entry turn.
+// The rail and all progress-based geometry remain unchanged.
+export function cinematicAPacingScale(p){
+ const x=clamp((p-.105)/.075),b=16*x*x*(1-x)*(1-x);
+ return 1+.30*b;
+}
+export function travelCost(poseAt,{samples=1000,metersPerSecond=4,degreesPerSecond=55,fovPerSecond=35,paceScale=()=>1}={}){
  if(!Number.isInteger(samples)||samples<1)throw Error('invalid sample count');
  const times=[0];let prev=poseAt(0);
  for(let i=1;i<=samples;i++){
   const next=poseAt(i/samples),a=prev.pose,b=next.pose,masked=prev.mask>=.98&&next.mask>=.98;
   const cost=masked?0:Math.max(length(sub(a.position,b.position))/metersPerSecond,angle(a,b)/degreesPerSecond,Math.abs(a.fov-b.fov)/fovPerSecond);
-  times.push(times.at(-1)+Math.max(4/samples,cost));prev=next;
+  const factor=masked?1:paceScale((i-.5)/samples);
+  if(!Number.isFinite(factor)||factor<1)throw Error('invalid pacing scale');
+  times.push(times.at(-1)+Math.max(4/samples,cost)*factor);prev=next;
  }
  const total=times.at(-1);
  return {total,toTime(p){const q=clamp(p)*samples,i=Math.min(samples-1,Math.floor(q));return times[i]+(times[i+1]-times[i])*(q-i);},toProgress(t){t=clamp(t,0,total);if(t===total)return 1;let a=0,b=samples;while(b-a>1){const m=(a+b)>>1;if(times[m]<=t)a=m;else b=m;}return (a+(t-times[a])/(times[b]-times[a]))/samples;}};
