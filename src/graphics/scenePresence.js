@@ -3,7 +3,17 @@ const clamp=x=>Math.max(0,Math.min(1,x));
 // Cubic motion has less near-stationary travel than the quintic curve.
 // Exact endpoints and zero endpoint velocity preserve reversible docking.
 const ease=u=>{u=clamp(u);return u*u*(3-2*u);};
-export const sceneTravel=h=>h.kind==='hold'?0:h.kind==='exit'?ease(h.u):1-ease(h.u);
+// R83: integrate a smooth velocity ramp, cruise, then mirrored braking.
+ // Both velocity and acceleration vanish at docking; a short ramp avoids
+ // spending most of the transition nearly stationary.
+export function organicTravel(u){
+ u=clamp(u);
+ const ramp=.16, area=1-ramp;
+ if(u>1-ramp)return 1-organicTravel(1-u);
+ if(u<ramp){const s=u/ramp;return ramp*s*s*s*(1-.5*s)/area;}
+ return (u-ramp*.5)/area;
+}
+export const sceneTravel=h=>h.kind==='hold'?0:h.kind==='exit'?organicTravel(h.u):1-organicTravel(h.u);
 export function sceneHandoff(p){const h=stageHandoff(p,sceneHandoffWindows);return {...h,travel:sceneTravel(h)};}
 // Each chapter has its own entrance and exit, with a common solid reading pose.
 // x/y in camera half-extents; z in camera half-height. The edge endpoint is
@@ -29,10 +39,13 @@ export function sceneGlyphMotion(h,rank,role='headline'){
  if(h.kind==='hold')return [0,0,0,0,0,0];
  const profile=sceneProfiles[h.index],axis=profile[h.kind],r=clamp(rank),dir=Math.sign(axis[0])||1;
  const leading=h.kind==='exit'?dir:-dir,delay=(leading>0?1-r:r)*profile.stagger*(role==='body'?.40:1),duration=1-profile.stagger*(role==='body'?.40:1);
- const u=clamp((h.u-delay)/duration),q=h.kind==='exit'?ease(u):1-ease(u),travel=sceneTravel(h),diff=q-travel;
+ const u=clamp((h.u-delay)/duration),q=h.kind==='exit'?organicTravel(u):1-organicTravel(u),travel=sceneTravel(h),diff=q-travel;
  // Keep the extreme positions locked, limiting stretching in midflight.
- const delta=.115*Math.tanh(diff/.115),arc=Math.sin(Math.PI*travel)**2,k=role==='body'?.25:1;
- return [axis[0]*delta,axis[1]*delta,profile.depth*.12*arc*Math.sin(r*Math.PI),profile.twist*.4*k*arc*Math.cos(r*Math.PI),profile.twist*k*arc*Math.sin(r*Math.PI),profile.twist*.5*k*arc*Math.cos(r*Math.PI)];
+ const delta=.075*Math.tanh(diff/.075),arc=Math.sin(Math.PI*travel)**2,k=role==='body'?.25:1;
+ // Rank-dependent depth and tilt make the letters travel independently,
+ // without displacing their baseline slots or introducing a time clock.
+ const wave=Math.sin(2*Math.PI*(r-.45*travel)),depth=Math.min(.043,profile.depth*.12)*arc*k*(.65*Math.sin(Math.PI*r)+.35*wave);
+ return [axis[0]*delta,axis[1]*delta,depth,profile.twist*.4*k*arc*Math.cos(r*Math.PI),profile.twist*k*arc*(.7*Math.sin(r*Math.PI)+.3*wave),profile.twist*.5*k*arc*Math.cos(r*Math.PI)];
 }
 export const readingLayout=Object.freeze([{x:0,y:-.19},{x:-.035,y:-.21},{x:.02,y:-.20},{x:-.025,y:-.15},{x:.02,y:-.21},{x:-.025,y:-.24},{x:0,y:-.13}]);
 // Reserve room for the mobile safe area and browser chrome. Keep horizontal
