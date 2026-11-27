@@ -1,7 +1,7 @@
 name: Mobile touch ownership and release
 on:
   pull_request:
-    branches: [preview/v0.32-mobile-gpu-ab, main]
+    branches: [preview/v0.32-flow-typography, main]
     paths: ['src/graphics/touchGuidedMotion.js','scripts/touch-guide-check.mjs','tests/touchGuidedMotion.test.js','.github/workflows/touch-guide.yml']
   workflow_dispatch:
 permissions:
@@ -9,7 +9,7 @@ permissions:
 jobs:
   gesture:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -20,7 +20,13 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm test
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
+      - name: Install Chromium with bounded retry
+        run: |
+          for attempt in 1 2 3; do
+            if npx playwright install --with-deps chromium; then exit 0; fi
+            if [ "$attempt" -lt 3 ]; then sleep "$((attempt * 15))"; fi
+          done
+          exit 1
       - run: node scripts/touch-guide-check.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
