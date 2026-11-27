@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {TextGeometry} from 'three/addons/geometries/TextGeometry.js';
 import {glyphTransform} from './glyphChoreography.js';
+import {choreograph} from './r67/motion-physics.js';
 // One dynamic geometry per role; each glyph has a contiguous vertex range.
 // No draw call per letter. Immutable rest positions; only animate active card.
-export function createGlyphRig({font,lines,size,x,y,step,depth,bevel,color,role,finish='control'}){
+export function createGlyphRig({font,lines,size,x,y,step,depth,bevel,color,role,finish='control',curved=false}){
  const gs=[],glyphs=[];let cursor=0;
  const advance=c=>(font.data.glyphs[c]?.ha??font.data.glyphs['?']?.ha??600)/font.data.resolution*size;
  for(const [lineIndex,line] of lines.entries()){
@@ -32,7 +33,7 @@ export function createGlyphRig({font,lines,size,x,y,step,depth,bevel,color,role,
   }
   restored=false;last=[];const a=pos.array;
   for(let i=0;i<glyphs.length;i++){
-   const g=glyphs[i],v=glyphTransform(act,i,glyphs.length,phase,role),tx=v[0]*halfW,ty=v[1]*halfH,tz=v[2]*halfH;
+   const g=glyphs[i],v=curved?choreograph(act,i,glyphs.length,phase.u,phase.kind==='exit',role):glyphTransform(act,i,glyphs.length,phase,role),tx=v[0]*halfW,ty=v[1]*halfH,tz=v[2]*halfH;
    rotation.makeRotationFromEuler(euler.set(v[3],v[4],v[5]));const m=rotation.elements,center=g.center;
    for(let j=g.start*3,end=(g.start+g.count)*3;j<end;j+=3){const x=rest[j]-center.x,y=rest[j+1]-center.y,z=rest[j+2]-center.z;a[j]=m[0]*x+m[4]*y+m[8]*z+center.x+tx;a[j+1]=m[1]*x+m[5]*y+m[9]*z+center.y+ty;a[j+2]=m[2]*x+m[6]*y+m[10]*z+center.z+tz;if(lit){const nx=restNormals[j],ny=restNormals[j+1],nz=restNormals[j+2];normals[j]=m[0]*nx+m[4]*ny+m[8]*nz;normals[j+1]=m[1]*nx+m[5]*ny+m[9]*nz;normals[j+2]=m[2]*nx+m[6]*ny+m[10]*nz;}}
    last.push({char:g.char,translation:[tx,ty,tz],rotation:v.slice(3)});
