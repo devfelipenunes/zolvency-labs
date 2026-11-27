@@ -8,7 +8,7 @@ export function cinematicHandoff(scroll,portalTop,storyTop,storyEnd,viewport,res
  const exitStart=storyEnd-viewport,exitEnd=researchTop>storyEnd?researchTop-viewport:storyEnd;
  const exitFraction=clamp((scroll-exitStart)/Math.max(1,exitEnd-exitStart));
  const hold=finalHold&&researchTop>storyEnd?.16:0;
- const exit=smooth((exitFraction-hold)/(1-hold));
+ const exit=exitFraction<=hold+1e-12?0:smooth((exitFraction-hold)/(1-hold));
  const copy=1-smooth((entry-.03)/.32);
  const cover=1-smooth((entry-.35)/.52);
  return {entry,cover,copy,exit,light:smooth((entry-.35)/.52),near:scroll>=portalTop-viewport*1.05&&scroll<researchTop-1,inside:scroll>=storyTop&&scroll<exitStart};
