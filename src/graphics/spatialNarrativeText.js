@@ -18,7 +18,7 @@ const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 // All visible narrative text is triangulated, extruded glyph geometry, including body copy.
 // One merged mesh per role keeps draw calls low. The editorial rig follows the shot,
 // with controlled perspective, depth and rotation; it is not a physical wall sign.
-export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default',brandOnly=false,reusePlacement=false,flow3d=false,livingType=false,glyphType=false,architectureType=false,selectedType=false,typeFinish='mineral',holdPose=null}={}){
+export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default',brandOnly=false,reusePlacement=false,flow3d=false,livingType=false,glyphType=false,architectureType=false,selectedType=false,curvedType=false,typeFinish='mineral',holdPose=null}={}){
  let font=null,logo=null,disposed=false,aspect=0,active=null,layoutMobile=null,builds=0,placementResets=0;const entries=new Map(),ray=new THREE.Raycaster();
  if(!brandOnly)new FontLoader().loadAsync(import.meta.env.BASE_URL+'models/fonts/helvetiker_regular.typeface.json').then(f=>{if(!disposed){font=f;onReady();}}).catch(()=>{});
  new SVGLoader().loadAsync(import.meta.env.BASE_URL+'brand/zolvency.svg').then(d=>{if(!disposed){logo=d.paths.flatMap(p=>SVGLoader.createShapes(p));onReady();}}).catch(()=>{});
@@ -69,9 +69,9 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   builds++;const group=new THREE.Group();group.name='glyph-type-'+card.livingId;group.visible=false;let cursor=0;const titleSize=.138,bodySize=selectedType?.053:.076;
   const titleLines=wrap(card.title,titleSize,.99),bodyLines=wrap(card.body,bodySize,.99);
   let mark=null;if(card.brand){const g=new THREE.ExtrudeGeometry(logo,{depth:12,bevelEnabled:false,curveSegments:2});g.scale(1,-1,1);g.computeBoundingBox();const b=g.boundingBox,sz=b.getSize(V());g.translate(-b.min.x,-b.max.y,-b.getCenter(V()).z);g.scale(.71/sz.x,.71/sz.x,.022/Math.max(.001,sz.z));g.translate(-.49,0,0);mark=flowMesh([g],0x65d8aa);mark.name='hero';mark.material.transparent=false;mark.material.depthWrite=true;group.add(mark);cursor-=sz.y*.71/sz.x+.05;}
-  const headline=createGlyphRig({font,lines:titleLines,size:titleSize,x:-.49,y:cursor,step:titleSize*1.14,depth:selectedType?.13:architectureType?.19:.13,bevel:selectedType?.012:architectureType?.022:.014,color:0xe6efea,role:'headline',finish:architectureType?typeFinish:'control'});group.add(headline);
+  const headline=createGlyphRig({font,lines:titleLines,size:titleSize,x:-.49,y:cursor,step:titleSize*1.14,depth:selectedType?.13:architectureType?.19:.13,bevel:selectedType?.012:architectureType?.022:.014,color:0xe6efea,role:'headline',finish:architectureType?typeFinish:'control',curved:curvedType});group.add(headline);
   cursor-=titleLines.length*titleSize*1.14+(selectedType?.044:.027);
-  const body=createGlyphRig({font,lines:bodyLines,size:bodySize,x:-.49,y:cursor,step:bodySize*1.30,depth:.08,bevel:0,color:0xc2d9d1,role:'body',finish:architectureType?'mineral':'control'});group.add(body);
+  const body=createGlyphRig({font,lines:bodyLines,size:bodySize,x:-.49,y:cursor,step:bodySize*1.30,depth:.08,bevel:0,color:0xc2d9d1,role:'body',finish:architectureType?'mineral':'control',curved:curvedType});group.add(body);
   group.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(group),center=box.getCenter(V()),size=box.getSize(V());
   for(const m of group.children){m.position.sub(center);m.userData.rest=m.position.clone();}
   scene.add(group);const e={card,group,titleLines,bodyLines,headline,body,mark,roles:group.children.map(m=>m.name),height:size.y,width:size.x};entries.set(card.name,e);return e;
