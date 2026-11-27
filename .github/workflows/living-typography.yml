@@ -29,7 +29,17 @@ jobs:
         mode: [styles, physics]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - run: sudo apt-get install -y blender python3-fonttools
+      - name: Refresh Ubuntu package indexes without unrelated third-party feeds
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources /etc/apt/sources.list.d/azure-cli.list
+          sudo apt-get -o Acquire::Retries=3 update
+      - name: Install Blender and FontTools
+        run: |
+          for attempt in 1 2 3; do
+            if sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends blender python3-fonttools; then blender --version; exit 0; fi
+            if [ "$attempt" -lt 3 ]; then sudo apt-get -o Acquire::Retries=3 update; fi
+          done
+          exit 1
       - if: matrix.mode == 'styles'
         run: /usr/bin/python3 scripts/prepare-type-fonts.py
       - run: blender -b -t 4 --python-exit-code 1 --python scripts/blender-type-lab.py -- ${{ matrix.mode }} artifacts/type-lab
@@ -50,13 +60,19 @@ jobs:
           node-version: '22'
       - run: npm install --no-audit --no-fund
       - run: npm run build
-      - name: Install Chromium
+      - name: Install Chromium using runner libraries
         run: |
           for attempt in 1 2 3; do
-            if npx playwright install --with-deps chromium; then exit 0; fi
-            if [ "$attempt" -lt 3 ]; then sleep "$((attempt * 15))"; fi
+            if npx playwright install chromium; then break; fi
+            if [ "$attempt" -eq 3 ]; then exit 1; fi
+            sleep "$((attempt * 10))"
           done
-          exit 1
+          if ! node --input-type=module -e "import {chromium} from 'playwright';const b=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});await b.close()"; then
+            sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources /etc/apt/sources.list.d/azure-cli.list
+            sudo apt-get -o Acquire::Retries=3 update
+            npx playwright install-deps chromium
+            node --input-type=module -e "import {chromium} from 'playwright';const b=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});await b.close()"
+          fi
       - run: node scripts/export-type-scenes.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -80,7 +96,17 @@ jobs:
         with:
           name: type-scene-input
           path: artifacts/type-scene-input/
-      - run: sudo apt-get install -y blender python3-fonttools
+      - name: Refresh Ubuntu package indexes without unrelated third-party feeds
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources /etc/apt/sources.list.d/azure-cli.list
+          sudo apt-get -o Acquire::Retries=3 update
+      - name: Install Blender and FontTools
+        run: |
+          for attempt in 1 2 3; do
+            if sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends blender python3-fonttools; then blender --version; exit 0; fi
+            if [ "$attempt" -lt 3 ]; then sudo apt-get -o Acquire::Retries=3 update; fi
+          done
+          exit 1
       - run: /usr/bin/python3 scripts/prepare-type-fonts.py
       - run: blender -b -t 4 --python-exit-code 1 --python scripts/blender-type-lab.py -- scene artifacts/type-scene-lab ${{ matrix.scene }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
