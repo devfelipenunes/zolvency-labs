@@ -60,3 +60,15 @@ export function readingTilt(mask){return 1-ease((mask-.35)/.30);}
 export function presencePixelRatio(dpr,device,governorScale){return Math.max(dpr,Math.min(1.25,device||1)*clamp(governorScale));}
 // Translation-only corrections should never shrink the reading composition.
 export function readingFitScale(shrink){return shrink<1?shrink*.995:1;}
+
+// R89: authored mobile composition experiment. Keep the same geometry and
+// movement; reserve a smaller lower reading region for the cryostat and
+// lift the closing text away from the bright floor. Opt-in only.
+export function artReadingFrame(index,aspect,driftX=0,driftY=0){
+ const f=readingFrame(index,aspect,driftX,driftY);
+ if(aspect>=1)return f;
+ if(index===5)return {...f,y:Math.max(-.45,Math.min(-.34,f.y-.16)),halfHeight:.32};
+ if(index===6)return {...f,y:Math.max(-.02,Math.min(.16,f.y+.22))};
+ if(index===4)return {...f,y:Math.max(-.32,Math.min(-.16,f.y-.06))};
+ return f;
+}
