@@ -18,5 +18,6 @@ export function mobileMotionEnabled(search='',width=0){return mobileStartupBudge
 // deadline unchanged and allow the outer lifecycle to outlast preflight.
 export function startupDeadlines(search=''){
  const q=new URLSearchParams(search),diagnostic=q.has('diagnostics')&&q.get('type-choreography')==='scene-presence'&&q.get('living-type')==='kinetic'&&q.get('type-formation')==='ribbon'&&q.get('type-visibility')==='continuous';
- return diagnostic?{preflight:240000,lifecycle:270000}:{preflight:90000,lifecycle:100000};
+ const hybridSoftware=q.get('hybrid')==='1'&&q.get('hybrid-ci')==='software'&&q.get('type-choreography')==='scene-presence'&&q.get('type-spatial')==='control';
+ return diagnostic||hybridSoftware?{preflight:240000,lifecycle:270000}:{preflight:90000,lifecycle:100000};
 }
