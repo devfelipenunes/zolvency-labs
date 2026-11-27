@@ -1,5 +1,8 @@
-import {smooth5} from './r67/motion-physics.js';
 const clamp=x=>Math.max(0,Math.min(1,x));
+// Cubic motion has less near-stationary travel than the quintic curve.
+// Exact endpoints and zero endpoint velocity preserve reversible docking.
+const ease=u=>{u=clamp(u);return u*u*(3-2*u);};
+export const sceneTravel=h=>h.kind==='hold'?0:h.kind==='exit'?ease(h.u):1-ease(h.u);
 // Each chapter has its own entrance and exit, with a common solid reading pose.
 // x/y in camera half-extents; z in camera half-height. The edge endpoint is
 // deliberately outside the viewport. No opacity, no unrelated animation clock.
@@ -14,7 +17,7 @@ export const sceneProfiles=Object.freeze([
 ]);
 export function sceneMotion(h){
  const profile=sceneProfiles[h.index];if(h.kind==='hold')return {x:0,y:0,z:0,profile:profile.name,axis:[0,0],energy:0};
- const axis=profile[h.kind],q=h.travel,arc=Math.sin(Math.PI*q)**2,perp=[-axis[1]/Math.max(.001,Math.hypot(...axis)),axis[0]/Math.max(.001,Math.hypot(...axis))];
+ const axis=profile[h.kind],q=sceneTravel(h),arc=Math.sin(Math.PI*q)**2,perp=[-axis[1]/Math.max(.001,Math.hypot(...axis)),axis[0]/Math.max(.001,Math.hypot(...axis))];
  return {x:axis[0]*q+perp[0]*profile.arc*arc,y:axis[1]*q+perp[1]*profile.arc*arc,z:profile.depth*arc,profile:profile.name,axis,energy:arc};
 }
 // Use a short, bounded delay, not the huge letter spacing of R80.
@@ -24,9 +27,12 @@ export function sceneGlyphMotion(h,rank,role='headline'){
  if(h.kind==='hold')return [0,0,0,0,0,0];
  const profile=sceneProfiles[h.index],axis=profile[h.kind],r=clamp(rank),dir=Math.sign(axis[0])||1;
  const leading=h.kind==='exit'?dir:-dir,delay=(leading>0?1-r:r)*profile.stagger*(role==='body'?.40:1),duration=1-profile.stagger*(role==='body'?.40:1);
- const u=clamp((h.u-delay)/duration),q=h.kind==='exit'?smooth5(u):1-smooth5(u),diff=q-h.travel;
+ const u=clamp((h.u-delay)/duration),q=h.kind==='exit'?ease(u):1-ease(u),travel=sceneTravel(h),diff=q-travel;
  // Keep the extreme positions locked, limiting stretching in midflight.
- const delta=Math.max(-.115,Math.min(.115,diff)),arc=Math.sin(Math.PI*h.travel)**2,k=role==='body'?.25:1;
+ const delta=Math.max(-.115,Math.min(.115,diff)),arc=Math.sin(Math.PI*travel)**2,k=role==='body'?.25:1;
  return [axis[0]*delta,axis[1]*delta,profile.depth*.12*arc*Math.sin(r*Math.PI),profile.twist*.4*k*arc*Math.cos(r*Math.PI),profile.twist*k*arc*Math.sin(r*Math.PI),profile.twist*.5*k*arc*Math.cos(r*Math.PI)];
 }
-export const readingLayout=Object.freeze([{x:0,y:-.24},{x:-.045,y:-.30},{x:.02,y:-.27},{x:-.025,y:-.17},{x:.02,y:-.30},{x:-.035,y:-.46},{x:0,y:-.15}]);
+export const readingLayout=Object.freeze([{x:0,y:-.19},{x:-.035,y:-.21},{x:.02,y:-.20},{x:-.025,y:-.15},{x:.02,y:-.21},{x:-.025,y:-.24},{x:0,y:-.13}]);
+// Reserve room for the mobile safe area and browser chrome. Keep horizontal
+// composition aligned without forcing a lower placement in Quantum.
+export function readingFrame(index,aspect,driftX=0,driftY=0){const b=readingLayout[index],portrait=aspect<1;return {x:Math.max(-.09,Math.min(.09,b.x+driftX)),y:Math.max(portrait?-.30:-.36,Math.min(.10,b.y+driftY)),halfWidth:portrait?.82:.62,halfHeight:portrait?.40:.43};}
