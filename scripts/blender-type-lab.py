@@ -40,7 +40,7 @@ def style_lab():
       for depth,bevel in [(.06,.005),(.08,.01),(.10,.015)]:
        for material,(col,metal,rough) in styles.items():
         s=reset();c=camera(s,Vector((0,0,4)),Vector((0,0,-1)),42);m=mat(material,col,metal,rough);o=text_obj(s,'Title','Trust by design.',font(name,600),1,depth,bevel,m)
-        lo,hi=bounds(o);w=hi[0]-lo[0];scale=2.65/max(w,.001);o.scale=(scale,)*3;o.location=Vector((-(lo[0]+hi[0])*scale/2,-(lo[1]+hi[1])*scale/2,0));setup_lights(s,c,Vector((0,0,0)));bpy.context.view_layer.update();tag=f'{name}-{depth}-{bevel}-{material}';r={'font':name,'extrusion':depth,'bevel':bevel,'material':material,**mesh_stats(o),'bounds':list(o.dimensions)};rows.append(r);report('styles.json',rows);render(s,out/(tag+'.png'))
+        lo,hi=bounds(o);w=hi[0]-lo[0];scale=(2*4*math.tan(math.radians(42)/2)*(390/844)*.82)/max(w,.001);o.scale=(scale,)*3;o.location=Vector((-(lo[0]+hi[0])*scale/2,-(lo[1]+hi[1])*scale/2,0));setup_lights(s,c,Vector((0,0,0)));bpy.context.view_layer.update();tag=f'{name}-{depth}-{bevel}-{material}';r={'font':name,'extrusion':depth,'bevel':bevel,'material':material,**mesh_stats(o),'bounds':list(o.dimensions)};rows.append(r);report('styles.json',rows);render(s,out/(tag+'.png'))
     assert len(rows)==27
 def motion_lab():
     rows=[]
@@ -95,11 +95,19 @@ def scene_lab(id):
         if x+w>8.2 and line:x=0;y-=size*1.2;line=[]
         o=convert(o);o.parent=root;o.location=Vector((x-lo[0],y,0));objs.append((role,o));line.append(o);x+=w+size*.24
       y-=size*1.6
-    # Merge body by line would reduce draws; this first study measures word cost.
+    # All body words share one transform; merge without changing their visible geometry.
     bpy.context.view_layer.update()
     local=[o.location+Vector(v) for _,o in objs for v in o.bound_box];lo=Vector(tuple(min(v[k] for v in local) for k in range(3)));hi=Vector(tuple(max(v[k] for v in local) for k in range(3)));center=(lo+hi)/2
     for _,o in objs:o.location-=center
-    rest={o.name:o.location.copy() for _,o in objs};title=[o for role,o in objs if role=='title'];body=[o for role,o in objs if role=='body']
+    raw_counts=[mesh_stats(o) for _,o in objs];raw_mesh_count=len(objs)
+    title=[o for role,o in objs if role=='title'];body=[o for role,o in objs if role=='body']
+    if len(body)>1:
+        bpy.ops.object.select_all(action='DESELECT')
+        for o in body:o.select_set(True)
+        bpy.context.view_layer.objects.active=body[0];bpy.ops.object.join();merged=bpy.context.object;merged.name='body-merged'
+        body=[merged];objs=[('title',o) for o in title]+[('body',merged)]
+    bpy.context.view_layer.update()
+    rest={o.name:o.location.copy() for _,o in objs}
     # Seven candidate depths, fixed world location after choosing, no camera parenting.
     candidates=[];fov=math.radians(cd['fov']);aspect=cd['aspect'];tan=math.tan(fov/2)
     def measure():
@@ -118,29 +126,33 @@ def scene_lab(id):
     best=max(candidates,key=lambda r:(r['visibleCornerProxy'],r['inside'],r['minBodyPx'],r['depth']))
     root.location=best['location'];root.scale=(best['scale'],)*3;setup_lights(s,c,root.location);rows=[]
     # Word groups only; body moves as a single offset shared across its words.
-    for f in range(1,122):
-      progress=(f-1)/120
+    def phase_at(p):
+      a,b=act['enter'];ex=act['exit']
+      if p<b:return min(1,max(0,(p-a)/max(1e-8,b-a)))
+      if ex and p>ex[0]:return min(1,max(0,(ex[1]-p)/max(1e-8,ex[1]-ex[0])))
+      return 1
+    start,end=act['range'];frames=241;s.frame_end=frames
+    for f in range(1,frames+1):
+      progress=start+(end-start)*(f-1)/(frames-1)
       for group in [title,body]:
         n=len(group) if group is title else 1
         assert n<=12
         for i,o in enumerate(group):
-          j=i if group is title else 0;u=min(1,progress/.40) if progress<=.78 else max(0,(1-progress)/.22)
-          if id=='convergence' and progress>.4:u=1
+          j=i if group is title else 0;u=phase_at(progress)
           samples=tracks[id][str(n)][j];k=min(59,int(u*60));q=u*60-k;v=[samples[k][a]*(1-q)+samples[k+1][a]*q for a in range(4)]
           o.location=rest[o.name]+Vector(v[:3]);o.rotation_euler.z=v[3];o.keyframe_insert(data_path='location',frame=f);o.keyframe_insert(data_path='rotation_euler',frame=f)
     # Actual R60 sampled camera poses, hold geometry is static (not dynamic collision proof).
     for sample in d['samples']:
       p=sample['p'];a,b=act['range'];phase=max(0,min(1,(p-a)/(b-a)))
-      # Exact hold is the settled transform, separate from the experimental normalized clip.
-      f=61 if abs(p-act['hold'])<1e-7 else 1+round(phase*120);s.frame_set(f);pose=sample['pose'];c.location=B(pose['position']);c.rotation_euler=(B(pose['target'])-c.location).to_track_quat('-Z','Y').to_euler();c.data.lens=16/math.tan(math.radians(pose['fov'])/2);metric=measure();rows.append({'p':p,'frame':f,'mask':sample['mask'],**metric});render(s,out/(id+'-'+str(p)+'.png'))
-    s.frame_set(61);c.location=C;c.rotation_euler=F.to_track_quat('-Z','Y').to_euler();c.data.lens=16/math.tan(fov/2);bpy.context.view_layer.update()
+      f=1+round(phase*(frames-1));s.frame_set(f);pose=sample['pose'];c.location=B(pose['position']);c.rotation_euler=(B(pose['target'])-c.location).to_track_quat('-Z','Y').to_euler();c.data.lens=16/math.tan(math.radians(pose['fov'])/2);metric=measure();rows.append({'p':p,'frame':f,'mask':sample['mask'],**metric});render(s,out/(id+'-'+str(p)+'.png'))
+    hold_frame=1+round((act['hold']-start)/(end-start)*(frames-1));s.frame_set(hold_frame);c.location=C;c.rotation_euler=F.to_track_quat('-Z','Y').to_euler();c.data.lens=16/math.tan(fov/2);bpy.context.view_layer.update()
     counts=[mesh_stats(o) for _,o in objs];bpy.ops.object.select_all(action='DESELECT');root.select_set(True)
     for _,o in objs:o.select_set(True)
     glb=out/(id+'.glb');bpy.ops.export_scene.gltf(filepath=str(glb),export_format='GLB',use_selection=True,export_animations=True,export_force_sampling=True)
     # Keep editable text source as copy metadata plus baked mesh/animation project. No font binaries exported as files.
     bpy.ops.wm.save_as_mainfile(filepath=str(out/(id+'.blend')))
     raw=glb.read_bytes();assert raw[:4]==b'glTF';length=int.from_bytes(raw[12:16],'little');gltf=json.loads(raw[20:20+length]);assert gltf.get('animations') and gltf.get('meshes')
-    report(id+'.json',{'scene':id,'candidatePlacements':candidates,'chosen':best,'samples':rows,'triangles':sum(x['triangles'] for x in counts),'wordMeshes':len(objs),'glbBytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'animations':len(gltf['animations']),'limitations':'Fixed world plane, not wall-mounted. Static hold geometry, omitted transparent materials and instancing, simplified lighting; sampled corner visibility only. No runtime integration or phone measurement.'})
+    report(id+'.json',{'scene':id,'candidatePlacements':candidates,'chosen':best,'samples':rows,'trianglesBeforeMerge':sum(x['triangles'] for x in raw_counts),'meshesBeforeMerge':raw_mesh_count,'triangles':sum(x['triangles'] for x in counts),'wordMeshes':len(objs),'clipFrames':frames,'clipProgressRange':act['range'],'glbBytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'animations':len(gltf['animations']),'limitations':'Fixed world plane, not wall-mounted. Static hold geometry, omitted transparent materials and instancing, simplified lighting; sampled corner visibility only. No runtime integration or phone measurement.'})
 if mode=='styles':style_lab()
 elif mode=='physics':motion_lab()
 elif mode=='scene':scene_lab(args[2])
