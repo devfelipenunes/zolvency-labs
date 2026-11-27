@@ -19,7 +19,7 @@ const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 // All visible narrative text is triangulated, extruded glyph geometry, including body copy.
 // One merged mesh per role keeps draw calls low. The editorial rig follows the shot,
 // with controlled perspective, depth and rotation; it is not a physical wall sign.
-export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default',brandOnly=false,reusePlacement=false,flow3d=false,livingType=false,glyphType=false,architectureType=false,selectedType=false,curvedType=false,spaceFont=false,gpuType=false,contactType=false,worldAll=false,continuousType=false,continuousAll=false,typeFinish='mineral',holdPose=null}={}){
+export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default',brandOnly=false,reusePlacement=false,flow3d=false,livingType=false,glyphType=false,architectureType=false,selectedType=false,curvedType=false,spaceFont=false,gpuType=false,contactType=false,worldAll=false,continuousType=false,continuousAll=false,corridorType=false,auditCorridor=false,typeFinish='mineral',holdPose=null}={}){
  let font=null,titleFont=null,bodyFont=null,logo=null,disposed=false,aspect=0,active=null,layoutMobile=null,builds=0,placementResets=0;const entries=new Map(),ray=new THREE.Raycaster();let continuous=[];
  if(!brandOnly)new FontLoader().loadAsync(import.meta.env.BASE_URL+'models/fonts/helvetiker_regular.typeface.json').then(f=>{if(!disposed){font=f;onReady();}}).catch(()=>{});
  if(spaceFont)for(const weight of [400,600])new FontLoader().loadAsync(import.meta.env.BASE_URL+'models/fonts/space-grotesk-'+weight+'.typeface.json').then(f=>{if(!disposed){if(weight===600)titleFont=f;else bodyFont=f;onReady();}}).catch(()=>{if(!disposed){if(weight===600)titleFont=font;else bodyFont=font;onReady();}});
@@ -116,7 +116,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
    // Origin logo is already present at opening; moves out with the other letters.
    if(phase.index!==0||phase.kind==='exit'){mark.position.x+=v[0]*halfW/scale;mark.position.y+=v[1]*halfH/scale;mark.position.z+=v[2]*halfH/scale;mark.rotation.y=v[4];}else mark.rotation.y=0;mark.visible=group.visible;}
   group.updateMatrixWorld(true);
-  let currentBridge=null;for(const bridge of continuous){if(bridge.update(p,mask,camera))currentBridge=bridge;}const bridging=!!currentBridge;if(bridging)headline.visible=false;
+  let currentBridge=null;const auditRoots=auditCorridor?[...roots.values()].filter(o=>o.visible):null;if(auditRoots)for(const root of auditRoots)root.updateMatrixWorld(true);const blocked=auditRoots?q=>isBlocked(camera.position,q,auditRoots):null;for(const bridge of continuous){if(bridge.update(p,mask,camera,blocked))currentBridge=bridge;}const bridging=!!currentBridge;if(bridging)headline.visible=false;
   return {ready:true,visible:group.visible,shot:card.name,roles:bridging?active.roles.filter(r=>r!=='headline').concat('continuous-title'):active.roles,alpha:group.visible?1:0,focus:card.focus,intent:card.intent,bodyLines:active.bodyLines.length,copyVisible:group.visible,transition:currentBridge?.diagnostics()??{active:false,index:null,items:[]},transitionCount:continuous.length};
  }
  function buildFlow(card,mobile){
@@ -134,7 +134,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   for(const m of group.children)m.position.sub(center);
   scene.add(group);const e={card,group,titleLines,bodyLines,roles:group.children.map(m=>m.name),height:size.y,width:size.x};entries.set(card.name,e);return e;
  }
- function prebuild(mobile){if(!flow3d)return;if(layoutMobile!==mobile){clear();layoutMobile=mobile;}for(const card of cards)if(!entries.has(card.name))buildFlow(card,mobile);if(continuousType&&!continuous.length&&entries.size===cards.length){for(const w of transitionWindows){if(continuousAll||w.index===1)continuous.push(createContinuousTitle(entries.get(cards[w.index].name),entries.get(cards[w.index+1].name),scene,w.index));}}}
+ function prebuild(mobile){if(!flow3d)return;if(layoutMobile!==mobile){clear();layoutMobile=mobile;}for(const card of cards)if(!entries.has(card.name))buildFlow(card,mobile);if(continuousType&&!continuous.length&&entries.size===cards.length){for(const w of transitionWindows){if(continuousAll||w.index===1)continuous.push(createContinuousTitle(entries.get(cards[w.index].name),entries.get(cards[w.index+1].name),scene,w.index,{corridor:corridorType,poseAt:p=>holdPose(p,mobile),audit:auditCorridor}));}}}
  function updateFlow(p,camera,mobile,a,mask,roots){
   if(layoutMobile!==mobile||entries.size!==cards.length)prebuild(mobile);
   if(glyphType)return updateGlyphFlow(p,camera,a,mask,mobile,roots);
