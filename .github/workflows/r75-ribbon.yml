@@ -1,0 +1,43 @@
+name: R75 ordered continuous typographic ribbon
+on:
+  pull_request:
+    branches: [preview/r75-ribbon-hierarchy, main]
+    paths: ['src/graphics/**','scripts/r75-ribbon.mjs','.github/workflows/r75-ribbon.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [portrait-390, portrait-320, native-touch]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
+      - name: Install Chromium and verify launch
+        run: |
+          npx playwright install chromium
+          if ! node --input-type=module -e "import {chromium} from 'playwright';const b=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});await b.close()"; then
+            sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources /etc/apt/sources.list.d/azure-cli.list
+            sudo apt-get -o Acquire::Retries=3 update
+            npx playwright install-deps chromium
+          fi
+      - if: matrix.variant != 'native-touch'
+        run: TYPE_WIDTH=${{ matrix.variant == 'portrait-320' && '320' || '390' }} TYPE_FINISH=mineral node scripts/r75-ribbon.mjs
+      - if: matrix.variant == 'native-touch'
+        run: TOUCH_QUERY='/?living-type=kinetic&type-formation=ribbon&type-layout=directed&type-alive=1' TOUCH_OUT=artifacts/glyphs node scripts/touch-guide-check.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: r74-alive-${{ matrix.variant }}
+          path: artifacts/
