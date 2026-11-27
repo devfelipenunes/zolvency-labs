@@ -1,0 +1,13 @@
+import {matchGlyphs} from '../glyphMatching.js';
+const ease=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);};
+function bezier(a,b,c,d,t){if(t===0)return a.slice();if(t===1)return d.slice();const q=1-t;return a.map((v,i)=>q*q*q*v+3*q*q*t*b[i]+3*q*t*t*c[i]+t*t*t*d[i]);}
+// Layouts supply precomputed world rest positions; character identity persists.
+export function makeTransition(from,to){const a=from.map(g=>({...g,x:g.position[0]})),b=to.map(g=>({...g,x:g.position[0]})),m=matchGlyphs(a,b),A=new Map(a.map(g=>[g.id,g])),B=new Map(b.map(g=>[g.id,g]));
+ const items=m.matches.map(({from,to,char},i)=>{const a=A.get(from).position,b=B.get(to).position,lane=(i%2?1:-1)*(.22+.06*(i%4));return {id:'keep:'+from,char,from,to,path:[a,[a[0],a[1]+lane,a[2]-.35],[b[0],b[1]+lane,b[2]-.35],b],kind:'keep'};});
+ for(const id of m.depart){const g=A.get(id),a=g.position,b=[a[0]-3,a[1]+.8,a[2]-.5];items.push({id:'depart:'+id,char:g.char,from:id,to:null,path:[a,[a[0]-.6,a[1]+.2,a[2]-.1],[b[0]+.6,b[1],b[2]],b],kind:'depart'});}
+ for(const id of m.arrive){const g=B.get(id),b=g.position,a=[b[0]+3,b[1]-.8,b[2]-.5];items.push({id:'arrive:'+id,char:g.char,from:null,to:id,path:[a,[a[0]-.6,a[1],a[2]],[b[0]+.6,b[1]-.2,b[2]-.1],b],kind:'arrive'});}
+ return items;
+}
+export function sampleTransition(items,u){u=Math.max(0,Math.min(1,u));return items.map(g=>{const q=ease(u),p=bezier(...g.path,q);return {id:g.id,char:g.char,from:g.from,to:g.to,position:p,rotation:[0,q===0||q===1?0:Math.sin(Math.PI*q)*(g.kind==='keep'?.4:.9),0],visible:g.kind==='arrive'?u>0:g.kind==='depart'?u<1:true,opacity:1};});}
+// Reject missing or invalid hold/corridor evidence; no clearance claim from a single pose.
+export function chooseAnchor(candidates,{minVisibility=.75,minTitle=24,minBody=15}={}){const ranked=candidates.map(c=>{const hold=c.samples.filter(s=>s.hold),corridor=c.samples.filter(s=>!s.hold&&s.readable),finite=s=>[s.visibility,s.titlePx,s.bodyPx].every(Number.isFinite);const bad=hold.some(s=>!finite(s)||!s.inside||s.visibility<minVisibility||s.titlePx<minTitle||s.bodyPx<minBody)||!hold.length;const blocked=corridor.filter(s=>!finite(s)||!s.inside||s.visibility<minVisibility).length;return {...c,pass:!bad&&blocked===0&&corridor.length>0,holdPass:!bad,blocked,coverage:corridor.length,minVisibility:Math.min(1,...c.samples.map(s=>Number.isFinite(s.visibility)?s.visibility:0))};}).sort((a,b)=>Number(b.pass)-Number(a.pass)||Number(b.holdPass)-Number(a.holdPass)||a.blocked-b.blocked||b.coverage-a.coverage||b.minVisibility-a.minVisibility||b.depth-a.depth);return {selected:ranked.find(c=>c.pass)??null,ranked};}
