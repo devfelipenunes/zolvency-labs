@@ -16,8 +16,20 @@ export function createMechanicalAudit(){
   const bvh=new MeshBVH(copy);copy.boundsTree=bvh;
   const entry={geometry:copy,bvh};cache.set(g,entry);return entry;
  }
+
+ // Localize intersecting triangle pairs, rather than the bounds of the entire mesh.
+ // The aggregate overlap of triangle AABBs is conservative; it is not penetration depth.
+ function localizeContact(a,b,relative,world){
+  const region=new THREE.Box3(),left=new THREE.Box3(),right=new THREE.Box3(),point=new THREE.Vector3(),moving=new Set(),fixed=new Set();let pairs=0;
+  const triangleBounds=(tri,target)=>{target.makeEmpty();for(const v of [tri.a,tri.b,tri.c])target.expandByPoint(point.copy(v).applyMatrix4(world));return target;};
+  a.bvh.bvhcast(b.bvh,relative,{intersectsTriangles:(t1,t2,i1,i2)=>{
+   if(t1.intersectsTriangle(t2)){pairs++;moving.add(i1);fixed.add(i2);left.copy(triangleBounds(t1,left)).intersect(triangleBounds(t2,right));if(!left.isEmpty())region.union(left);}
+   return false;
+  }});
+  return {trianglePairs:pairs,movingTriangles:moving.size,otherTriangles:fixed.size,region:region.isEmpty()?null:{min:region.min.toArray(),max:region.max.toArray()}};
+ }
  const valid=o=>o.isMesh&&o.geometry?.attributes.position?.count>=3;
- function inspect(root,moving){
+ function inspect(root,moving,{details=false,localize=false}={}){
   if(!root||!moving)throw Error('mechanical audit requires root and moving subtree');
   const dynamic=[],fixed=[];moving.traverse(o=>{if(valid(o))dynamic.push(o);});
   const movingSet=new Set(dynamic);
@@ -32,7 +44,7 @@ export function createMechanicalAudit(){
     if(!box.intersectsBox(otherBox))continue;broadPhasePairs++;
     const a=get(mg),b=get(ng);
     relative.copy(m.matrixWorld).invert().multiply(n.matrixWorld);
-    if(a.bvh.intersectsGeometry(b.geometry,relative))hits.push({moving:m.name,other:n.name});
+    if(a.bvh.intersectsGeometry(b.geometry,relative)){const hit={moving:m.name,other:n.name};if(details){const intersection=box.clone().intersect(otherBox);const bounds=b=>({min:b.min.toArray(),max:b.max.toArray()});hit.movingBounds=bounds(box);hit.otherBounds=bounds(otherBox);hit.overlapBounds=bounds(intersection);}if(localize)hit.contact=localizeContact(a,b,relative,m.matrixWorld);hits.push(hit);}
    }
   }
   return {movingMeshes:dynamic.length,otherMeshes:fixed.length,broadPhasePairs,hits:hits.sort((a,b)=>(a.moving+'|'+a.other).localeCompare(b.moving+'|'+b.other))};
