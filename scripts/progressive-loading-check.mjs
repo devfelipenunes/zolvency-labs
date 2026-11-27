@@ -17,7 +17,7 @@ try{
   if([hangar.file,hangar.lowFile].includes(file))return route.continue();
   await gate;if(file===servers.lowFile)return route.abort('failed');return route.continue();
  });
- await page.goto(base+'/',{waitUntil:'domcontentloaded'});
+ await page.goto(base+'/?startup=progressive',{waitUntil:'domcontentloaded'});
  await page.waitForSelector('#stage[data-renderer="three"][data-assets="1"]',{timeout:120000});
  const stage=page.locator('#stage');const start=await stage.getAttribute('data-pose');
  await page.keyboard.press('End');await page.waitForFunction(()=>Math.abs(Number(document.querySelector('#stage')?.dataset.progress)-1)<.002,null,{timeout:90000});
