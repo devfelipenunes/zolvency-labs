@@ -1,4 +1,6 @@
 import {smooth5} from './r67/motion-physics.js';
+import {glyphHolds} from './glyphChoreography.js';
+import {windows} from './facilityCamera.js';
 const clamp=x=>Math.max(0,Math.min(1,x));
 // One phrase at a time, no inter-title glyph matching or permutation.
 // Coherent moving reading plane + bounded traveling wave along the original
@@ -32,3 +34,23 @@ export function ribbonTravel(act,phase,seconds,idle=0){
 // A paused scroll position is not a frozen animation. Ease the phrase back
 // into view without changing the camera or current chapter. Resume smoothly.
 export function ribbonIdleStep(previous,dt,stationarySeconds){const goal=stationarySeconds>.12?1:0,rate=goal>previous?4:9;return clamp(previous+(goal-previous)*(1-Math.exp(-Math.max(0,Math.min(.1,dt))*rate)));}
+
+// R76: the only animation clock for the ribbon is actual camera progress.
+// Authored reading holds are exactly neutral. Every other pose is a pure
+// function of the rail coordinate, including mid-transition stops/reversals.
+export function cameraWaveEnvelope(act,p){
+ if(!Number.isFinite(p))return 0;
+ const h=glyphHolds[act],a=windows[act],b=windows[act+1],d=Math.abs(p-h),span=p<h?h-a:b-h;
+ return smooth5(clamp(d/Math.max(.001,span*.36)));
+}
+export function cameraRibbonGlyph(act,i,n,p,role='headline'){
+ const e=cameraWaveEnvelope(act,p);
+ if(e===0)return [0,0,0,0,0,0];
+ return ribbonGlyph(act,i,n,p*24,role).map(v=>v*e);
+}
+export function cameraRibbonTravel(act,phase,p){
+ const base=ribbonTravel(act,phase,null,0),e=cameraWaveEnvelope(act,p),live=e?ribbonTravel(act,{kind:'hold',u:1},p*24,0):{x:0,y:0,z:0};
+ // Limit horizontal excursion so a paused transition doesn't leave the
+ // whole title offscreen. Keep the coherent depth/rail blend.
+ return {...base,x:Math.sign(base.x)*.20*base.out+live.x*.42*e,y:base.y+live.y*e,z:live.z*e,idle:0};
+}
