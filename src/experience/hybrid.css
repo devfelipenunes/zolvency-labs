@@ -80,3 +80,28 @@
 @supports(animation-timeline:view()){ @media(prefers-reduced-motion:no-preference){.hybrid-atlas-graphic svg{animation:atlas-shift linear both;animation-timeline:view();animation-range:exit 0% exit 100%}@keyframes atlas-shift{from{transform:rotate(0deg)}to{transform:rotate(18deg)}}}}
 @media(max-width:900px){.hybrid-hero-composition{grid-template-columns:1fr;gap:10px}.hybrid-hero-composition h1{font-size:clamp(49px,11.8vw,92px);margin-bottom:24px}.hybrid-atlas{max-width:440px;width:100%;margin-bottom:24px}.hybrid-atlas-graphic{aspect-ratio:2.5}.hybrid-atlas-graphic svg{width:29%;height:100%}.hybrid-hero-main{padding-block:clamp(30px,5vh,70px)}.hybrid-atlas-label{font-size:8px}.hybrid-atlas-meta{font-size:8px}}
 @media(max-width:360px){.hybrid-atlas-label{font-size:6.8px}.hybrid-hero-composition h1{font-size:clamp(42px,11.7vw,55px)}.hybrid-discipline-mark{width:32px;height:32px}}
+
+/* R99.2 — one full-viewport cinematic reveal, not a window inside the page. */
+.hybrid-page .hybrid-portal{min-height:200svh;background:#090e0c;overflow:clip}
+.hybrid-page .hybrid-portal[data-live="true"]{background:transparent}
+.hybrid-page .hybrid-portal-inner{height:100svh;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:clamp(28px,6vw,100px) var(--gutter);gap:22px;isolation:isolate}
+.hybrid-entry-cover{position:absolute;inset:0;z-index:-1;background:#090e0c;opacity:1;pointer-events:none}
+.hybrid-portal[data-live="true"] .hybrid-entry-cover{opacity:var(--entry-cover,1)}
+.hybrid-page .hybrid-portal-heading,.hybrid-page .hybrid-portal-copy{background:none;padding:0;text-align:left;align-self:auto;opacity:1;max-width:min(580px,100%);text-shadow:none}
+.hybrid-page .hybrid-portal-heading h2{font-size:clamp(48px,8vw,118px);line-height:.94;margin:14px 0 0;max-width:9ch;text-wrap:balance}
+.hybrid-page .hybrid-portal-copy p{margin-inline:0}
+.hybrid-page .hybrid-portal[data-live="true"] :is(.hybrid-portal-heading,.hybrid-portal-copy){opacity:var(--entry-copy,1);transform:translateY(calc(-32px * (1 - var(--entry-copy,1))))}
+.hybrid-page .hybrid-portal[data-live="true"][data-copy-visible="false"] :is(.hybrid-portal-heading,.hybrid-portal-copy){visibility:hidden;pointer-events:none}
+.hybrid-page .hybrid-facility[data-reading="false"] #stage::after{content:"";position:absolute;inset:0;z-index:4;background:#101914;opacity:var(--exit-cover,0);pointer-events:none}
+.hybrid-page .hybrid-research{background:#101914}
+@media(max-width:720px){.hybrid-page .hybrid-portal-inner{gap:16px}.hybrid-page .hybrid-portal-heading h2{font-size:clamp(48px,12vw,75px)}}
+@media(max-height:600px){.hybrid-page .hybrid-portal-inner{gap:8px;padding-block:18px}.hybrid-page .hybrid-portal-heading h2{font-size:clamp(34px,7vw,64px)}}
+@media(prefers-reduced-motion:reduce){.hybrid-page .hybrid-portal{min-height:70svh}.hybrid-page .hybrid-portal-inner{position:relative;height:auto;min-height:70svh}.hybrid-page .hybrid-portal-heading,.hybrid-page .hybrid-portal-copy{transform:none!important;opacity:1!important;visibility:visible!important}}
+
+/* Ease only asset readiness; scroll-driven positions remain immediate and reversible. */
+@property --ready-mix{syntax:"<number>";inherits:true;initial-value:0}
+.hybrid-page .hybrid-portal{--ready-mix:0;transition:--ready-mix 360ms ease-out}
+.hybrid-page .hybrid-portal[data-live="true"]{--ready-mix:1}
+.hybrid-portal[data-live="true"] .hybrid-entry-cover{opacity:calc(1 - var(--ready-mix,1)*(1 - var(--entry-cover,1)))}
+.hybrid-page .hybrid-portal[data-live="true"] :is(.hybrid-portal-heading,.hybrid-portal-copy){opacity:calc(1 - var(--ready-mix,1)*(1 - var(--entry-copy,1)))}
+@media(prefers-reduced-motion:reduce){.hybrid-page .hybrid-portal{transition:none}}
