@@ -1,0 +1,30 @@
+name: R67 F07 F08 GPU and visual benchmarks
+on:
+  pull_request:
+    branches: [preview/r66-art-direction-selected, main]
+    paths: ['src/graphics/r67/gpu-benchmark*','scripts/r67-gpu-benchmark*','tests/r67-gpu-benchmark*','.github/workflows/r67-gpu-benchmark.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: node --test tests/r67-gpu-benchmark.test.js
+      - run: npm run build
+      - run: npx playwright install chromium
+      - run: TYPE_WIDTH=390 TYPE_FINISH=mineral node scripts/selected-type-check.mjs
+      - run: node scripts/r67-gpu-benchmark.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: r67-gpu-benchmark
+          path: artifacts/glyphs/
