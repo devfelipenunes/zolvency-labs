@@ -17,7 +17,7 @@ import {layoutCandidates,directedBodyPhase} from './directedTypeLayout.js';
 import {cameraRibbonTravel} from './orderedRibbon.js';
 import {sculptedPose,cinematicPose} from './sculptedFlow.js';
 import {stageHandoff,stageOffset} from './stageHandoff.js';
-import {sceneMotion,readingFrame,sceneHandoff} from './scenePresence.js';
+import {sceneMotion,readingFrame,sceneHandoff,readingTilt,readingFitScale} from './scenePresence.js';
 import {createContinuousTitle,transitionWindows} from './continuousTitle.js';
 
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
@@ -135,7 +135,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
    // Centering on the valid interval avoids alternating corrections when
    // both edges overflow. A second projection accounts for perspective.
    const cx=w>1.80?-(minX+maxX)/2:x0,cy=h>1.66?-.025-(minY+maxY)/2:y0;
-   group.scale.multiplyScalar(shrink*.995);group.position.addScaledVector(right,cx*halfW).addScaledVector(up,cy*halfH);dx+=cx;dy+=cy;
+   group.scale.multiplyScalar(presenceType?readingFitScale(shrink):shrink*.995);group.position.addScaledVector(right,cx*halfW).addScaledVector(up,cy*halfH);dx+=cx;dy+=cy;
   }
   group.updateMatrixWorld(true);return {ratio:group.scale.x/initial,dx,dy,iterations,extent};
  }
@@ -161,7 +161,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
     const margin=cinematicFlow?.065:.018,emergency=!plate&&safe<(cinematicFlow?.22:.115)+margin,d=plate?.35:cinematicFlow&&emergency?.28:Math.max(.115,Math.min(preferred,safe-margin)),hh=d*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),hw=hh*a,sc=Math.min(2*hw*(frame?.halfWidth??(a>1?.62:sculptedType?.70:.80))/Math.max(.001,active.width),2*hh*(frame?.halfHeight??.34)/Math.max(.001,active.height))*(sculpt?.scale??1),point=camera.position.clone().addScaledVector(forward,d).addScaledVector(right,x*hw).addScaledVector(up,y*hh);
     chosen={key:signature,point,depth:d,hh,hw,scale:sc,clear:plate||safe>=d+margin?7:0,emergency};active.readingPlane=chosen;
    }
-   group.position.copy(chosen.point);group.quaternion.copy(camera.quaternion);if(sculpt&&!plate)group.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(sculpt.pitch*(presenceType?.45:1),sculpt.yaw*(presenceType?.45:1),sculpt.roll*(presenceType?.45:1),'YXZ')));scale=chosen.scale;halfW=chosen.hw;halfH=chosen.hh;ribbonMotion={...travel,point:group.position.toArray(),clock:seconds,depth:chosen.depth,clear:chosen.clear,plate,emergency:chosen.emergency,sculpt};
+   group.position.copy(chosen.point);group.quaternion.copy(camera.quaternion);if(sculpt&&!plate){const tilt=presenceType?.45*readingTilt(mask):1;group.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(sculpt.pitch*tilt,sculpt.yaw*tilt,sculpt.roll*tilt,'YXZ')));}scale=chosen.scale;halfW=chosen.hw;halfH=chosen.hh;ribbonMotion={...travel,point:group.position.toArray(),clock:seconds,depth:chosen.depth,clear:chosen.clear,plate,emergency:chosen.emergency,sculpt};
   }
   group.scale.setScalar(scale);group.visible=visibleRibbon||mask<.98;
   for(const m of [headline,body]){m.visible=group.visible;m.userData.glyphRig.update(phase.index,visibleRibbon&&m===body?{index:phase.index,kind:'hold',u:1}:directedLayout&&m===body?directedBodyPhase(p,phase.index):phase,halfW/scale,halfH/scale,seconds);}

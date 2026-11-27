@@ -38,3 +38,12 @@ export const readingLayout=Object.freeze([{x:0,y:-.19},{x:-.035,y:-.21},{x:.02,y
 // Reserve room for the mobile safe area and browser chrome. Keep horizontal
 // composition aligned without forcing a lower placement in Quantum.
 export function readingFrame(index,aspect,driftX=0,driftY=0){const b=readingLayout[index],portrait=aspect<1;return {x:Math.max(-.09,Math.min(.09,b.x+driftX)),y:Math.max(portrait?-.30:-.36,Math.min(.10,b.y+driftY)),halfWidth:portrait?.82:.62,halfHeight:portrait?.40:.43};}
+
+// Neutralize the authored tilt before entering an optical cut. This keeps
+// the reading orientation continuous on both sides of the .65 plate boundary.
+export function readingTilt(mask){return 1-ease((mask-.35)/.30);}
+// Keep the R81 raster floor at full quality, but let the existing governor
+// reduce it under load instead of pinning the entire framebuffer to 1.25 DPR.
+export function presencePixelRatio(dpr,device,governorScale){return Math.max(dpr,Math.min(1.25,device||1)*clamp(governorScale));}
+// Translation-only corrections should never shrink the reading composition.
+export function readingFitScale(shrink){return shrink<1?shrink*.995:1;}
