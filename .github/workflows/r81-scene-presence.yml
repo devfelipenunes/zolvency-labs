@@ -1,8 +1,8 @@
 name: R81 scene-specific motion and typographic presence
 on:
   pull_request:
-    branches: [preview/r80-stage-handoff, main]
-    paths: ['src/graphics/**','scripts/r81-scene-presence.mjs','.github/workflows/r81-scene-presence.yml']
+    branches: [preview/r80-stage-handoff, preview/r81-scene-presence, main]
+    paths: ['src/graphics/**','test/r83-organic-motion.test.js','scripts/r81-scene-presence.mjs','.github/workflows/r81-scene-presence.yml']
   workflow_dispatch:
 permissions:
   contents: read
