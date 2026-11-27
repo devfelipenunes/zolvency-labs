@@ -370,3 +370,8 @@ h1,h2{font-weight:500;letter-spacing:-.064em;line-height:1.02;text-wrap:balance;
 @media(max-width:720px) and (prefers-reduced-motion:no-preference){
  #stage[data-mobile-guide="guided"][data-renderer="three"] ~ main .chapter .copy{transition:none!important}
 }
+
+/* One spatial copy system, with semantic HTML retained for assistive technology and 2D fallback. */
+#stage[data-mobile-type="flow3d"][data-renderer="three"] ~ main .chapter .copy{opacity:0!important;pointer-events:none;transition:none!important}
+#stage[data-mobile-type="flow3d"][data-renderer="three"] ~ .brand{opacity:0!important;pointer-events:none}
+#stage[data-mobile-type="flow3d"][data-renderer="three"] ~ .track{opacity:0!important;pointer-events:none}
