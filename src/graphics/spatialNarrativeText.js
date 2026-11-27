@@ -8,12 +8,13 @@ import {backlogModes,backlogLayout,stagedCopy} from './backlogStudy.js';
 import {brandPlane,isStudy,studyModes} from './compositionStudy.js';
 import {brandSurfaces,artEnvelope} from './artDirection.js';
 import {shotCards,shotAnimation,shotLayout} from './shotCards.js';
+import {flowTypeEnvelope} from './flowTypeEnvelope.js';
 
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 // All visible narrative text is triangulated, extruded glyph geometry, including body copy.
 // One merged mesh per role keeps draw calls low. The editorial rig follows the shot,
 // with controlled perspective, depth and rotation; it is not a physical wall sign.
-export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default',brandOnly=false,reusePlacement=false}={}){
+export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default',brandOnly=false,reusePlacement=false,flow3d=false}={}){
  let font=null,logo=null,disposed=false,aspect=0,active=null,layoutMobile=null,builds=0,placementResets=0;const entries=new Map(),ray=new THREE.Raycaster();
  if(!brandOnly)new FontLoader().loadAsync(import.meta.env.BASE_URL+'models/fonts/helvetiker_regular.typeface.json').then(f=>{if(!disposed){font=f;onReady();}}).catch(()=>{});
  new SVGLoader().loadAsync(import.meta.env.BASE_URL+'brand/zolvency.svg').then(d=>{if(!disposed){logo=d.paths.flatMap(p=>SVGLoader.createShapes(p));onReady();}}).catch(()=>{});
@@ -26,6 +27,43 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   const geometry=mergeGeometries(gs,false);for(const g of gs)g.dispose();if(!geometry)throw Error('glyph geometry merge failed');geometry.computeBoundingBox();
   const material=lit||world?new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:lit?.58:.85,metalness:lit?.25:.05,roughness:.44,transparent:true,depthWrite:false}):new THREE.MeshBasicMaterial({color,transparent:true,depthWrite:false,toneMapped:false});
   return new THREE.Mesh(geometry,material);
+ }
+ // Unified spatial title for mobile: actual extruded glyphs, one coordinated group.
+ // The group follows the authored camera rail at a bounded depth, rather than
+ // claiming an architectural wall attachment. Depth testing remains enabled.
+ function flowMesh(gs,color){
+  const geometry=mergeGeometries(gs,false);for(const g of gs)g.dispose();if(!geometry)throw Error('flow glyph merge failed');
+  geometry.computeBoundingBox();const n=geometry.attributes.normal,colors=new Float32Array(n.count*3),c=new THREE.Color(color);
+  for(let i=0;i<n.count;i++){const shade=Math.abs(n.getZ(i))>.8?1:.52;colors[i*3]=c.r*shade;colors[i*3+1]=c.g*shade;colors[i*3+2]=c.b*shade;}
+  geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
+  return new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,depthTest:true,depthWrite:false,toneMapped:false}));
+ }
+ function buildFlow(card,mobile){
+  if(!font||(card.brand&&!logo))return null;
+  builds++;const group=new THREE.Group();group.name='flow-type-'+card.name;group.visible=false;let cursor=0;
+  if(card.brand){const g=new THREE.ExtrudeGeometry(logo,{depth:12,bevelEnabled:false,curveSegments:2});g.scale(1,-1,1);g.computeBoundingBox();const b=g.boundingBox,sz=b.getSize(V());g.translate(-b.min.x,-b.max.y,-b.getCenter(V()).z);g.scale(.86/sz.x,.86/sz.x,.023/Math.max(.001,sz.z));g.translate(-.49,0,0);const mark=flowMesh([g],0x65d8aa);mark.name='hero';group.add(mark);cursor-=sz.y*.86/sz.x+.045;}
+  const titleSize=.105,bodySize=.064,titleLines=wrap(card.title,titleSize,.98),titleGeos=[];
+  for(const line of titleLines){titleGeos.push(lineGeo(line,titleSize,-.49,cursor,'left',.18));cursor-=titleSize*1.15;}
+  const heading=flowMesh(titleGeos,0xe7f0ec);heading.name='headline';group.add(heading);cursor-=.023;
+  const bodyLines=wrap(card.body,bodySize,.98),bodyGeos=[];for(const line of bodyLines){bodyGeos.push(lineGeo(line,bodySize,-.49,cursor,'left',.12));cursor-=bodySize*1.35;}
+  const body=flowMesh(bodyGeos,0xc1d9d0);body.name='body';group.add(body);
+  group.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(group),center=box.getCenter(V()),size=box.getSize(V());
+  for(const m of group.children)m.position.sub(center);
+  scene.add(group);const e={card,group,titleLines,bodyLines,roles:group.children.map(m=>m.name),height:size.y,width:size.x};entries.set(card.name,e);return e;
+ }
+ function prebuild(mobile){if(!flow3d)return;if(layoutMobile!==mobile){clear();layoutMobile=mobile;}for(const card of shotCards)if(!entries.has(card.name))buildFlow(card,mobile);}
+ function updateFlow(p,camera,mobile,a,mask){
+  if(layoutMobile!==mobile||entries.size!==shotCards.length)prebuild(mobile);
+  const anim=flowTypeEnvelope(p,mask),card=shotCards[anim.index];for(const e of entries.values())e.group.visible=false;active=entries.get(card.name)??null;
+  if(!active)return {ready:false,visible:false,shot:card.name,roles:[],alpha:0,copyVisible:false};
+  const {group}=active,depth=.46+.06*(1-anim.enter),halfH=depth*Math.tan(THREE.MathUtils.degToRad(camera.fov)/2),halfW=halfH*a;
+  camera.updateMatrixWorld(true);const forward=camera.getWorldDirection(V()),right=V(1,0,0).applyQuaternion(camera.quaternion),up=V(0,1,0).applyQuaternion(camera.quaternion);
+  const scale=Math.min(2*halfW*.84/Math.max(.001,active.width),2*halfH*.28/Math.max(.001,active.height));
+  const y=-.54-anim.drift;group.position.copy(camera.position).addScaledVector(forward,depth).addScaledVector(right,0).addScaledVector(up,y*halfH);
+  group.quaternion.copy(camera.quaternion).multiply(new THREE.Quaternion().setFromAxisAngle(V(0,1,0),.11*(1-anim.enter)+.035));
+  group.scale.setScalar(scale);group.visible=anim.alpha>.012;
+  for(const m of group.children){m.visible=group.visible;m.material.opacity=anim.alpha;}
+  group.updateMatrixWorld(true);return {ready:true,visible:group.visible,shot:card.name,roles:active.roles,alpha:anim.alpha,focus:card.focus,intent:card.intent,bodyLines:active.bodyLines.length,copyVisible:group.visible};
  }
  function build(card,mobile){
   if((!brandOnly&&!font)||(card.brand&&!logo)||brandOnly&&!card.brand)return null;
@@ -131,6 +169,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   layoutMobile=mobile;aspect=a;
  }
  function requiresWorldUpdate(p,mobile,a,mask,roots){
+  if(flow3d)return false;
   if(!world||!rail||layoutMobile!==mobile||Math.abs(a-aspect)>.1)return true;
   const card=shotAnimation(p,mask).card;if(brandOnly&&!card.brand)return false;
   const e=entries.get(card.name);if(e?.anchors||roots.size<8)return false;
@@ -159,6 +198,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   return {ready:true,visible:group.visible,shot:card.name,roles:active.roles,alpha:anim.alpha,focus:card.focus,intent:card.intent,bodyLines:active.bodyLines.length,copyVisible:copyVisible(group)};
  }
  function update(p,camera,mobile,a,mask,roots){
+  if(flow3d)return updateFlow(p,camera,mobile,a,mask);
   if(world&&rail)return updateWorld(p,camera,mobile,a,mask,roots);
   refreshLayout(mobile,a);const anim=shotAnimation(p,mask),card=anim.card;
   if(!entries.has(card.name))build(card,mobile);
@@ -183,5 +223,5 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
  function inspect(camera,roots){if(!active)return [];const {group,card,roles}=active;return group.children.filter(m=>m.visible&&group.visible).map(m=>{m.updateMatrixWorld(true);const b=m.geometry.boundingBox,points=[];for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z])points.push(V(x,y,z).applyMatrix4(m.matrixWorld).project(camera));const visibleRoots=roots?[...roots.values()].filter(o=>o.visible):[],attr=m.geometry.attributes.position,samples=[];for(let j=0;j<Math.min(45,attr.count);j++){const k=Math.floor(j*attr.count/Math.min(45,attr.count));samples.push(V().fromBufferAttribute(attr,k).applyMatrix4(m.matrixWorld));}const clearSamples=samples.filter(q=>{const v=q.clone().project(camera);return Math.abs(v.x)<1&&Math.abs(v.y)<1&&Math.abs(v.z)<1&&!isBlocked(camera.position,q,visibleRoots);}).length;return {visibilityEstimate:samples.length?clearSamples/samples.length:0,sampleCount:samples.length,name:card.name,role:m.name,worldAnchor:active.anchors?.[group.children.indexOf(m)]?.point.toArray()??null,mount:active.anchors?.[group.children.indexOf(m)]?.mount??null,inside:points.every(q=>Math.abs(q.x)<1&&Math.abs(q.y)<1&&Math.abs(q.z)<1),span:(Math.max(...points.map(q=>q.x))-Math.min(...points.map(q=>q.x)))/2,opacity:m.material.opacity,triangles:(m.geometry.index?.count??m.geometry.attributes.position.count)/3};});}
  function copyVisible(group){return group.visible&&['headline','body'].every(role=>group.children.some(m=>m.name===role&&m.visible&&m.material.opacity>=.35));}
  function suppressCopy(){if(!active)return;for(const m of active.group.children)if(!active.card.brand||m.name!=='hero')m.visible=false;}
- return {update,inspect,requiresWorldUpdate,suppressCopy,stats:()=>({builds,placementResets,entries:entries.size}),ready:()=>!!logo&&(brandOnly||!!font),dispose(){disposed=true;clear();},diagnostics(){return [...entries.values()].map(e=>({name:e.card.name,roles:e.roles,bodyLines:e.bodyLines,anchors:e.anchors?.map(a=>({point:a.point.toArray(),depth:a.depth,mount:a.mount}))??[],titleLines:e.titleLines,focus:e.card.focus,intent:e.card.intent}));}};
+ return {update,inspect,prebuild,requiresWorldUpdate,suppressCopy,stats:()=>({builds,placementResets,entries:entries.size}),ready:()=>!!logo&&(brandOnly||!!font),dispose(){disposed=true;clear();},diagnostics(){return [...entries.values()].map(e=>({name:e.card.name,roles:e.roles,bodyLines:e.bodyLines,anchors:e.anchors?.map(a=>({point:a.point.toArray(),depth:a.depth,mount:a.mount}))??[],titleLines:e.titleLines,focus:e.card.focus,intent:e.card.intent}));}};
 }
