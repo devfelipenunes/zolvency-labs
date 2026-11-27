@@ -15,14 +15,14 @@ import {glyphPhase,glyphTransform} from './glyphChoreography.js';
 import {createGlyphRig} from './glyphRig.js';
 import {layoutCandidates,directedBodyPhase} from './directedTypeLayout.js';
 import {cameraRibbonTravel} from './orderedRibbon.js';
-import {sculptedPose} from './sculptedFlow.js';
+import {sculptedPose,cinematicPose} from './sculptedFlow.js';
 import {createContinuousTitle,transitionWindows} from './continuousTitle.js';
 
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 // All visible narrative text is triangulated, extruded glyph geometry, including body copy.
 // One merged mesh per role keeps draw calls low. The editorial rig follows the shot,
 // with controlled perspective, depth and rotation; it is not a physical wall sign.
-export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default',brandOnly=false,reusePlacement=false,flow3d=false,livingType=false,glyphType=false,architectureType=false,selectedType=false,curvedType=false,spaceFont=false,gpuType=false,contactType=false,worldAll=false,continuousType=false,continuousAll=false,corridorType=false,auditCorridor=false,clearanceType=false,bridgeGpu=false,cinematicType=false,waveType=false,directedLayout=false,ribbonType=false,visibleRibbon=false,sculptedType=false,typeFinish='mineral',holdPose=null}={}){
+export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default',brandOnly=false,reusePlacement=false,flow3d=false,livingType=false,glyphType=false,architectureType=false,selectedType=false,curvedType=false,spaceFont=false,gpuType=false,contactType=false,worldAll=false,continuousType=false,continuousAll=false,corridorType=false,auditCorridor=false,clearanceType=false,bridgeGpu=false,cinematicType=false,waveType=false,directedLayout=false,ribbonType=false,visibleRibbon=false,sculptedType=false,cinematicFlow=false,typeFinish='mineral',holdPose=null}={}){
  let font=null,titleFont=null,bodyFont=null,logo=null,disposed=false,aspect=0,active=null,layoutMobile=null,builds=0,placementResets=0;const entries=new Map(),ray=new THREE.Raycaster();let continuous=[];
  if(!brandOnly)new FontLoader().loadAsync(import.meta.env.BASE_URL+'models/fonts/helvetiker_regular.typeface.json').then(f=>{if(!disposed){font=f;onReady();}}).catch(()=>{});
  if(spaceFont)for(const weight of [400,600])new FontLoader().loadAsync(import.meta.env.BASE_URL+'models/fonts/space-grotesk-'+weight+'.typeface.json').then(f=>{if(!disposed){if(weight===600)titleFont=f;else bodyFont=f;onReady();}}).catch(()=>{if(!disposed){if(weight===600)titleFont=font;else bodyFont=font;onReady();}});
@@ -75,9 +75,9 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   builds++;const group=new THREE.Group();group.name='glyph-type-'+card.livingId;group.visible=false;let cursor=0;const titleSize=.138,bodySize=directedLayout?.060:selectedType?.053:.076;
   const tf=spaceFont?titleFont:font,bf=spaceFont?bodyFont:font;const titleLines=wrap(card.title,titleSize,.99,tf),bodyLines=wrap(card.body,bodySize,.99,bf);
   let mark=null;if(card.brand){const g=new THREE.ExtrudeGeometry(logo,{depth:12,bevelEnabled:false,curveSegments:2});g.scale(1,-1,1);g.computeBoundingBox();const b=g.boundingBox,sz=b.getSize(V());g.translate(-b.min.x,-b.max.y,-b.getCenter(V()).z);g.scale(.71/sz.x,.71/sz.x,.022/Math.max(.001,sz.z));g.translate(-.49,0,0);mark=flowMesh([g],0x65d8aa);mark.name='hero';mark.material.transparent=false;mark.material.depthWrite=true;group.add(mark);cursor-=sz.y*.71/sz.x+.05;}
-  const headline=createGlyphRig({font:tf,lines:titleLines,size:titleSize,x:-.49,y:cursor,step:titleSize*1.14,depth:selectedType?.13:architectureType?.19:.13,bevel:selectedType?.012:architectureType?.022:.014,color:0xe6efea,role:'headline',finish:architectureType?typeFinish:'control',curved:curvedType,gpu:gpuType,contact:contactType,ribbon:ribbonType,sculpted:sculptedType});group.add(headline);
+  const headline=createGlyphRig({font:tf,lines:titleLines,size:titleSize,x:-.49,y:cursor,step:titleSize*1.14,depth:selectedType?.13:architectureType?.19:.13,bevel:selectedType?.012:architectureType?.022:.014,color:0xe6efea,role:'headline',finish:architectureType?typeFinish:'control',curved:curvedType,gpu:gpuType,contact:contactType,ribbon:ribbonType,sculpted:sculptedType,cinematic:cinematicFlow});group.add(headline);
   cursor-=titleLines.length*titleSize*1.14+(selectedType?.044:.027);
-  const body=createGlyphRig({font:bf,lines:bodyLines,size:bodySize,x:-.49,y:cursor,step:bodySize*1.30,depth:.08,bevel:0,color:0xc2d9d1,role:'body',finish:architectureType?'mineral':'control',curved:curvedType,gpu:gpuType,contact:contactType,directedBody:directedLayout,ribbon:ribbonType,sculpted:sculptedType});group.add(body);
+  const body=createGlyphRig({font:bf,lines:bodyLines,size:bodySize,x:-.49,y:cursor,step:bodySize*1.30,depth:.08,bevel:0,color:0xc2d9d1,role:'body',finish:architectureType?'mineral':'control',curved:curvedType,gpu:gpuType,contact:contactType,directedBody:directedLayout,ribbon:ribbonType,sculpted:sculptedType,cinematic:cinematicFlow});group.add(body);
   if(visibleRibbon)for(const m of group.children)m.layers.enable(29);
   group.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(group),center=box.getCenter(V()),size=box.getSize(V());
   for(const m of group.children){m.position.sub(center);m.userData.rest=m.position.clone();}
@@ -115,6 +115,26 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   }
   return safe;
  }
+ // Project conservative, animated per-role bounds rather than the rest
+ // text width. Fit in camera space deterministically, no time-based easing.
+ function fitReadingVolume(group,camera,halfW,halfH){
+  const bounds=group.children.filter(m=>m.visible).map(m=>({m,b:m.userData.glyphRig?.conservativeBounds()??m.geometry.boundingBox})).filter(x=>x.b);
+  const right=V(1,0,0).applyQuaternion(camera.quaternion),up=V(0,1,0).applyQuaternion(camera.quaternion);
+  const initial=group.scale.x;let dx=0,dy=0,iterations=0,extent=null;
+  for(let i=0;i<6;i++){
+   group.updateMatrixWorld(true);let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity,minZ=Infinity,maxZ=-Infinity;
+   for(const {m,b} of bounds)for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z]){const q=V(x,y,z).applyMatrix4(m.matrixWorld).project(camera);minX=Math.min(minX,q.x);maxX=Math.max(maxX,q.x);minY=Math.min(minY,q.y);maxY=Math.max(maxY,q.y);minZ=Math.min(minZ,q.z);maxZ=Math.max(maxZ,q.z);}
+   extent={minX,maxX,minY,maxY,minZ,maxZ};iterations=i+1;
+   const w=maxX-minX,h=maxY-minY,shrink=Math.min(1,1.80/Math.max(.001,w),1.66/Math.max(.001,h),minZ<-.96?.86:1);
+   const x0=minX<-.90?-.90-minX:maxX>.90?.90-maxX:0,y0=minY<-.88?-.88-minY:maxY>.83?.83-maxY:0;
+   if(shrink===1&&Math.abs(x0)<.001&&Math.abs(y0)<.001)break;
+   // Centering on the valid interval avoids alternating corrections when
+   // both edges overflow. A second projection accounts for perspective.
+   const cx=w>1.80?-(minX+maxX)/2:x0,cy=h>1.66?-.025-(minY+maxY)/2:y0;
+   group.scale.multiplyScalar(shrink*.995);group.position.addScaledVector(right,cx*halfW).addScaledVector(up,cy*halfH);dx+=cx;dy+=cy;
+  }
+  group.updateMatrixWorld(true);return {ratio:group.scale.x/initial,dx,dy,iterations,extent};
+ }
  function updateGlyphFlow(p,camera,a,mask,mobile,roots,seconds=null,ribbonIdle=0){
   const phase=glyphPhase(p),card=cards[phase.index];for(const e of entries.values())e.group.visible=false;active=entries.get(card.name)??null;
   if(!active)return {ready:false,visible:false,shot:card.name,roles:[],alpha:0,copyVisible:false};
@@ -130,12 +150,12 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   else{group.position.copy(camera.position).addScaledVector(forward,depth).addScaledVector(up,-.46*halfH);group.quaternion.copy(camera.quaternion);}
   let ribbonMotion=null;if(ribbonType&&!visibleRibbon){const travel=cameraRibbonTravel(phase.index,phase,seconds),nearDepth=phase.index===5?.30:.50,nh=nearDepth*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),nw=nh*a,ns=Math.min(2*nw*.72/Math.max(.001,active.width),2*nh*.35/Math.max(.001,active.height));const near=camera.position.clone().addScaledVector(forward,nearDepth).addScaledVector(up,(anchor?.layout?.y??-.46)*nh);group.position.lerp(near,travel.blend);group.quaternion.slerp(camera.quaternion,travel.blend);scale+=(ns-scale)*travel.blend;halfW+=(nw-halfW)*travel.blend;halfH+=(nh-halfH)*travel.blend;const r=V(1,0,0).applyQuaternion(group.quaternion),u=V(0,1,0).applyQuaternion(group.quaternion),f=V(0,0,-1).applyQuaternion(group.quaternion);group.position.addScaledVector(r,travel.x*halfW).addScaledVector(u,travel.y*halfH).addScaledVector(f,travel.z*halfH);ribbonMotion={...travel,point:group.position.toArray(),clock:seconds};}
   if(visibleRibbon){
-   const travel=cameraRibbonTravel(phase.index,phase,seconds),sculpt=sculptedType&&Number.isFinite(seconds)?sculptedPose(phase.index,p):null,layout=layoutCandidates(phase.index)[0],right=V(1,0,0).applyQuaternion(camera.quaternion),x=layout.x+(sculpt?.x??travel.x*.36),y=layout.y+(sculpt?.y??travel.y*.35),plate=mask>=.65;
+   const travel=cameraRibbonTravel(phase.index,phase,seconds),sculpt=sculptedType&&Number.isFinite(seconds)?(cinematicFlow?cinematicPose(phase.index,p):sculptedPose(phase.index,p)):null,layout=layoutCandidates(phase.index)[0],right=V(1,0,0).applyQuaternion(camera.quaternion),x=layout.x+(sculpt?.x??travel.x*.36),y=layout.y+(sculpt?.y??travel.y*.35),plate=mask>=.65;
    const signature=[p,a,mask,roots.size].join('|');let chosen=active.readingPlane?.key===signature?active.readingPlane:null;
    if(!chosen){const all=[...roots.values()].filter(o=>o.visible);if(!plate)for(const root of all)root.updateMatrixWorld(true);
     const safe=plate?Infinity:readingClearDepth(camera,x,y,a,active,all),preferred=sculpt?Math.min(sculpt.depth,phase.index===5?.38:1):phase.index===5?.23:.55;
-    const d=plate?.35:Math.max(.115,Math.min(preferred,safe-.018)),hh=d*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),hw=hh*a,sc=Math.min(2*hw*(a>1?.62:sculptedType?.70:.80)/Math.max(.001,active.width),2*hh*.34/Math.max(.001,active.height))*(sculpt?.scale??1),point=camera.position.clone().addScaledVector(forward,d).addScaledVector(right,x*hw).addScaledVector(up,y*hh);
-    chosen={key:signature,point,depth:d,hh,hw,scale:sc,clear:plate||safe>=d+.018?7:0,emergency:!plate&&safe<d+.018};active.readingPlane=chosen;
+    const margin=cinematicFlow?.065:.018,emergency=!plate&&safe<(cinematicFlow?.22:.115)+margin,d=plate?.35:cinematicFlow&&emergency?.28:Math.max(.115,Math.min(preferred,safe-margin)),hh=d*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),hw=hh*a,sc=Math.min(2*hw*(a>1?.62:sculptedType?.70:.80)/Math.max(.001,active.width),2*hh*.34/Math.max(.001,active.height))*(sculpt?.scale??1),point=camera.position.clone().addScaledVector(forward,d).addScaledVector(right,x*hw).addScaledVector(up,y*hh);
+    chosen={key:signature,point,depth:d,hh,hw,scale:sc,clear:plate||safe>=d+margin?7:0,emergency};active.readingPlane=chosen;
    }
    group.position.copy(chosen.point);group.quaternion.copy(camera.quaternion);if(sculpt&&!plate)group.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(sculpt.pitch,sculpt.yaw,sculpt.roll,'YXZ')));scale=chosen.scale;halfW=chosen.hw;halfH=chosen.hh;ribbonMotion={...travel,point:group.position.toArray(),clock:seconds,depth:chosen.depth,clear:chosen.clear,plate,emergency:chosen.emergency,sculpt};
   }
@@ -145,6 +165,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
    // Origin logo is already present at opening; moves out with the other letters.
    if(phase.index!==0||phase.kind==='exit'){mark.position.x+=v[0]*halfW/scale;mark.position.y+=v[1]*halfH/scale;mark.position.z+=v[2]*halfH/scale;mark.rotation.y=v[4];}else mark.rotation.y=0;mark.visible=group.visible;}
   group.updateMatrixWorld(true);
+  if(cinematicFlow&&ribbonMotion){const fit=fitReadingVolume(group,camera,halfW,halfH);ribbonMotion={...ribbonMotion,point:group.position.toArray(),fit};}
   let currentBridge=null;const auditRoots=auditCorridor?[...roots.values()].filter(o=>o.visible):null;if(auditRoots)for(const root of auditRoots)root.updateMatrixWorld(true);const blocked=auditRoots?q=>isBlocked(camera.position,q,auditRoots):null;for(const bridge of continuous){if(bridge.update(p,mask,camera,blocked,seconds))currentBridge=bridge;}const bridging=!!currentBridge;if(bridging)headline.visible=false;
   return {ready:true,visible:group.visible,shot:card.name,roles:bridging?active.roles.filter(r=>r!=='headline').concat('continuous-title'):active.roles,alpha:group.visible?1:0,focus:card.focus,intent:card.intent,bodyLines:active.bodyLines.length,copyVisible:group.visible,transition:currentBridge?.diagnostics()??{active:false,index:null,items:[]},transitionCount:continuous.length,ribbonMotion,bodyPhase:visibleRibbon?{index:phase.index,kind:'hold',u:1}:directedLayout?directedBodyPhase(p,phase.index):phase};
  }
