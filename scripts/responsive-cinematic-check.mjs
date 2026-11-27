@@ -54,10 +54,21 @@ try{
    for(const [direction,points] of [['forward',holds],['reverse',[...holds].reverse().slice(1)]]){
     for(const p of points){
      await page.evaluate(y=>{const q=window.__motionTrial,d=document.querySelector('#stage').dataset;q.frames=[];q.first=null;q.startProgress=Number(d.progress);q.last=d.renderCount;q.started=performance.now();q.active=true;window.scrollTo({top:y,behavior:'instant'});},scrollAt(p));
-     await page.waitForFunction(p=>{const d=document.querySelector('#stage').dataset;return Math.abs(Number(d.progress)-p)<.003&&d.motionPending==='false';},p,{timeout:120000});
+     // Software rendering can stall for seconds per submitted frame. This is a
+     // harness deadline, not a device-performance acceptance threshold.
+     const deadline=software?240000:120000;
+     console.log(JSON.stringify({travel,direction,p,deadline}));
+     try{
+      await page.waitForFunction(p=>{const d=document.querySelector('#stage').dataset;return Math.abs(Number(d.progress)-p)<.003&&d.motionPending==='false';},p,{timeout:deadline});
+     }catch(error){
+      const diagnostic=await page.evaluate(()=>{const d=document.querySelector('#stage').dataset,q=window.__motionTrial;return {progress:d.progress,targetProgress:d.targetProgress,motionPending:d.motionPending,renderCount:d.renderCount,scrollY,frames:q.frames,elapsedMs:performance.now()-q.started};}).catch(e=>({captureError:String(e)}));
+      await writeFile(out+'/'+travel+'-timeout.json',JSON.stringify({travel,direction,p,deadline,error:String(error),diagnostic,completedTrials:trials,errors},null,2));
+      throw error;
+     }
      const result=await page.evaluate(()=>{const q=window.__motionTrial;q.active=false;return {frames:q.frames,firstMotionMs:q.first,settleMs:performance.now()-q.started};});
      assert.ok(result.frames.length>0,'No observed frames');
-     trials.push({direction,p,...result});
+     trials.push({direction,p,exceeded120s:result.settleMs>120000,...result});
+     await writeFile(out+'/'+travel+'-trials.json',JSON.stringify(trials));
     }
    }
    const moving=trials.flatMap(x=>x.frames.filter((f,i,a)=>i===0?Number.isFinite(f.interval):f.progress!==a[i-1].progress));
