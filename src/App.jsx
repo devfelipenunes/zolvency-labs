@@ -8,7 +8,7 @@ import {livingCopy,selectedCopy,livingTypeEnabled} from './graphics/livingCopy.j
 import {getEditorialChapters,editorialExperience,getEditorialEdition,getCopyStyle} from './editorialStory.js';
 const hybrid=new URLSearchParams(location.search).get('hybrid')==='1';
 // Keep the selected A configuration explicit on the opt-in hybrid route only.
-if(hybrid){const url=new URL(location.href);for(const [key,value] of Object.entries({'living-type':'kinetic','type-formation':'ribbon','type-layout':'directed','type-visibility':'continuous','type-choreography':'scene-presence','type-spatial':'control'}))url.searchParams.set(key,value);for(const key of ['experience','type','space','cut'])url.searchParams.delete(key);history.replaceState(history.state,'',url);}
+if(hybrid){const url=new URL(location.href);for(const [key,value] of Object.entries({'living-type':'kinetic','type-formation':'ribbon','type-layout':'directed','type-visibility':'continuous','type-choreography':'scene-presence','type-spatial':'control','startup':'complete'}))url.searchParams.set(key,value);for(const key of ['experience','type','space','cut'])url.searchParams.delete(key);history.replaceState(history.state,'',url);}
 const editorial=editorialExperience(location.search),edition=getEditorialEdition(location.search),copyStyle=getCopyStyle(location.search),chapters=editorial?getEditorialChapters(edition):livingTypeEnabled(location.search,innerWidth)?(['selected','kinetic'].includes(new URLSearchParams(location.search).get('living-type'))?selectedCopy:livingCopy):legacyChapters;
 import {useScrollStory} from './useScrollStory.js';
 import {smoothProgress} from './graphics/scrollSmoothing.js';
