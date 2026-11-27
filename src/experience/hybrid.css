@@ -105,3 +105,14 @@
 .hybrid-portal[data-live="true"] .hybrid-entry-cover{opacity:calc(1 - var(--ready-mix,1)*(1 - var(--entry-cover,1)))}
 .hybrid-page .hybrid-portal[data-live="true"] :is(.hybrid-portal-heading,.hybrid-portal-copy){opacity:calc(1 - var(--ready-mix,1)*(1 - var(--entry-copy,1)))}
 @media(prefers-reduced-motion:reduce){.hybrid-page .hybrid-portal{transition:none}}
+
+/* R99.4–R99.7: one full-width screen, never a text-sized mask. */
+.hybrid-page .hybrid-portal{width:100%;max-width:none;margin-inline:0;padding:0}
+.hybrid-page .hybrid-portal-inner{width:100%;max-width:none;margin-inline:0;box-sizing:border-box;align-self:stretch}
+.hybrid-page .hybrid-entry-cover{position:absolute;inset:0;width:100%;height:100%;max-width:none;z-index:0;background:radial-gradient(ellipse at 70% 45%,#12211a 0%,#090e0c 66%);pointer-events:none}
+.hybrid-page .hybrid-portal-heading,.hybrid-page .hybrid-portal-copy{position:relative;z-index:1}
+.hybrid-page .hybrid-portal[data-live="true"] .hybrid-entry-cover{background:#090e0c}
+.hybrid-page .hybrid-return-runway{height:40svh;min-height:1px;pointer-events:none}
+.hybrid-page .hybrid-facility[data-reading="true"] .hybrid-return-runway{background:#101914}
+.hybrid-page .hybrid-facility[data-reading="false"] #stage::after{background:#101914;opacity:var(--exit-cover,0)}
+@media(prefers-reduced-motion:reduce){.hybrid-page .hybrid-return-runway{height:0;min-height:0}}
