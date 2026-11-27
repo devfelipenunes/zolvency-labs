@@ -1,0 +1,28 @@
+name: R67 F01 F02 font and art
+on:
+  pull_request:
+    branches: [preview/r66-art-direction-selected, main]
+    paths: ['src/graphics/r67/font-art*','scripts/r67-font-art*','tests/r67-font-art*','.github/workflows/r67-font-art.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: python3 -m venv /tmp/r67-font && /tmp/r67-font/bin/pip install fonttools==4.55.3
+      - run: /tmp/r67-font/bin/python scripts/r67-font-art.py
+      - run: node --test scripts/r67-font-art-check.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: r67-font-art
+          path: artifacts/r67-font/
