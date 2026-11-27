@@ -47,3 +47,9 @@ export function readingTilt(mask){return 1-ease((mask-.35)/.30);}
 export function presencePixelRatio(dpr,device,governorScale){return Math.max(dpr,Math.min(1.25,device||1)*clamp(governorScale));}
 // Translation-only corrections should never shrink the reading composition.
 export function readingFitScale(shrink){return shrink<1?shrink*.995:1;}
+
+// A stable world-space reference near each authored reading shot. The blend
+// releases smoothly when the camera travels away or an optical cut approaches.
+// The actual text remains in the collision-checked reading volume.
+export function spatialInfluence(distance,angle,mask){return .48*(1-ease(distance/1.6))*(1-ease(angle/.70))*readingTilt(mask);}
+export function spatialDrift(projectedX,projectedY,baseX,baseY,weight){return {x:.16*Math.tanh((projectedX-baseX)/.16)*weight,y:.20*Math.tanh((projectedY-baseY)/.20)*weight};}

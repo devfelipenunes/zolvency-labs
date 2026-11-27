@@ -11,13 +11,13 @@ import {shotCards,shotAnimation,shotLayout} from './shotCards.js';
 import {flowTypeEnvelope} from './flowTypeEnvelope.js';
 import {livingCopy,selectedCopy} from './livingCopy.js';
 import {motion as livingMotion} from './livingTypeMotion.js';
-import {glyphPhase,glyphTransform} from './glyphChoreography.js';
+import {glyphPhase,glyphTransform,glyphHolds} from './glyphChoreography.js';
 import {createGlyphRig} from './glyphRig.js';
 import {layoutCandidates,directedBodyPhase} from './directedTypeLayout.js';
 import {cameraRibbonTravel} from './orderedRibbon.js';
 import {sculptedPose,cinematicPose} from './sculptedFlow.js';
 import {stageHandoff,stageOffset} from './stageHandoff.js';
-import {sceneMotion,readingFrame,sceneHandoff,readingTilt,readingFitScale} from './scenePresence.js';
+import {sceneMotion,readingFrame,sceneHandoff,readingTilt,readingFitScale,spatialInfluence,spatialDrift} from './scenePresence.js';
 import {createContinuousTitle,transitionWindows} from './continuousTitle.js';
 
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
@@ -107,6 +107,16 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
  }
  // Seven rays, not seven rays times four depth candidates. Candidate
  // footprints are proportional to depth, so each ray can be reused.
+ function worldReadingReference(e,index,camera,mobile,a,mask){
+  if(!holdPose)return null;
+  const key=mobile+'|'+a;let ref=e.worldReadingReference;
+  if(ref?.key!==key){const pose=holdPose(glyphHolds[index],mobile),cam=new THREE.PerspectiveCamera(pose.fov,a,.075,65);cam.position.fromArray(pose.position);cam.lookAt(...pose.target);cam.updateMatrixWorld(true);const f=readingFrame(index,a),d=1.1,hh=d*Math.tan(THREE.MathUtils.degToRad(cam.fov/2)),point=cam.position.clone().addScaledVector(cam.getWorldDirection(V()),d).addScaledVector(V(1,0,0).applyQuaternion(cam.quaternion),f.x*hh*a).addScaledVector(V(0,1,0).applyQuaternion(cam.quaternion),f.y*hh);ref={key,point,position:cam.position.clone(),rotation:cam.quaternion.clone()};e.worldReadingReference=ref;}
+  const distance=camera.position.distanceTo(ref.position),angle=camera.quaternion.angleTo(ref.rotation),weight=spatialInfluence(distance,angle,mask),base=readingFrame(index,a),local=ref.point.clone().applyMatrix4(camera.matrixWorldInverse);
+  // Do not project a point near or behind the camera; taper to zero first.
+  const depthGate=THREE.MathUtils.smoothstep(-local.z,.20,.55),w=weight*depthGate;
+  const projected=w>0?ref.point.clone().project(camera):V(base.x,base.y,0),drift=spatialDrift(projected.x,projected.y,base.x,base.y,w);
+  return {weight:w,drift,rotation:ref.rotation,anchor:ref.point.toArray(),distance,angle};
+ }
  function readingClearDepth(camera,ndcX,ndcY,aspect,e,roots,frame=null){
   const height=frame?.halfHeight??.34,width=frame?.halfWidth??(aspect>1?.62:.80);
   const maxHalfW=Math.min(width,height*e.width/Math.max(.001,e.height)/aspect);
@@ -154,14 +164,14 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   else{group.position.copy(camera.position).addScaledVector(forward,depth).addScaledVector(up,-.46*halfH);group.quaternion.copy(camera.quaternion);}
   let ribbonMotion=null;if(ribbonType&&!visibleRibbon){const travel=cameraRibbonTravel(phase.index,phase,seconds),nearDepth=phase.index===5?.30:.50,nh=nearDepth*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),nw=nh*a,ns=Math.min(2*nw*.72/Math.max(.001,active.width),2*nh*.35/Math.max(.001,active.height));const near=camera.position.clone().addScaledVector(forward,nearDepth).addScaledVector(up,(anchor?.layout?.y??-.46)*nh);group.position.lerp(near,travel.blend);group.quaternion.slerp(camera.quaternion,travel.blend);scale+=(ns-scale)*travel.blend;halfW+=(nw-halfW)*travel.blend;halfH+=(nh-halfH)*travel.blend;const r=V(1,0,0).applyQuaternion(group.quaternion),u=V(0,1,0).applyQuaternion(group.quaternion),f=V(0,0,-1).applyQuaternion(group.quaternion);group.position.addScaledVector(r,travel.x*halfW).addScaledVector(u,travel.y*halfH).addScaledVector(f,travel.z*halfH);ribbonMotion={...travel,point:group.position.toArray(),clock:seconds};}
   if(visibleRibbon){
-   const travel=cameraRibbonTravel(phase.index,phase,seconds),sculpt=sculptedType&&Number.isFinite(seconds)?(cinematicFlow?cinematicPose(phase.index,p):sculptedPose(phase.index,p)):null,layout=layoutCandidates(phase.index)[0],right=V(1,0,0).applyQuaternion(camera.quaternion),driftX=sculpt?.x??travel.x*.36,driftY=sculpt?.y??travel.y*.35,frame=presenceType?readingFrame(phase.index,a,driftX*.24,driftY*.24):null,x=frame?.x??layout.x+driftX,y=frame?.y??layout.y+driftY,plate=mask>=.65;
+   const travel=cameraRibbonTravel(phase.index,phase,seconds),sculpt=sculptedType&&Number.isFinite(seconds)?(cinematicFlow?cinematicPose(phase.index,p):sculptedPose(phase.index,p)):null,layout=layoutCandidates(phase.index)[0],right=V(1,0,0).applyQuaternion(camera.quaternion),driftX=sculpt?.x??travel.x*.36,driftY=sculpt?.y??travel.y*.35,spatial=presenceType?worldReadingReference(active,phase.index,camera,mobile,a,mask):null,frame=presenceType?readingFrame(phase.index,a,driftX*.24+(spatial?.drift.x??0),driftY*.24+(spatial?.drift.y??0)):null,x=frame?.x??layout.x+driftX,y=frame?.y??layout.y+driftY,plate=mask>=.65;
    const signature=[p,a,mask,roots.size].join('|');let chosen=active.readingPlane?.key===signature?active.readingPlane:null;
    if(!chosen){const all=[...roots.values()].filter(o=>o.visible);if(!plate)for(const root of all)root.updateMatrixWorld(true);
     const safe=plate?Infinity:readingClearDepth(camera,x,y,a,active,all,frame),preferred=sculpt?Math.min(sculpt.depth,phase.index===5?.38:1):phase.index===5?.23:.55;
     const margin=cinematicFlow?.065:.018,emergency=!plate&&safe<(cinematicFlow?.22:.115)+margin,d=plate?.35:cinematicFlow&&emergency?.28:Math.max(.115,Math.min(preferred,safe-margin)),hh=d*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),hw=hh*a,sc=Math.min(2*hw*(frame?.halfWidth??(a>1?.62:sculptedType?.70:.80))/Math.max(.001,active.width),2*hh*(frame?.halfHeight??.34)/Math.max(.001,active.height))*(sculpt?.scale??1),point=camera.position.clone().addScaledVector(forward,d).addScaledVector(right,x*hw).addScaledVector(up,y*hh);
     chosen={key:signature,point,depth:d,hh,hw,scale:sc,clear:plate||safe>=d+margin?7:0,emergency};active.readingPlane=chosen;
    }
-   group.position.copy(chosen.point);group.quaternion.copy(camera.quaternion);if(sculpt&&!plate){const tilt=presenceType?.45*readingTilt(mask):1;group.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(sculpt.pitch*tilt,sculpt.yaw*tilt,sculpt.roll*tilt,'YXZ')));}scale=chosen.scale;halfW=chosen.hw;halfH=chosen.hh;ribbonMotion={...travel,point:group.position.toArray(),clock:seconds,depth:chosen.depth,clear:chosen.clear,plate,emergency:chosen.emergency,sculpt};
+   group.position.copy(chosen.point);group.quaternion.copy(camera.quaternion);if(spatial?.weight)group.quaternion.slerp(spatial.rotation,spatial.weight);if(sculpt&&!plate){const tilt=presenceType?.45*readingTilt(mask):1;group.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(sculpt.pitch*tilt,sculpt.yaw*tilt,sculpt.roll*tilt,'YXZ')));}scale=chosen.scale;halfW=chosen.hw;halfH=chosen.hh;ribbonMotion={...travel,point:group.position.toArray(),clock:seconds,depth:chosen.depth,clear:chosen.clear,plate,emergency:chosen.emergency,sculpt,spatial:spatial?{weight:spatial.weight,drift:spatial.drift,anchor:spatial.anchor,distance:spatial.distance,angle:spatial.angle}:null};
   }
   group.scale.setScalar(scale);group.visible=visibleRibbon||mask<.98;
   for(const m of [headline,body]){m.visible=group.visible;m.userData.glyphRig.update(phase.index,visibleRibbon&&m===body?{index:phase.index,kind:'hold',u:1}:directedLayout&&m===body?directedBodyPhase(p,phase.index):phase,halfW/scale,halfH/scale,seconds);}
