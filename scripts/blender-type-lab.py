@@ -23,7 +23,7 @@ def setup_lights(s,c,anchor):
     r=c.rotation_euler.to_matrix()@Vector((1,0,0));u=c.rotation_euler.to_matrix()@Vector((0,1,0));d=max(.5,(anchor-c.location).length)
     light(s,'Key',c.location+r*d*.5+u*d*.4,anchor,90*d*d,(.88,.96,1),max(.35,d*.65));light(s,'Rim',anchor-r*d*.7+u*d*.25,anchor,35*d*d,(.38,.85,.68),max(.2,d*.35))
 def text_obj(s,name,body,font,size,depth,bevel,material):
-    cv=bpy.data.curves.new(name,'FONT');cv.body=body;cv.font=font;cv.size=size;cv.align_x='LEFT';cv.align_y='BASELINE';cv.resolution_u=4;cv.extrude=depth*size/2;cv.bevel_depth=bevel*size;cv.bevel_resolution=1;cv.materials.append(material)
+    cv=bpy.data.curves.new(name,'FONT');cv.body=body;cv.font=font;cv.size=size;cv.align_x='LEFT';cv.align_y='TOP_BASELINE';cv.resolution_u=4;cv.extrude=depth*size/2;cv.bevel_depth=bevel*size;cv.bevel_resolution=1;cv.materials.append(material)
     o=bpy.data.objects.new(name,cv);s.collection.objects.link(o);bpy.context.view_layer.update();return o
 def mesh_stats(o):
     e=o.evaluated_get(bpy.context.evaluated_depsgraph_get());m=e.to_mesh();m.calc_loop_triangles();r={'vertices':len(m.vertices),'triangles':len(m.loop_triangles)};e.to_mesh_clear();return r
