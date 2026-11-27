@@ -1,0 +1,118 @@
+name: R62 Blender living typography experiments
+on:
+  pull_request:
+    branches: [docs/r62-text-motion-bible, main]
+    paths: ['scripts/type-motion.mjs','scripts/generate-type-tracks.mjs','scripts/prepare-type-fonts.py','scripts/blender-type-lab.py','scripts/export-type-scenes.mjs','tests/typeMotion.test.js','.github/workflows/living-typography.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  analytic:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: node --test tests/typeMotion.test.js
+      - run: mkdir -p artifacts && node scripts/generate-type-tracks.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: type-tracks
+          path: artifacts/type-tracks.json
+  lab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [styles, physics]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Refresh Ubuntu package indexes without unrelated third-party feeds
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources /etc/apt/sources.list.d/azure-cli.list
+          sudo apt-get -o Acquire::Retries=3 update
+      - name: Install Blender and FontTools
+        run: |
+          for attempt in 1 2 3; do
+            if sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends blender python3-fonttools; then blender --version; exit 0; fi
+            if [ "$attempt" -lt 3 ]; then sudo apt-get -o Acquire::Retries=3 update; fi
+          done
+          exit 1
+      - if: matrix.mode == 'styles'
+        run: /usr/bin/python3 scripts/prepare-type-fonts.py
+      - run: blender -b -t 4 --python-exit-code 1 --python scripts/blender-type-lab.py -- ${{ matrix.mode }} artifacts/type-lab
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: typography-${{ matrix.mode }}
+          path: |
+            artifacts/type-lab/
+            artifacts/type-fonts/manifest.json
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+      - name: Install Chromium using runner libraries
+        run: |
+          for attempt in 1 2 3; do
+            if npx playwright install chromium; then break; fi
+            if [ "$attempt" -eq 3 ]; then exit 1; fi
+            sleep "$((attempt * 10))"
+          done
+          if ! node --input-type=module -e "import {chromium} from 'playwright';const b=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});await b.close()"; then
+            sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources /etc/apt/sources.list.d/azure-cli.list
+            sudo apt-get -o Acquire::Retries=3 update
+            npx playwright install-deps chromium
+            node --input-type=module -e "import {chromium} from 'playwright';const b=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});await b.close()"
+          fi
+      - run: node scripts/export-type-scenes.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: type-scene-input
+          path: artifacts/type-scene-input/
+  scenes:
+    needs: [analytic, export]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        scene: [origin, blockchain, infrastructure, cryptography, intelligence, quantum, convergence]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: type-tracks
+          path: artifacts/
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: type-scene-input
+          path: artifacts/type-scene-input/
+      - name: Refresh Ubuntu package indexes without unrelated third-party feeds
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources /etc/apt/sources.list.d/azure-cli.list
+          sudo apt-get -o Acquire::Retries=3 update
+      - name: Install Blender and FontTools
+        run: |
+          for attempt in 1 2 3; do
+            if sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends blender python3-fonttools; then blender --version; exit 0; fi
+            if [ "$attempt" -lt 3 ]; then sudo apt-get -o Acquire::Retries=3 update; fi
+          done
+          exit 1
+      - run: /usr/bin/python3 scripts/prepare-type-fonts.py
+      - run: blender -b -t 4 --python-exit-code 1 --python scripts/blender-type-lab.py -- scene artifacts/type-scene-lab ${{ matrix.scene }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: type-scene-${{ matrix.scene }}
+          path: |
+            artifacts/type-scene-lab/
+            artifacts/type-fonts/manifest.json
