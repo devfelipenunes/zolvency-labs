@@ -51,7 +51,7 @@ import {travelCost,createGuidedMotion,needsGuidedCaption} from './guidedMotion.j
 import {createTouchGuidedMotion} from './touchGuidedMotion.js';
 import {qualityProfile} from './qualityProfiles.js';
 import {mobileGpuBudget} from './mobileGpuBudget.js';
-import {completeStartup,mobileStartupBudget,mobileMotionEnabled} from './startupPolicy.js';
+import {completeStartup,mobileStartupBudget,mobileMotionEnabled,startupDeadlines} from './startupPolicy.js';
 import {createAdaptiveAO,createDeviceStudy} from './deviceStudy.js';
 import {createRenderQueue,createResolutionGovernor,createGpuTimer} from './renderPerformance.js';
 export async function createThreeScene(host,onLost){
@@ -162,7 +162,7 @@ export async function createThreeScene(host,onLost){
  async function prepare(report=()=>{}){
   if(!fullStartup)return;
   preparing=true;queue?.pause();if(probeTimer!==null){clearTimeout(probeTimer);probeTimer=null;}
-  const start=performance.now(),phaseTimings={},mark=(name,from)=>{phaseTimings[name]=Math.round(performance.now()-from);host.dataset.preflightPhases=JSON.stringify(phaseTimings);},check=()=>{if(disposed)throw Error('Graphics preparation cancelled');if(performance.now()-start>(debug&&presenceType?240000:90000))throw Error('Graphics preparation timed out');};
+  const start=performance.now(),phaseTimings={},mark=(name,from)=>{phaseTimings[name]=Math.round(performance.now()-from);host.dataset.preflightPhases=JSON.stringify(phaseTimings);},check=()=>{if(disposed)throw Error('Graphics preparation cancelled');if(performance.now()-start>startupDeadlines(location.search).preflight)throw Error('Graphics preparation timed out');};
   const tick=()=>new Promise(resolve=>setTimeout(resolve,30));
   const status=(phase,done,total)=>{host.dataset.loadingPhase=phase;host.dataset.loadingDone=String(done);host.dataset.loadingTotal=String(total);report({phase,done,total});};
   try{

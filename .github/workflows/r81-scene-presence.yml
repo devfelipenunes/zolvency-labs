@@ -1,8 +1,8 @@
-name: R81 scene-specific motion and typographic presence
+name: R88 integrated motion and spatial comparison
 on:
   pull_request:
-    branches: [preview/r80-stage-handoff, preview/r81-scene-presence, main]
-    paths: ['src/graphics/**','test/r83-organic-motion.test.js','scripts/r81-scene-presence.mjs','.github/workflows/r81-scene-presence.yml']
+    branches: [preview/r80-stage-handoff, preview/r81-scene-presence, preview/r83-organic-motion, main]
+    paths: ['src/App.jsx','src/graphics/**','test/**','tests/**','scripts/r85-camera-audit.mjs','scripts/r87-compare-revisions.mjs','scripts/r81-scene-presence.mjs','.github/workflows/r81-scene-presence.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -14,6 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         variant: [portrait-390, portrait-320, desktop-1280, native-touch]
+        spatial: [control, parallax]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -33,11 +34,17 @@ jobs:
             npx playwright install-deps chromium
           fi
       - if: matrix.variant != 'native-touch'
-        run: TYPE_WIDTH=${{ matrix.variant == 'portrait-320' && '320' || matrix.variant == 'desktop-1280' && '1280' || '390' }} TYPE_FINISH=mineral node scripts/r81-scene-presence.mjs
+        run: TYPE_WIDTH=${{ matrix.variant == 'portrait-320' && '320' || matrix.variant == 'desktop-1280' && '1280' || '390' }} TYPE_QUERY_SUFFIX='&type-spatial=${{ matrix.spatial }}' TYPE_FINISH=mineral node scripts/r81-scene-presence.mjs
       - if: matrix.variant == 'native-touch'
-        run: TOUCH_QUERY='/?living-type=kinetic&type-formation=ribbon&type-layout=directed&type-visibility=continuous&type-choreography=scene-presence' TOUCH_OUT=artifacts/glyphs node scripts/touch-guide-check.mjs
+        run: TOUCH_QUERY='/?living-type=kinetic&type-formation=ribbon&type-layout=directed&type-visibility=continuous&type-choreography=scene-presence&type-spatial=${{ matrix.spatial }}' TOUCH_OUT=artifacts/glyphs node scripts/touch-guide-check.mjs
+      - name: Analyze camera trajectory evidence
+        if: always() && matrix.variant != 'native-touch'
+        run: |
+          if [ -f artifacts/r81-scene-presence/report.json ]; then
+            node scripts/r85-camera-audit.mjs artifacts/r81-scene-presence/report.json artifacts/r81-scene-presence/camera-audit.json
+          fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: r81-scene-presence-${{ matrix.variant }}
+          name: r88-${{ matrix.spatial }}-${{ matrix.variant }}
           path: artifacts/

@@ -9,7 +9,7 @@ const editorial=editorialExperience(location.search),edition=getEditorialEdition
 import {useScrollStory} from './useScrollStory.js';
 import {smoothProgress} from './graphics/scrollSmoothing.js';
 import {createFallback} from './graphics/fallback.js';
-import {completeStartup,mobileMotionEnabled} from './graphics/startupPolicy.js';
+import {completeStartup,mobileMotionEnabled,startupDeadlines} from './graphics/startupPolicy.js';
 const sides=chapters.map(()=> 'center');
 const query=new URLSearchParams(location.search),gated=completeStartup(location.search),mobileMotion=mobileMotionEnabled(location.search,innerWidth);
 const initialLoading=()=>gated&&!matchMedia('(prefers-reduced-motion: reduce)').matches?{phase:'assets',done:0,total:1}:null;
@@ -30,7 +30,7 @@ function Stage({progress,reduced,side,controller,onLoading}){
  engine.current=flat;canvas.hidden=false;setMode('canvas');
  function restore(){if(!active)return;expired=true;clearTimeout(deadline);clearTimeout(revealTimer);if(gated&&!latest.current.reduced)onLoading({phase:'error',done:0,total:1});gl?.dispose();gl=null;current=flat;engine.current=flat;canvas.hidden=false;setMode('canvas');redraw();}
  redraw();if(gated)onLoading(latest.current.reduced?null:{phase:'assets',done:0,total:1});addEventListener('resize',onResize,{passive:true});
- if(gated&&!latest.current.reduced)deadline=setTimeout(()=>restore(),100000);
+ if(gated&&!latest.current.reduced)deadline=setTimeout(()=>restore(),startupDeadlines(location.search).lifecycle);
  if(!latest.current.reduced&&new URLSearchParams(location.search).get('renderer')!=='canvas')import('./graphics/threeScene.js').then(async({createThreeScene})=>{
  if(!active||expired||latest.current.reduced)return;
  try{const next=await createThreeScene(node,restore);if(!active||expired){next.dispose();return;}gl=next;if(gated){await next.prepare(status=>{if(active&&!expired&&gl===next&&status.phase!=='ready')onLoading(status);});if(!active||expired||gl!==next){next.dispose();return;}}current=gl;engine.current=gl;redraw();canvas.hidden=true;setMode('three');if(gated){clearTimeout(deadline);onLoading({phase:'revealing',done:1,total:1});revealTimer=setTimeout(()=>{if(active&&!expired)onLoading({phase:'ready',done:1,total:1});},420);}}

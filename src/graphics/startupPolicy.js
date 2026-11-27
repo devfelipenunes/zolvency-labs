@@ -13,3 +13,10 @@ export function mobileStartupBudget(search='',width=0){
 
 // A/B escape hatch retains the old motion with the same startup and GPU budget.
 export function mobileMotionEnabled(search='',width=0){return mobileStartupBudget(search,width)&&new URLSearchParams(search).get('mobile-motion')!=='control';}
+
+// Diagnostic scene-presence CI uses a software renderer. Keep the visitor
+// deadline unchanged and allow the outer lifecycle to outlast preflight.
+export function startupDeadlines(search=''){
+ const q=new URLSearchParams(search),diagnostic=q.has('diagnostics')&&q.get('type-choreography')==='scene-presence'&&q.get('living-type')==='kinetic'&&q.get('type-formation')==='ribbon'&&q.get('type-visibility')==='continuous';
+ return diagnostic?{preflight:240000,lifecycle:270000}:{preflight:90000,lifecycle:100000};
+}
