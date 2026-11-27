@@ -116,3 +116,7 @@
 .hybrid-page .hybrid-facility[data-reading="true"] .hybrid-return-runway{background:#101914}
 .hybrid-page .hybrid-facility[data-reading="false"] #stage::after{background:#101914;opacity:var(--exit-cover,0)}
 @media(prefers-reduced-motion:reduce){.hybrid-page .hybrid-return-runway{height:0;min-height:0}}
+
+/* R99.13: the spatial pilot adds a short final reading beat; control remains 40svh. */
+.hybrid-page[data-spatial-entry="true"] .hybrid-return-runway{height:65svh}
+@media(prefers-reduced-motion:reduce){.hybrid-page[data-spatial-entry="true"] .hybrid-return-runway{height:0;min-height:0}}
