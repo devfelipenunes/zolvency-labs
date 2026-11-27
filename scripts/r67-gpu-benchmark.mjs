@@ -1,0 +1,1 @@
+import {readFile,writeFile} from 'node:fs/promises';import {summarize} from '../src/graphics/r67/gpu-benchmark.js';const r=JSON.parse(await readFile('artifacts/glyphs/report.json','utf8'));await writeFile('artifacts/glyphs/summary.json',JSON.stringify({width:r.width,variants:summarize(r.rows)},null,2));console.log(JSON.stringify(summarize(r.rows),null,2));
