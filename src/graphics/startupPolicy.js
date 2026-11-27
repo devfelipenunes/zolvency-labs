@@ -10,3 +10,6 @@ export function mobileStartupBudget(search='',width=0){
  const q=new URLSearchParams(search);
  return width<720&&completeStartup(search)&&q.get('experience')!=='editorial'&&!q.has('profile')&&!q.has('quality')&&!q.has('aa')&&!q.has('diagnostics');
 }
+
+// A/B escape hatch retains the old motion with the same startup and GPU budget.
+export function mobileMotionEnabled(search='',width=0){return mobileStartupBudget(search,width)&&new URLSearchParams(search).get('mobile-motion')!=='control';}
