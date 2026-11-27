@@ -1,0 +1,2 @@
+# R44 legacy boundary correction
+#156 verified editorial and canvas Home/End. The remaining #131 failure is legacy desktop, Home at line 56. Extend document-owned boundary handling to both modes, preserve editable/control focus and loader guards, add exact legacy WebGL regression and failure telemetry to full suite. No timeout increase.

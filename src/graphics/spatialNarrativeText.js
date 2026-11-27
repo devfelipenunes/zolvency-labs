@@ -13,9 +13,9 @@ const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 // All visible narrative text is triangulated, extruded glyph geometry, including body copy.
 // One merged mesh per role keeps draw calls low. The editorial rig follows the shot,
 // with controlled perspective, depth and rotation; it is not a physical wall sign.
-export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default'}={}){
+export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default',brandOnly=false}={}){
  let font=null,logo=null,disposed=false,aspect=0,active=null;const entries=new Map(),ray=new THREE.Raycaster();
- new FontLoader().loadAsync(import.meta.env.BASE_URL+'models/fonts/helvetiker_regular.typeface.json').then(f=>{if(!disposed){font=f;onReady();}}).catch(()=>{});
+ if(!brandOnly)new FontLoader().loadAsync(import.meta.env.BASE_URL+'models/fonts/helvetiker_regular.typeface.json').then(f=>{if(!disposed){font=f;onReady();}}).catch(()=>{});
  new SVGLoader().loadAsync(import.meta.env.BASE_URL+'brand/zolvency.svg').then(d=>{if(!disposed){logo=d.paths.flatMap(p=>SVGLoader.createShapes(p));onReady();}}).catch(()=>{});
  function width(s){let x=0;for(const c of s)x+=(font.data.glyphs[c]?.ha??font.data.glyphs['?']?.ha??600)/font.data.resolution;return x;}
  function wrap(s,size,max=.98){const out=[];let line='';for(const word of s.split(' ')){const next=line?line+' '+word:word;if(line&&width(next)*size>max){out.push(line);line=word;}else line=next;}if(line)out.push(line);return out;}
@@ -28,11 +28,12 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   return new THREE.Mesh(geometry,material);
  }
  function build(card,mobile){
-  if(!font||(card.brand&&!logo))return null;
+  if((!brandOnly&&!font)||(card.brand&&!logo)||brandOnly&&!card.brand)return null;
   const group=new THREE.Group();group.name='narrative-'+card.name;group.visible=false;const align=card.brand?'center':'left',x=align==='center'?0:-.5;
   const hero=card.brand?new THREE.ExtrudeGeometry(logo,{depth:12,bevelEnabled:false}):new TextGeometry(card.hero,{font,size:1,depth:.07,curveSegments:4,bevelEnabled:false});
   if(card.brand)hero.scale(1,-1,1);hero.computeBoundingBox();const hs=hero.boundingBox.getSize(V()),hc=hero.boundingBox.getCenter(V()),hw=card.brand?.98:Math.min(.98,Math.max(.42,card.hero.length*.071));hero.translate(-hc.x,-hero.boundingBox.max.y,-hc.z);hero.scale(hw/hs.x,hw/hs.x,(art&&card.brand?.035:.012)/hs.z);hero.translate(align==='center'?0:x+hw/2,0,0);
   const heroMesh=meshFor([hero],card.brand?0x25da8d:0x9fe5d3,true);heroMesh.name='hero';group.add(heroMesh);
+  if(brandOnly){scene.add(group);const e={card,group,titleLines:[],bodyLines:[],roles:['hero'],height:hs.y*hw/hs.x};entries.set(card.name,e);return e;}
   let cursor=-hs.y*hw/hs.x-.036;
   const titleSize=mobile?.072:.067,bodySize=mobile?.052:.046;
   const titleLines=wrap(card.title,titleSize),titleGeos=[];for(const line of titleLines){titleGeos.push(lineGeo(line,titleSize,x,cursor,align,.075));cursor-=titleSize*1.13;}
@@ -127,6 +128,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   if(Math.abs(a-aspect)>.1){clear();aspect=a;}const anim=shotAnimation(p,mask),card=anim.card;
   if(!entries.has(card.name))build(card,mobile);
   for(const e of entries.values())e.group.visible=false;active=entries.get(card.name)??null;
+  if(brandOnly&&!card.brand)return {ready:true,visible:false,shot:card.name,roles:[],alpha:0};
   if(!active)return {ready:false,visible:false,shot:card.name};
   if(!active.anchors){if(roots.size<8)return {ready:false,visible:false,shot:card.name};const signature=[...roots.entries()].filter(([,o])=>o.visible).map(([id])=>id).sort().join(',')+'|'+roots.size;if(active.attemptedSignature===signature)return {ready:false,visible:false,shot:card.name};active.attemptedSignature=signature;if(!placeWorld(active,mobile,a,roots))return {ready:false,visible:false,shot:card.name};}
   const {group}=active;group.position.set(0,0,0);group.quaternion.identity();group.scale.setScalar(1);group.visible=anim.alpha>.02;
@@ -166,5 +168,5 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   return {ready:true,visible:group.visible,shot:card.name,roles:active.roles,alpha:anim.alpha,focus:card.focus,intent:card.intent,span,bodyLines:active.bodyLines.length};
  }
  function inspect(camera,roots){if(!active)return [];const {group,card,roles}=active;return group.children.filter(m=>m.visible&&group.visible).map(m=>{m.updateMatrixWorld(true);const b=m.geometry.boundingBox,points=[];for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z])points.push(V(x,y,z).applyMatrix4(m.matrixWorld).project(camera));const visibleRoots=roots?[...roots.values()].filter(o=>o.visible):[],attr=m.geometry.attributes.position,samples=[];for(let j=0;j<Math.min(45,attr.count);j++){const k=Math.floor(j*attr.count/Math.min(45,attr.count));samples.push(V().fromBufferAttribute(attr,k).applyMatrix4(m.matrixWorld));}const clearSamples=samples.filter(q=>{const v=q.clone().project(camera);return Math.abs(v.x)<1&&Math.abs(v.y)<1&&Math.abs(v.z)<1&&!isBlocked(camera.position,q,visibleRoots);}).length;return {visibilityEstimate:samples.length?clearSamples/samples.length:0,sampleCount:samples.length,name:card.name,role:m.name,worldAnchor:active.anchors?.[group.children.indexOf(m)]?.point.toArray()??null,mount:active.anchors?.[group.children.indexOf(m)]?.mount??null,inside:points.every(q=>Math.abs(q.x)<1&&Math.abs(q.y)<1&&Math.abs(q.z)<1),span:(Math.max(...points.map(q=>q.x))-Math.min(...points.map(q=>q.x)))/2,opacity:m.material.opacity,triangles:(m.geometry.index?.count??m.geometry.attributes.position.count)/3};});}
- return {update,inspect,ready:()=>!!font&&!!logo,dispose(){disposed=true;clear();},diagnostics(){return [...entries.values()].map(e=>({name:e.card.name,roles:e.roles,bodyLines:e.bodyLines,anchors:e.anchors?.map(a=>({point:a.point.toArray(),depth:a.depth,mount:a.mount}))??[],titleLines:e.titleLines,focus:e.card.focus,intent:e.card.intent}));}};
+ return {update,inspect,ready:()=>!!logo&&(brandOnly||!!font),dispose(){disposed=true;clear();},diagnostics(){return [...entries.values()].map(e=>({name:e.card.name,roles:e.roles,bodyLines:e.bodyLines,anchors:e.anchors?.map(a=>({point:a.point.toArray(),depth:a.depth,mount:a.mount}))??[],titleLines:e.titleLines,focus:e.card.focus,intent:e.card.intent}));}};
 }

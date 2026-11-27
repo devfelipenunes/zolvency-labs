@@ -1,0 +1,46 @@
+name: Directed camera and typography
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/directedExperience.test.js'
+      - 'scripts/editorial-experience-check.mjs'
+      - '.github/workflows/directed-experience.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  directed:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        view: [desktop, mobile]
+        travel: [candidate, baseline]
+        exclude:
+          - view: mobile
+            travel: baseline
+    env:
+      EDITORIAL_VIEW: ${{ matrix.view }}
+      EDITORIAL_PROFILE: economy
+      EDITORIAL_DIRECTION: staged
+      EDITORIAL_TRAVEL: ${{ matrix.travel }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/editorial-experience-check.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: directed-${{ matrix.view }}-${{ matrix.travel }}
+          path: artifacts/editorial-experience/

@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "export:models": "node scripts/export-models.mjs",
-    "predev": "npm run facility:stage",
+    "predev": "npm run facility:stage && npm run pacing:prepare",
     "dev": "vite --host 0.0.0.0",
-    "prebuild": "npm run facility:stage",
+    "prebuild": "npm run facility:stage && npm run pacing:prepare",
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test",
@@ -20,7 +20,8 @@
     "test:smoke": "node scripts/smoke-check.mjs",
     "test:reactor": "node scripts/reactor-check.mjs",
     "facility:offline": "node scripts/prepare-facility.mjs --offline",
-    "dev:canvas": "vite --host 127.0.0.1 --open /?renderer=canvas"
+    "dev:canvas": "vite --host 127.0.0.1 --open /?renderer=canvas",
+    "pacing:prepare": "node scripts/prepare-pacing.mjs"
   },
   "engines": {
     "node": ">=22.12.0 <23"

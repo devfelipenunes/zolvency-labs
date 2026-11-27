@@ -41,7 +41,14 @@ jobs:
           node-version: '22'
       - run: npm install --no-audit --no-fund
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
+      - name: Install Chromium and dependencies with bounded retry
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            if npx playwright install --with-deps chromium; then exit 0; fi
+            if [ "$attempt" -lt 3 ]; then sleep "$((attempt * 15))"; fi
+          done
+          exit 1
       - run: node scripts/visual-review.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
