@@ -19,12 +19,16 @@ export function ribbonGlyph(act,i,n,seconds,role='headline'){
  // remain intact. Individual rise/depth/pitch describe a progressing wave.
  return [0,s.amp*a*Math.sin(angle),s.depth*a*Math.cos(angle),s.roll*a*Math.sin(angle-.5),0,0];
 }
-export function ribbonTravel(act,phase,seconds){
+export function ribbonTravel(act,phase,seconds,idle=0){
  const s=ribbonStyles[act],t=Number.isFinite(seconds)?2*Math.PI*seconds/s.period:0,live=Number.isFinite(seconds)?1:0;
- const entering=phase.kind==='enter',leaving=phase.kind==='exit',out=entering?1-smooth5(phase.u):leaving?smooth5(phase.u):0;
+ const entering=phase.kind==='enter',leaving=phase.kind==='exit',rawOut=entering?1-smooth5(phase.u):leaving?smooth5(phase.u):0,out=rawOut*(1-clamp(idle));
  // Same directed exit/entry lane, not an exploding alphabet. At a chapter
  // boundary the old and new phrases occupy opposite outside edges. During
  // reading the whole phrase follows a bounded loop in the fixed world plane.
  const dir=act===3||act===5?-1:1,side=entering?-dir:dir;
- return {x:side*2.35*out+live*.14*Math.sin(t),y:live*.065*Math.cos(t)+.07*out*Math.sin(Math.PI*phase.u),z:live*.045*Math.sin(t+.7),blend:smooth5(clamp(out*2.2)),out};
+ return {x:side*2.35*out+live*.14*Math.sin(t),y:live*.065*Math.cos(t)+.07*out*Math.sin(Math.PI*phase.u),z:live*.045*Math.sin(t+.7),blend:Math.max(smooth5(clamp(rawOut*2.2)),smooth5(clamp(out*2.2))),out,rawOut,idle};
 }
+
+// A paused scroll position is not a frozen animation. Ease the phrase back
+// into view without changing the camera or current chapter. Resume smoothly.
+export function ribbonIdleStep(previous,dt,stationarySeconds){const goal=stationarySeconds>.12?1:0,rate=goal>previous?4:9;return clamp(previous+(goal-previous)*(1-Math.exp(-Math.max(0,Math.min(.1,dt))*rate)));}

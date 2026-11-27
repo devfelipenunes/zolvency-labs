@@ -99,7 +99,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   e.architectureAudit=candidates.map(c=>({depth:c.depth,clear:c.clear,total:c.total,layout:c.layout}));
   return candidates.find(c=>c.clear===c.total)??null;
  }
- function updateGlyphFlow(p,camera,a,mask,mobile,roots,seconds=null){
+ function updateGlyphFlow(p,camera,a,mask,mobile,roots,seconds=null,ribbonIdle=0){
   const phase=glyphPhase(p),card=cards[phase.index];for(const e of entries.values())e.group.visible=false;active=entries.get(card.name)??null;
   if(!active)return {ready:false,visible:false,shot:card.name,roles:[],alpha:0,copyVisible:false};
   const {group,headline,body,mark}=active,depth=.50;let halfH=depth*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),halfW=halfH*a;
@@ -112,7 +112,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   const anchor=audition?active.architectureAnchor:null;
   if(anchor){group.position.copy(anchor.point);group.quaternion.copy(anchor.rotation);scale=anchor.scale;halfW=anchor.hw;halfH=anchor.hh;}
   else{group.position.copy(camera.position).addScaledVector(forward,depth).addScaledVector(up,-.46*halfH);group.quaternion.copy(camera.quaternion);}
-  let ribbonMotion=null;if(ribbonType){const travel=ribbonTravel(phase.index,phase,seconds),nearDepth=phase.index===5?.30:.50,nh=nearDepth*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),nw=nh*a,ns=Math.min(2*nw*.72/Math.max(.001,active.width),2*nh*.35/Math.max(.001,active.height));const near=camera.position.clone().addScaledVector(forward,nearDepth).addScaledVector(up,(anchor?.layout?.y??-.46)*nh);group.position.lerp(near,travel.blend);group.quaternion.slerp(camera.quaternion,travel.blend);scale+=(ns-scale)*travel.blend;halfW+=(nw-halfW)*travel.blend;halfH+=(nh-halfH)*travel.blend;const r=V(1,0,0).applyQuaternion(group.quaternion),u=V(0,1,0).applyQuaternion(group.quaternion),f=V(0,0,-1).applyQuaternion(group.quaternion);group.position.addScaledVector(r,travel.x*halfW).addScaledVector(u,travel.y*halfH).addScaledVector(f,travel.z*halfH);ribbonMotion={...travel,point:group.position.toArray(),clock:seconds};}
+  let ribbonMotion=null;if(ribbonType){const travel=ribbonTravel(phase.index,phase,seconds,ribbonIdle),nearDepth=phase.index===5?.30:.50,nh=nearDepth*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)),nw=nh*a,ns=Math.min(2*nw*.72/Math.max(.001,active.width),2*nh*.35/Math.max(.001,active.height));const near=camera.position.clone().addScaledVector(forward,nearDepth).addScaledVector(up,(anchor?.layout?.y??-.46)*nh);group.position.lerp(near,travel.blend);group.quaternion.slerp(camera.quaternion,travel.blend);scale+=(ns-scale)*travel.blend;halfW+=(nw-halfW)*travel.blend;halfH+=(nh-halfH)*travel.blend;const r=V(1,0,0).applyQuaternion(group.quaternion),u=V(0,1,0).applyQuaternion(group.quaternion),f=V(0,0,-1).applyQuaternion(group.quaternion);group.position.addScaledVector(r,travel.x*halfW).addScaledVector(u,travel.y*halfH).addScaledVector(f,travel.z*halfH);ribbonMotion={...travel,point:group.position.toArray(),clock:seconds};}
   group.scale.setScalar(scale);group.visible=mask<.98;
   for(const m of [headline,body]){m.visible=group.visible;m.userData.glyphRig.update(phase.index,directedLayout&&m===body?directedBodyPhase(p,phase.index):phase,halfW/scale,halfH/scale,seconds);}
   if(mark){const v=ribbonType?[0,0,0,0,0,0]:glyphTransform(phase.index,0,1,phase);mark.position.copy(mark.userData.rest);
@@ -138,9 +138,9 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   scene.add(group);const e={card,group,titleLines,bodyLines,roles:group.children.map(m=>m.name),height:size.y,width:size.x};entries.set(card.name,e);return e;
  }
  function prebuild(mobile){if(!flow3d)return;if(layoutMobile!==mobile){clear();layoutMobile=mobile;}for(const card of cards)if(!entries.has(card.name))buildFlow(card,mobile);if(continuousType&&!ribbonType&&!continuous.length&&entries.size===cards.length){for(const w of transitionWindows){if(continuousAll||w.index===1)continuous.push(createContinuousTitle(entries.get(cards[w.index].name),entries.get(cards[w.index+1].name),scene,w.index,{corridor:corridorType,poseAt:p=>holdPose(p,mobile),audit:auditCorridor,clearance:clearanceType,gpuBridge:bridgeGpu,cinematic:cinematicType,guidedWave:waveType}));}}}
- function updateFlow(p,camera,mobile,a,mask,roots,seconds=null){
+ function updateFlow(p,camera,mobile,a,mask,roots,seconds=null,ribbonIdle=0){
   if(layoutMobile!==mobile||entries.size!==cards.length)prebuild(mobile);
-  if(glyphType)return updateGlyphFlow(p,camera,a,mask,mobile,roots,seconds);
+  if(glyphType)return updateGlyphFlow(p,camera,a,mask,mobile,roots,seconds,ribbonIdle);
   const anim=flowTypeEnvelope(p,mask),card=cards[anim.index];for(const e of entries.values())e.group.visible=false;active=entries.get(card.name)??null;
   if(!active)return {ready:false,visible:false,shot:card.name,roles:[],alpha:0,copyVisible:false};
   const {group}=active,depth=.46+.06*(1-anim.enter),halfH=depth*Math.tan(THREE.MathUtils.degToRad(camera.fov)/2),halfW=halfH*a;
@@ -289,8 +289,8 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   group.updateMatrixWorld(true);
   return {ready:true,visible:group.visible,shot:card.name,roles:active.roles,alpha:anim.alpha,focus:card.focus,intent:card.intent,bodyLines:active.bodyLines.length,copyVisible:copyVisible(group)};
  }
- function update(p,camera,mobile,a,mask,roots,seconds=null){
-  if(flow3d)return updateFlow(p,camera,mobile,a,mask,roots,seconds);
+ function update(p,camera,mobile,a,mask,roots,seconds=null,ribbonIdle=0){
+  if(flow3d)return updateFlow(p,camera,mobile,a,mask,roots,seconds,ribbonIdle);
   if(world&&rail)return updateWorld(p,camera,mobile,a,mask,roots);
   refreshLayout(mobile,a);const anim=shotAnimation(p,mask),card=anim.card;
   if(!entries.has(card.name))build(card,mobile);
