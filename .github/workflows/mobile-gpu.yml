@@ -1,0 +1,41 @@
+name: Mobile GPU budget A-B
+on:
+  pull_request:
+    branches: [preview/v0.32-guided-scroll, main]
+    paths: ['src/graphics/mobileGpuBudget.js','scripts/mobile-gpu-check.mjs','tests/mobileGpuBudget.test.js','.github/workflows/mobile-gpu.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [control, glass, pixels, combined]
+    env:
+      GPU_VARIANT: ${{ matrix.variant }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
+      - name: Install Chromium with bounded retry
+        run: |
+          for attempt in 1 2 3; do
+            if npx playwright install --with-deps chromium; then exit 0; fi
+            if [ "$attempt" -lt 3 ]; then sleep "$((attempt * 15))"; fi
+          done
+          exit 1
+      - run: node scripts/mobile-gpu-check.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: mobile-gpu-${{ matrix.variant }}
+          path: artifacts/mobile-gpu/
