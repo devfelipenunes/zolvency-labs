@@ -17,7 +17,7 @@ import {layoutCandidates,directedBodyPhase} from './directedTypeLayout.js';
 import {cameraRibbonTravel} from './orderedRibbon.js';
 import {sculptedPose,cinematicPose} from './sculptedFlow.js';
 import {stageHandoff,stageOffset} from './stageHandoff.js';
-import {sceneMotion,readingFrame} from './scenePresence.js';
+import {sceneMotion,readingFrame,sceneHandoff} from './scenePresence.js';
 import {createContinuousTitle,transitionWindows} from './continuousTitle.js';
 
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
@@ -170,7 +170,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
    if(phase.index!==0||phase.kind==='exit'){mark.position.x+=v[0]*halfW/scale;mark.position.y+=v[1]*halfH/scale;mark.position.z+=v[2]*halfH/scale;mark.rotation.y=v[4];}else mark.rotation.y=0;mark.visible=group.visible;}
   group.updateMatrixWorld(true);
   if(cinematicFlow&&ribbonMotion){const fit=fitReadingVolume(group,camera,halfW,halfH);ribbonMotion={...ribbonMotion,point:group.position.toArray(),fit};}
-  if(stageFlow&&ribbonMotion){const handoff=stageHandoff(p),move=presenceType?sceneMotion(handoff):stageOffset(handoff);if(handoff.kind!=='hold'){const right=V(1,0,0).applyQuaternion(camera.quaternion),f=V(0,0,-1).applyQuaternion(camera.quaternion);group.position.addScaledVector(right,move.x*halfW).addScaledVector(up,move.y*halfH).addScaledVector(f,move.z*halfH);for(const m of [headline,body])m.userData.glyphRig.update(phase.index,m===body?{index:phase.index,kind:'hold',u:1}:phase,halfW/group.scale.x,halfH/group.scale.x,seconds,presenceType?{...handoff,localFromCamera:group.quaternion.clone().invert().multiply(camera.quaternion)}:handoff);group.updateMatrixWorld(true);}ribbonMotion={...ribbonMotion,point:group.position.toArray(),handoff,move};}
+  if(stageFlow&&ribbonMotion){const handoff=presenceType?sceneHandoff(p):stageHandoff(p),move=presenceType?sceneMotion(handoff):stageOffset(handoff);if(handoff.kind!=='hold'){const right=V(1,0,0).applyQuaternion(camera.quaternion),f=V(0,0,-1).applyQuaternion(camera.quaternion);group.position.addScaledVector(right,move.x*halfW).addScaledVector(up,move.y*halfH).addScaledVector(f,move.z*halfH);for(const m of [headline,body])m.userData.glyphRig.update(phase.index,m===body?{index:phase.index,kind:'hold',u:1}:phase,halfW/group.scale.x,halfH/group.scale.x,seconds,presenceType?{...handoff,localFromCamera:group.quaternion.clone().invert().multiply(camera.quaternion)}:handoff);group.updateMatrixWorld(true);}ribbonMotion={...ribbonMotion,point:group.position.toArray(),handoff,move};}
   let currentBridge=null;const auditRoots=auditCorridor?[...roots.values()].filter(o=>o.visible):null;if(auditRoots)for(const root of auditRoots)root.updateMatrixWorld(true);const blocked=auditRoots?q=>isBlocked(camera.position,q,auditRoots):null;for(const bridge of continuous){if(bridge.update(p,mask,camera,blocked,seconds))currentBridge=bridge;}const bridging=!!currentBridge;if(bridging)headline.visible=false;
   return {ready:true,visible:group.visible,shot:card.name,roles:bridging?active.roles.filter(r=>r!=='headline').concat('continuous-title'):active.roles,alpha:group.visible?1:0,focus:card.focus,intent:card.intent,bodyLines:active.bodyLines.length,copyVisible:group.visible,transition:currentBridge?.diagnostics()??{active:false,index:null,items:[]},transitionCount:continuous.length,ribbonMotion,bodyPhase:visibleRibbon?{index:phase.index,kind:'hold',u:1}:directedLayout?directedBodyPhase(p,phase.index):phase};
  }

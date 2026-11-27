@@ -1,8 +1,10 @@
+import {stageHandoff,sceneHandoffWindows} from './stageHandoff.js';
 const clamp=x=>Math.max(0,Math.min(1,x));
 // Cubic motion has less near-stationary travel than the quintic curve.
 // Exact endpoints and zero endpoint velocity preserve reversible docking.
 const ease=u=>{u=clamp(u);return u*u*(3-2*u);};
 export const sceneTravel=h=>h.kind==='hold'?0:h.kind==='exit'?ease(h.u):1-ease(h.u);
+export function sceneHandoff(p){const h=stageHandoff(p,sceneHandoffWindows);return {...h,travel:sceneTravel(h)};}
 // Each chapter has its own entrance and exit, with a common solid reading pose.
 // x/y in camera half-extents; z in camera half-height. The edge endpoint is
 // deliberately outside the viewport. No opacity, no unrelated animation clock.
@@ -29,7 +31,7 @@ export function sceneGlyphMotion(h,rank,role='headline'){
  const leading=h.kind==='exit'?dir:-dir,delay=(leading>0?1-r:r)*profile.stagger*(role==='body'?.40:1),duration=1-profile.stagger*(role==='body'?.40:1);
  const u=clamp((h.u-delay)/duration),q=h.kind==='exit'?ease(u):1-ease(u),travel=sceneTravel(h),diff=q-travel;
  // Keep the extreme positions locked, limiting stretching in midflight.
- const delta=Math.max(-.115,Math.min(.115,diff)),arc=Math.sin(Math.PI*travel)**2,k=role==='body'?.25:1;
+ const delta=.115*Math.tanh(diff/.115),arc=Math.sin(Math.PI*travel)**2,k=role==='body'?.25:1;
  return [axis[0]*delta,axis[1]*delta,profile.depth*.12*arc*Math.sin(r*Math.PI),profile.twist*.4*k*arc*Math.cos(r*Math.PI),profile.twist*k*arc*Math.sin(r*Math.PI),profile.twist*.5*k*arc*Math.cos(r*Math.PI)];
 }
 export const readingLayout=Object.freeze([{x:0,y:-.19},{x:-.035,y:-.21},{x:.02,y:-.20},{x:-.025,y:-.15},{x:.02,y:-.21},{x:-.025,y:-.24},{x:0,y:-.13}]);
