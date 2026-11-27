@@ -156,7 +156,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
    if(anchor.mount!=='hangar-wall')m.position.addScaledVector(anchor.up,(1-alpha)*.055).addScaledVector(anchor.right,Math.sin(t*Math.PI)*.045*(i%2?1:-1));
   }
   group.updateMatrixWorld(true);
-  return {ready:true,visible:group.visible,shot:card.name,roles:active.roles,alpha:anim.alpha,focus:card.focus,intent:card.intent,bodyLines:active.bodyLines.length};
+  return {ready:true,visible:group.visible,shot:card.name,roles:active.roles,alpha:anim.alpha,focus:card.focus,intent:card.intent,bodyLines:active.bodyLines.length,copyVisible:copyVisible(group)};
  }
  function update(p,camera,mobile,a,mask,roots){
   if(world&&rail)return updateWorld(p,camera,mobile,a,mask,roots);
@@ -178,8 +178,10 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   group.scale.setScalar(scale*anim.brandScale);group.visible=anim.alpha>.02;
   for(const [i,m] of group.children.entries()){const alpha=anim.alpha*(i===0?1:Math.min(1,Math.max(0,(anim.local+.08-i*.035)*8)));m.material.opacity=alpha;m.visible=alpha>.025;m.position.z=(2-i)*.006;}
   group.updateMatrixWorld(true);
-  return {ready:true,visible:group.visible,shot:card.name,roles:active.roles,alpha:anim.alpha,focus:card.focus,intent:card.intent,span,bodyLines:active.bodyLines.length};
+  return {ready:true,visible:group.visible,shot:card.name,roles:active.roles,alpha:anim.alpha,focus:card.focus,intent:card.intent,span,bodyLines:active.bodyLines.length,copyVisible:copyVisible(group)};
  }
  function inspect(camera,roots){if(!active)return [];const {group,card,roles}=active;return group.children.filter(m=>m.visible&&group.visible).map(m=>{m.updateMatrixWorld(true);const b=m.geometry.boundingBox,points=[];for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z])points.push(V(x,y,z).applyMatrix4(m.matrixWorld).project(camera));const visibleRoots=roots?[...roots.values()].filter(o=>o.visible):[],attr=m.geometry.attributes.position,samples=[];for(let j=0;j<Math.min(45,attr.count);j++){const k=Math.floor(j*attr.count/Math.min(45,attr.count));samples.push(V().fromBufferAttribute(attr,k).applyMatrix4(m.matrixWorld));}const clearSamples=samples.filter(q=>{const v=q.clone().project(camera);return Math.abs(v.x)<1&&Math.abs(v.y)<1&&Math.abs(v.z)<1&&!isBlocked(camera.position,q,visibleRoots);}).length;return {visibilityEstimate:samples.length?clearSamples/samples.length:0,sampleCount:samples.length,name:card.name,role:m.name,worldAnchor:active.anchors?.[group.children.indexOf(m)]?.point.toArray()??null,mount:active.anchors?.[group.children.indexOf(m)]?.mount??null,inside:points.every(q=>Math.abs(q.x)<1&&Math.abs(q.y)<1&&Math.abs(q.z)<1),span:(Math.max(...points.map(q=>q.x))-Math.min(...points.map(q=>q.x)))/2,opacity:m.material.opacity,triangles:(m.geometry.index?.count??m.geometry.attributes.position.count)/3};});}
- return {update,inspect,requiresWorldUpdate,stats:()=>({builds,placementResets,entries:entries.size}),ready:()=>!!logo&&(brandOnly||!!font),dispose(){disposed=true;clear();},diagnostics(){return [...entries.values()].map(e=>({name:e.card.name,roles:e.roles,bodyLines:e.bodyLines,anchors:e.anchors?.map(a=>({point:a.point.toArray(),depth:a.depth,mount:a.mount}))??[],titleLines:e.titleLines,focus:e.card.focus,intent:e.card.intent}));}};
+ function copyVisible(group){return group.visible&&['headline','body'].every(role=>group.children.some(m=>m.name===role&&m.visible&&m.material.opacity>=.35));}
+ function suppressCopy(){if(!active)return;for(const m of active.group.children)if(!active.card.brand||m.name!=='hero')m.visible=false;}
+ return {update,inspect,requiresWorldUpdate,suppressCopy,stats:()=>({builds,placementResets,entries:entries.size}),ready:()=>!!logo&&(brandOnly||!!font),dispose(){disposed=true;clear();},diagnostics(){return [...entries.values()].map(e=>({name:e.card.name,roles:e.roles,bodyLines:e.bodyLines,anchors:e.anchors?.map(a=>({point:a.point.toArray(),depth:a.depth,mount:a.mount}))??[],titleLines:e.titleLines,focus:e.card.focus,intent:e.card.intent}));}};
 }
