@@ -53,3 +53,21 @@ export function readingFitScale(shrink){return shrink<1?shrink*.995:1;}
 // The actual text remains in the collision-checked reading volume.
 export function spatialInfluence(distance,angle,mask){return .48*(1-ease(distance/1.6))*(1-ease(angle/.70))*readingTilt(mask);}
 export function spatialDrift(projectedX,projectedY,baseX,baseY,weight){return {x:.16*Math.tanh((projectedX-baseX)/.16)*weight,y:.20*Math.tanh((projectedY-baseY)/.20)*weight};}
+
+// Authored elastic fields, sampled on the same rail as the camera. Adjacent
+// glyphs share a continuous wave; horizontal strain is affine, so it cannot
+// invert baseline order by itself. No physics solver or extra animation clock.
+const elasticFields=Object.freeze([
+ {strain:-.075,lift:.26,depth:.34,cycles:.5,roll:.06},
+ {strain:.065,lift:.12,depth:.22,cycles:1,roll:.045},
+ {strain:.025,lift:.09,depth:.65,cycles:.5,roll:.025},
+ {strain:-.045,lift:.06,depth:.16,cycles:1.5,roll:.035},
+ {strain:.04,lift:.46,depth:.30,cycles:1.25,roll:.10},
+ {strain:.075,lift:.37,depth:.58,cycles:1,roll:.12},
+ {strain:-.08,lift:.20,depth:.38,cycles:.5,roll:.055}
+]);
+export function elasticGlyph(h,rank,line,width,size,role='headline'){
+ if(h.kind==='hold')return [0,0,0,0,0,0];
+ const f=elasticFields[h.index],r=clamp(rank),q=sceneTravel(h),e=Math.sin(Math.PI*q)**2,k=role==='body'?.18:1,theta=2*Math.PI*(r*f.cycles+(h.kind==='enter'?-1:1)*q*.65+line*.13),gain=e*k;
+ return [f.strain*(r-.5)*width*gain,f.lift*size*gain*Math.sin(theta),f.depth*size*gain*Math.cos(theta),.05*gain*Math.cos(theta),.08*gain*Math.sin(theta),f.roll*gain*Math.cos(theta)];
+}

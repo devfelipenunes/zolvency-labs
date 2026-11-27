@@ -13,3 +13,7 @@ export function mobileStartupBudget(search='',width=0){
 
 // A/B escape hatch retains the old motion with the same startup and GPU budget.
 export function mobileMotionEnabled(search='',width=0){return mobileStartupBudget(search,width)&&new URLSearchParams(search).get('mobile-motion')!=='control';}
+
+// Software-rendered, full-startup diagnostics may need the longer internal
+// preparation budget. Normal visits retain their existing 100s deadline.
+export function startupDeadline(search=''){const q=new URLSearchParams(search);return q.has('diagnostics')&&q.has('benchmark')&&q.get('type-choreography')==='scene-presence'&&q.get('startup')==='complete'?270000:100000;}

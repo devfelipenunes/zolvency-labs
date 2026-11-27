@@ -1,3 +1,4 @@
+import {startupDeadline} from './graphics/startupPolicy.js';
 import React,{useEffect,useRef,useState} from 'react';
 import packageInfo from '../package.json';
 import {SoundControl} from './SoundControl.jsx';
@@ -30,7 +31,7 @@ function Stage({progress,reduced,side,controller,onLoading}){
  engine.current=flat;canvas.hidden=false;setMode('canvas');
  function restore(){if(!active)return;expired=true;clearTimeout(deadline);clearTimeout(revealTimer);if(gated&&!latest.current.reduced)onLoading({phase:'error',done:0,total:1});gl?.dispose();gl=null;current=flat;engine.current=flat;canvas.hidden=false;setMode('canvas');redraw();}
  redraw();if(gated)onLoading(latest.current.reduced?null:{phase:'assets',done:0,total:1});addEventListener('resize',onResize,{passive:true});
- if(gated&&!latest.current.reduced)deadline=setTimeout(()=>restore(),100000);
+ if(gated&&!latest.current.reduced)deadline=setTimeout(()=>{node.dataset.startupDeadlineExpired='true';restore();},startupDeadline(location.search));
  if(!latest.current.reduced&&new URLSearchParams(location.search).get('renderer')!=='canvas')import('./graphics/threeScene.js').then(async({createThreeScene})=>{
  if(!active||expired||latest.current.reduced)return;
  try{const next=await createThreeScene(node,restore);if(!active||expired){next.dispose();return;}gl=next;if(gated){await next.prepare(status=>{if(active&&!expired&&gl===next&&status.phase!=='ready')onLoading(status);});if(!active||expired||gl!==next){next.dispose();return;}}current=gl;engine.current=gl;redraw();canvas.hidden=true;setMode('three');if(gated){clearTimeout(deadline);onLoading({phase:'revealing',done:1,total:1});revealTimer=setTimeout(()=>{if(active&&!expired)onLoading({phase:'ready',done:1,total:1});},420);}}
