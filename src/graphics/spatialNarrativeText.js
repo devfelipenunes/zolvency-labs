@@ -9,12 +9,14 @@ import {brandPlane,isStudy,studyModes} from './compositionStudy.js';
 import {brandSurfaces,artEnvelope} from './artDirection.js';
 import {shotCards,shotAnimation,shotLayout} from './shotCards.js';
 import {flowTypeEnvelope} from './flowTypeEnvelope.js';
+import {livingCopy} from './livingCopy.js';
+import {motion as livingMotion} from './livingTypeMotion.js';
 
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 // All visible narrative text is triangulated, extruded glyph geometry, including body copy.
 // One merged mesh per role keeps draw calls low. The editorial rig follows the shot,
 // with controlled perspective, depth and rotation; it is not a physical wall sign.
-export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default',brandOnly=false,reusePlacement=false,flow3d=false}={}){
+export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default',brandOnly=false,reusePlacement=false,flow3d=false,livingType=false}={}){
  let font=null,logo=null,disposed=false,aspect=0,active=null,layoutMobile=null,builds=0,placementResets=0;const entries=new Map(),ray=new THREE.Raycaster();
  if(!brandOnly)new FontLoader().loadAsync(import.meta.env.BASE_URL+'models/fonts/helvetiker_regular.typeface.json').then(f=>{if(!disposed){font=f;onReady();}}).catch(()=>{});
  new SVGLoader().loadAsync(import.meta.env.BASE_URL+'brand/zolvency.svg').then(d=>{if(!disposed){logo=d.paths.flatMap(p=>SVGLoader.createShapes(p));onReady();}}).catch(()=>{});
@@ -38,7 +40,30 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
   return new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,depthTest:true,depthWrite:false,toneMapped:false}));
  }
+ // Experimental bevelled word rig. Real glyph meshes, one body mesh and
+ // independently animated title words. Shared deterministic camera progress;
+ // no runtime physics, extra lights, timers or scroll interception.
+ const cards=livingType?shotCards.map((card,i)=>({...card,title:livingCopy[i].title,body:livingCopy[i].body,livingId:livingCopy[i].id})):shotCards;
+ function livingGeo(text,size,depth,bevel){
+  const g=new TextGeometry(text,{font,size,depth:size*depth,curveSegments:3,bevelEnabled:bevel>0,bevelThickness:size*bevel,bevelSize:size*bevel,bevelSegments:1});g.computeBoundingBox();return g;
+ }
+ function buildLiving(card){
+  if(!font||(card.brand&&!logo))return null;
+  builds++;const group=new THREE.Group();group.name='living-type-'+card.livingId;group.visible=false;let cursor=0;
+  const titleSize=.138,bodySize=.076,max=.99,titleLines=wrap(card.title,titleSize,max),bodyLines=wrap(card.body,bodySize,max);
+  if(card.brand){const g=new THREE.ExtrudeGeometry(logo,{depth:12,bevelEnabled:false,curveSegments:2});g.scale(1,-1,1);g.computeBoundingBox();const b=g.boundingBox,sz=b.getSize(V());g.translate(-b.min.x,-b.max.y,-b.getCenter(V()).z);g.scale(.71/sz.x,.71/sz.x,.022/Math.max(.001,sz.z));g.translate(-.49,0,0);const mark=flowMesh([g],0x65d8aa);mark.name='hero';group.add(mark);cursor-=sz.y*.71/sz.x+.05;}
+  const words=[];for(const line of titleLines){let x=-.49;for(const word of line.split(' ')){
+    const g=livingGeo(word,titleSize,.10,.012),b=g.boundingBox.clone(),center=b.getCenter(V());g.translate(-center.x,-center.y,-center.z);
+    const m=flowMesh([g],0xe6efea);m.name='headline';m.position.set(x+center.x-b.min.x,cursor+center.y-b.max.y,0);m.userData.word=word;group.add(m);words.push(m);x+=width(word+' ')*titleSize;
+   }cursor-=titleSize*1.14;}
+  cursor-=.027;const gs=[];for(const line of bodyLines){const g=livingGeo(line,bodySize,.07,0),b=g.boundingBox;g.translate(-.49-b.min.x,cursor-b.max.y,0);gs.push(g);cursor-=bodySize*1.30;}
+  const body=flowMesh(gs,0xc2d9d1);body.name='body';group.add(body);
+  group.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(group),center=box.getCenter(V()),size=box.getSize(V());
+  for(const m of group.children){m.position.sub(center);m.userData.rest=m.position.clone();}
+  scene.add(group);const e={card,group,titleLines,bodyLines,words,body,roles:[...new Set(group.children.map(m=>m.name))],height:size.y,width:size.x};entries.set(card.name,e);return e;
+ }
  function buildFlow(card,mobile){
+  if(livingType)return buildLiving(card);
   if(!font||(card.brand&&!logo))return null;
   builds++;const group=new THREE.Group();group.name='flow-type-'+card.name;group.visible=false;let cursor=0;
   if(card.brand){const g=new THREE.ExtrudeGeometry(logo,{depth:12,bevelEnabled:false,curveSegments:2});g.scale(1,-1,1);g.computeBoundingBox();const b=g.boundingBox,sz=b.getSize(V());g.translate(-b.min.x,-b.max.y,-b.getCenter(V()).z);g.scale(.86/sz.x,.86/sz.x,.023/Math.max(.001,sz.z));g.translate(-.49,0,0);const mark=flowMesh([g],0x65d8aa);mark.name='hero';group.add(mark);cursor-=sz.y*.86/sz.x+.045;}
@@ -51,18 +76,23 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   for(const m of group.children)m.position.sub(center);
   scene.add(group);const e={card,group,titleLines,bodyLines,roles:group.children.map(m=>m.name),height:size.y,width:size.x};entries.set(card.name,e);return e;
  }
- function prebuild(mobile){if(!flow3d)return;if(layoutMobile!==mobile){clear();layoutMobile=mobile;}for(const card of shotCards)if(!entries.has(card.name))buildFlow(card,mobile);}
+ function prebuild(mobile){if(!flow3d)return;if(layoutMobile!==mobile){clear();layoutMobile=mobile;}for(const card of cards)if(!entries.has(card.name))buildFlow(card,mobile);}
  function updateFlow(p,camera,mobile,a,mask){
-  if(layoutMobile!==mobile||entries.size!==shotCards.length)prebuild(mobile);
-  const anim=flowTypeEnvelope(p,mask),card=shotCards[anim.index];for(const e of entries.values())e.group.visible=false;active=entries.get(card.name)??null;
+  if(layoutMobile!==mobile||entries.size!==cards.length)prebuild(mobile);
+  const anim=flowTypeEnvelope(p,mask),card=cards[anim.index];for(const e of entries.values())e.group.visible=false;active=entries.get(card.name)??null;
   if(!active)return {ready:false,visible:false,shot:card.name,roles:[],alpha:0,copyVisible:false};
   const {group}=active,depth=.46+.06*(1-anim.enter),halfH=depth*Math.tan(THREE.MathUtils.degToRad(camera.fov)/2),halfW=halfH*a;
   camera.updateMatrixWorld(true);const forward=camera.getWorldDirection(V()),right=V(1,0,0).applyQuaternion(camera.quaternion),up=V(0,1,0).applyQuaternion(camera.quaternion);
-  const scale=Math.min(2*halfW*.84/Math.max(.001,active.width),2*halfH*.28/Math.max(.001,active.height));
+  const scale=Math.min(2*halfW*(livingType?.88:.84)/Math.max(.001,active.width),2*halfH*(livingType?.35:.28)/Math.max(.001,active.height));
   const y=-.54-anim.drift;group.position.copy(camera.position).addScaledVector(forward,depth).addScaledVector(right,0).addScaledVector(up,y*halfH);
   group.quaternion.copy(camera.quaternion).multiply(new THREE.Quaternion().setFromAxisAngle(V(0,1,0),.11*(1-anim.enter)+.035));
   group.scale.setScalar(scale);group.visible=anim.alpha>.012;
   for(const m of group.children){m.visible=group.visible;m.material.opacity=anim.alpha;}
+  if(livingType){
+   const phase=Math.min(anim.enter,anim.exit),n=active.words.length;
+   for(let i=0;i<n;i++){const m=active.words[i],v=livingMotion(card.livingId,i,n,phase);m.position.copy(m.userData.rest);m.position.x+=v[0]*.138;m.position.y+=v[1]*.138;m.position.z+=v[2]*.138;m.rotation.z=v[3];}
+   const b=active.body,v=livingMotion(card.livingId,0,1,phase);b.position.copy(b.userData.rest);b.position.x+=v[0]*.035;b.position.y+=v[1]*.035;b.position.z+=v[2]*.035;b.material.opacity=anim.alpha*ramp(phase,.15,.70);b.visible=group.visible&&b.material.opacity>.012;
+  }
   group.updateMatrixWorld(true);return {ready:true,visible:group.visible,shot:card.name,roles:active.roles,alpha:anim.alpha,focus:card.focus,intent:card.intent,bodyLines:active.bodyLines.length,copyVisible:group.visible};
  }
  function build(card,mobile){
@@ -220,7 +250,7 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
   group.updateMatrixWorld(true);
   return {ready:true,visible:group.visible,shot:card.name,roles:active.roles,alpha:anim.alpha,focus:card.focus,intent:card.intent,span,bodyLines:active.bodyLines.length,copyVisible:copyVisible(group)};
  }
- function inspect(camera,roots){if(!active)return [];const {group,card,roles}=active;return group.children.filter(m=>m.visible&&group.visible).map(m=>{m.updateMatrixWorld(true);const b=m.geometry.boundingBox,points=[];for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z])points.push(V(x,y,z).applyMatrix4(m.matrixWorld).project(camera));const visibleRoots=roots?[...roots.values()].filter(o=>o.visible):[],attr=m.geometry.attributes.position,samples=[];for(let j=0;j<Math.min(45,attr.count);j++){const k=Math.floor(j*attr.count/Math.min(45,attr.count));samples.push(V().fromBufferAttribute(attr,k).applyMatrix4(m.matrixWorld));}const clearSamples=samples.filter(q=>{const v=q.clone().project(camera);return Math.abs(v.x)<1&&Math.abs(v.y)<1&&Math.abs(v.z)<1&&!isBlocked(camera.position,q,visibleRoots);}).length;return {visibilityEstimate:samples.length?clearSamples/samples.length:0,sampleCount:samples.length,name:card.name,role:m.name,worldAnchor:active.anchors?.[group.children.indexOf(m)]?.point.toArray()??null,mount:active.anchors?.[group.children.indexOf(m)]?.mount??null,inside:points.every(q=>Math.abs(q.x)<1&&Math.abs(q.y)<1&&Math.abs(q.z)<1),span:(Math.max(...points.map(q=>q.x))-Math.min(...points.map(q=>q.x)))/2,opacity:m.material.opacity,triangles:(m.geometry.index?.count??m.geometry.attributes.position.count)/3};});}
+ function inspect(camera,roots){if(!active)return [];const {group,card,roles}=active;return group.children.filter(m=>m.visible&&group.visible).map(m=>{m.updateMatrixWorld(true);const b=m.geometry.boundingBox,points=[];for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z])points.push(V(x,y,z).applyMatrix4(m.matrixWorld).project(camera));const visibleRoots=roots?[...roots.values()].filter(o=>o.visible):[],attr=m.geometry.attributes.position,samples=[];for(let j=0;j<Math.min(45,attr.count);j++){const k=Math.floor(j*attr.count/Math.min(45,attr.count));samples.push(V().fromBufferAttribute(attr,k).applyMatrix4(m.matrixWorld));}const clearSamples=samples.filter(q=>{const v=q.clone().project(camera);return Math.abs(v.x)<1&&Math.abs(v.y)<1&&Math.abs(v.z)<1&&!isBlocked(camera.position,q,visibleRoots);}).length;return {word:m.userData.word??null,offset:m.userData.rest?m.position.clone().sub(m.userData.rest).toArray():null,rotation:m.rotation.z,projectedHeight:(Math.max(...points.map(q=>q.y))-Math.min(...points.map(q=>q.y)))*innerHeight/2,visibilityEstimate:samples.length?clearSamples/samples.length:0,sampleCount:samples.length,name:card.name,role:m.name,worldAnchor:active.anchors?.[group.children.indexOf(m)]?.point.toArray()??null,mount:active.anchors?.[group.children.indexOf(m)]?.mount??null,inside:points.every(q=>Math.abs(q.x)<1&&Math.abs(q.y)<1&&Math.abs(q.z)<1),span:(Math.max(...points.map(q=>q.x))-Math.min(...points.map(q=>q.x)))/2,opacity:m.material.opacity,triangles:(m.geometry.index?.count??m.geometry.attributes.position.count)/3};});}
  function copyVisible(group){return group.visible&&['headline','body'].every(role=>group.children.some(m=>m.name===role&&m.visible&&m.material.opacity>=.35));}
  function suppressCopy(){if(!active)return;for(const m of active.group.children)if(!active.card.brand||m.name!=='hero')m.visible=false;}
  return {update,inspect,prebuild,requiresWorldUpdate,suppressCopy,stats:()=>({builds,placementResets,entries:entries.size}),ready:()=>!!logo&&(brandOnly||!!font),dispose(){disposed=true;clear();},diagnostics(){return [...entries.values()].map(e=>({name:e.card.name,roles:e.roles,bodyLines:e.bodyLines,anchors:e.anchors?.map(a=>({point:a.point.toArray(),depth:a.depth,mount:a.mount}))??[],titleLines:e.titleLines,focus:e.card.focus,intent:e.card.intent}));}};
