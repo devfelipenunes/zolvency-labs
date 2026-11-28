@@ -19,7 +19,7 @@ export function travelCost(poseAt,{samples=1000,metersPerSecond=4,degreesPerSeco
 }
 export function createGuidedMotion(map,{initial=0,dwellMs=850}={}){
  let p=initial,target=p,last=null,dwell=0,holdDirection=0,velocity=0;
- const stops=[...readingHolds,...opticalCuts].sort((a,b)=>a-b);
+ const stops=[...(dwellMs>0?readingHolds:[]),...opticalCuts].sort((a,b)=>a-b);
  return {set(q,{snap=false}={}){if(!Number.isFinite(q))return;q=clamp(q);if(dwell>0&&Math.sign(q-p)!==holdDirection){dwell=0;holdDirection=0;}target=q;if(snap){p=q;last=null;dwell=0;velocity=0;}},
  step(now){
   const dt=last===null?.0167:clamp((now-last)/1000,0,.12);last=now;
