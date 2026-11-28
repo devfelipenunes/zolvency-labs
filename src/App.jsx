@@ -1,3 +1,4 @@
+import {seamlessThreshold,presentationReady} from './experience/thresholdContinuity.js';
 import React,{useEffect,useRef,useState} from 'react';
 import packageInfo from '../package.json';
 import {SoundControl} from './SoundControl.jsx';
@@ -28,19 +29,19 @@ function Stage({progress,reduced,side,controller,onLoading}){
  useEffect(()=>{if(!editorial&&!mobileMotion)return;const initial=latest.current;host.current.dataset.targetProgress=String(initial.reduced?0:initial.progress);host.current.parentElement?.style.setProperty('--native-progress',String(initial.reduced?0:initial.progress));controller.current=(next,snap)=>{latest.current=next;const p=next.reduced?0:next.progress;shown.current=p;host.current.dataset.targetProgress=String(p);host.current.parentElement?.style.setProperty('--native-progress',String(p));engine.current?.draw(p,{snap});};return()=>{controller.current=null;};},[controller]);
  useEffect(()=>{
  const node=host.current,canvas=fallback.current,flat=createFallback(canvas);
- let active=true,expired=false,gl=null,current=flat,deadline=null,revealTimer=null;
+ let active=true,expired=false,gl=null,current=flat,deadline=null,revealTimer=null,presentFrame=0;
  function redraw(snap=true){const p=latest.current;current.resize();current.draw(p.reduced?0:shown.current,{snap});}
  const onResize=()=>redraw(!mobileMotion||current===flat);
  engine.current=hybridPerformance(location.search).scroll?null:flat;canvas.hidden=false;setMode('canvas');
- function restore(){if(!active)return;expired=true;clearTimeout(deadline);clearTimeout(revealTimer);if(gated&&!latest.current.reduced)onLoading({phase:'error',done:0,total:1});gl?.dispose();gl=null;current=flat;engine.current=flat;canvas.hidden=false;setMode('canvas');redraw();}
+ function restore(){if(!active)return;expired=true;clearTimeout(deadline);clearTimeout(revealTimer);cancelAnimationFrame(presentFrame);if(gated&&!latest.current.reduced)onLoading({phase:'error',done:0,total:1});gl?.dispose();gl=null;current=flat;engine.current=flat;canvas.hidden=false;setMode('canvas');redraw();}
  redraw();if(gated)onLoading(latest.current.reduced?null:{phase:'assets',done:0,total:1});addEventListener('resize',onResize,{passive:true});
  if(gated&&!latest.current.reduced)deadline=setTimeout(()=>restore(),startupDeadlines(location.search).lifecycle);
  if(!latest.current.reduced&&new URLSearchParams(location.search).get('renderer')!=='canvas')import('./graphics/threeScene.js').then(async({createThreeScene})=>{
  if(!active||expired||latest.current.reduced)return;
- try{const next=await createThreeScene(node,restore);if(!active||expired){next.dispose();return;}gl=next;if(gated){await next.prepare(status=>{if(active&&!expired&&gl===next&&status.phase!=='ready')onLoading(status);});if(!active||expired||gl!==next){next.dispose();return;}}current=gl;engine.current=gl;redraw();canvas.hidden=true;setMode('three');if(gated){clearTimeout(deadline);if(hybridPerformance(location.search).startup)onLoading({phase:'ready',done:1,total:1});else{onLoading({phase:'revealing',done:1,total:1});revealTimer=setTimeout(()=>{if(active&&!expired)onLoading({phase:'ready',done:1,total:1});},420);}}}
+ try{const next=await createThreeScene(node,restore);if(!active||expired){next.dispose();return;}gl=next;if(gated){await next.prepare(status=>{if(active&&!expired&&gl===next&&status.phase!=='ready')onLoading(status);});if(!active||expired||gl!==next){next.dispose();return;}}current=gl;engine.current=gl;redraw();canvas.hidden=true;setMode('three');if(gated){if(seamlessThreshold(location.search)){onLoading({phase:'revealing',done:1,total:1});const before=Number(node.dataset.renderCount??0);node.dataset.presentationPending='true';const present=()=>{if(!active||expired||gl!==next)return;const target=latest.current.reduced?0:shown.current;const rendered=Number(node.dataset.progress);if(presentationReady({rendered,target,narrativeReady:node.dataset.narrativeReady==='true',submitted:Number(node.dataset.renderCount??0)>before})){clearTimeout(deadline);node.dataset.presentationPending='false';node.dataset.presentationTarget=String(target);node.dataset.presentationRendered=String(rendered);onLoading({phase:'ready',done:1,total:1});return;}presentFrame=requestAnimationFrame(present);};presentFrame=requestAnimationFrame(present);}else{clearTimeout(deadline);if(hybridPerformance(location.search).startup)onLoading({phase:'ready',done:1,total:1});else{onLoading({phase:'revealing',done:1,total:1});revealTimer=setTimeout(()=>{if(active&&!expired)onLoading({phase:'ready',done:1,total:1});},420);}}}}
  catch(e){if(active){console.warn('WebGL/model unavailable; using Canvas2D',e);restore();}}
  }).catch(e=>{if(active){console.warn('Graphics unavailable',e);restore();}});
- return()=>{active=false;clearTimeout(deadline);clearTimeout(revealTimer);removeEventListener('resize',onResize);gl?.dispose();flat.dispose();engine.current=null;};
+ return()=>{active=false;clearTimeout(deadline);clearTimeout(revealTimer);cancelAnimationFrame(presentFrame);removeEventListener('resize',onResize);gl?.dispose();flat.dispose();engine.current=null;};
  },[reduced]);
  return <div id="stage" data-renderer={mode} data-target-progress={editorial||mobileMotion?undefined:reduced?0:progress} data-experience={editorial?'editorial':'legacy'} data-copy-edition={edition} data-copy-style={copyStyle} data-side={side} ref={host} aria-hidden="true"><canvas ref={fallback}/><div className="veil"/></div>;
 }
