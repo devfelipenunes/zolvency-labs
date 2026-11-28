@@ -153,3 +153,34 @@
 .hybrid-page[data-seam="stable"] .hybrid-portal[data-live="true"] .hybrid-threshold-guide{opacity:calc(.25 * (1 - var(--ready-mix,1)*(1 - var(--entry-cover,1))))}
 @media(max-height:600px){.hybrid-page[data-seam="stable"] .hybrid-portal-inner{padding-top:24px;gap:8px}.hybrid-page[data-seam="stable"] .hybrid-threshold-preparation{margin-top:6px}}
 @media(prefers-reduced-motion:reduce){.hybrid-page[data-seam="stable"] .hybrid-portal-inner{padding-top:24px;justify-content:center}.hybrid-page[data-seam="stable"] .hybrid-threshold-preparation{display:none}}
+
+/* R117 — actual scene still, not an extra 3D renderer. The landing page now
+   leads straight to the cinematic entrance; the manifesto is retained later. */
+.hybrid-page[data-entrance="cinema"] .hybrid-portal{min-height:135svh;--origin-poster:url('/brand/origin-poster-wide.svg')}
+.hybrid-page[data-entrance="cinema"] .hybrid-portal-inner{justify-content:flex-end;align-items:flex-start;padding:clamp(28px,5vw,84px) var(--gutter) max(42px,env(safe-area-inset-bottom));gap:14px}
+.hybrid-page[data-entrance="cinema"] .hybrid-entry-cover{background:#080d0c;overflow:hidden}
+.hybrid-cinema-window{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:#080d0c}
+.hybrid-cinema-window picture{display:block;position:absolute;inset:0;clip-path:inset(calc(4% * (1 - var(--entry-progress,0))) calc(4% * (1 - var(--entry-progress,0))));transform:scale(calc(1.015 + .10 * var(--entry-progress,0)));transform-origin:52% 48%}
+.hybrid-cinema-window img{display:block;width:100%;height:100%;object-fit:cover;object-position:center;filter:brightness(1.15)}
+.hybrid-cinema-window::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(0deg,#080d0cf5 0%,#080d0caa 26%,transparent 74%),linear-gradient(90deg,#080d0c66,transparent 65%)}
+.hybrid-cinema-frame{position:absolute;inset:calc(4% * (1 - var(--entry-progress,0)));border:1px solid #a6c7b444;opacity:calc(1 - var(--entry-progress,0));pointer-events:none}
+.hybrid-page[data-entrance="cinema"] .hybrid-portal-heading h2{font-size:clamp(48px,7.5vw,105px);max-width:13ch;margin:10px 0 0;text-shadow:0 2px 18px #050807c0}
+.hybrid-page[data-entrance="cinema"] .hybrid-portal-copy{max-width:min(620px,100%)}
+.hybrid-page[data-entrance="cinema"] .hybrid-portal-copy .hybrid-status{min-height:1.6em;max-width:100%;margin-top:5px!important}
+.hybrid-page[data-entrance="cinema"] .hybrid-threshold-preparation{height:24px;margin-top:8px}
+.hybrid-page[data-entrance="cinema"] .hybrid-portal[data-live="true"] .hybrid-portal-heading{transform:translateY(calc(-24px * (1 - var(--entry-copy,1)))) scale(calc(1 + .035 * (1 - var(--entry-copy,1))));transform-origin:left bottom}
+.hybrid-page[data-entrance="cinema"] .hybrid-portal[data-live="true"] .hybrid-portal-copy{transform:translateY(calc(12px * (1 - var(--entry-copy,1))))}
+/* When a fast scroll reaches Origin before readiness, retain the same visual.
+   Only the initial part of Origin may join automatically; later text stays readable. */
+.hybrid-page[data-entrance="cinema"] .hybrid-facility[data-entry-preview="true"] #story>.chapter:first-child::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(0deg,#101a16 0%,#101a16bb 30%,transparent 65%),var(--origin-preview) center top/cover no-repeat;opacity:0;transition:opacity 320ms ease-out}
+.hybrid-page[data-entrance="cinema"] .hybrid-facility[data-entry-preview="true"][data-reading="true"] #story>.chapter:first-child::before{opacity:1}
+.hybrid-page[data-entrance="cinema"] .hybrid-facility[data-entry-preview="true"] #story>.chapter:first-child .copy{z-index:1}
+.hybrid-page[data-entrance="cinema"]{--origin-preview:url('/brand/origin-poster-wide.svg')}
+@media(max-width:720px){.hybrid-page[data-entrance="cinema"]{--origin-preview:url('/brand/origin-poster.svg')}.hybrid-page[data-entrance="cinema"] .hybrid-portal{min-height:128svh}.hybrid-page[data-entrance="cinema"] .hybrid-portal-inner{padding:26px var(--gutter) max(24px,env(safe-area-inset-bottom));gap:10px}.hybrid-page[data-entrance="cinema"] .hybrid-portal-heading h2{font-size:clamp(43px,11vw,64px)}.hybrid-cinema-window::after{background:linear-gradient(0deg,#080d0cf8 0%,#080d0cb0 32%,transparent 76%)}}
+@media(max-height:600px){.hybrid-page[data-entrance="cinema"] .hybrid-portal-inner{padding-block:18px;gap:6px}.hybrid-page[data-entrance="cinema"] .hybrid-portal-heading h2{font-size:clamp(33px,7vw,55px)}}
+@media(prefers-reduced-motion:reduce){.hybrid-page[data-entrance="cinema"] .hybrid-portal{min-height:70svh}.hybrid-page[data-entrance="cinema"] .hybrid-portal-inner{justify-content:center}.hybrid-page[data-entrance="cinema"] .hybrid-cinema-window{display:none}}
+
+/* At the fully covered start, changing readiness has no visible fade to perform.
+   Avoid restarting an inherited custom-property transition after a hidden return.
+   Mid-entrance readiness continues to blend with the established 360ms curve. */
+.hybrid-page[data-entrance="cinema"] .hybrid-portal[data-entry-start="true"]{transition:none}
