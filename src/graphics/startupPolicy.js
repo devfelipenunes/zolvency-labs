@@ -26,3 +26,6 @@ export function startupDeadlines(search=''){
 export function hybridPerformance(search=''){const q=new URLSearchParams(search),enabled=q.get('hybrid')==='1'&&q.get('hybrid-perf')!=='control';return {startup:enabled&&q.get('hybrid-startup')!=='control',motion:enabled&&q.get('hybrid-motion')!=='control',gpu:enabled&&q.get('hybrid-gpu')!=='control',scroll:enabled&&q.get('hybrid-scroll')!=='control'};}
 export function hybridPreflightMode(search='',mobile=false){const q=new URLSearchParams(search);return q.get('preflight')??(hybridPerformance(search).startup?(mobile?'guarded':'compact'):null);}
 export function hybridRasterRatio(ratio,device,scale){return Math.min(ratio,Math.min(1,device||1)*Math.max(.65,Math.min(1,scale)));}
+
+// Entry-first is an isolated candidate with explicit rollback to guarded/compact.
+export function entryFirstPreflight(search=''){const q=new URLSearchParams(search);return hybridPerformance(search).startup&&q.get('hybrid-warmup')!=='control'&&!q.has('preflight');}
