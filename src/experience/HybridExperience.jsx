@@ -6,6 +6,7 @@ import {cinematicHandoff,lateThresholdReady} from './cinematicHandoff.js';
 import {disciplines} from './editorialContent.js';
 import MandateDemo from './MandateDemo.jsx';
 import {FrontierMark,FrontierAtlas} from './FrontierMark.jsx';
+import {idleOpeningDelay,openingPrefetchAllowed,openingPrefetch,cancelOpeningPrefetch} from './openingPrefetch.js';
 import './hybrid.css';
 function useFacilityWindow(portal,story,facility,research,spatialEntry,earlyPrepare,threshold){
  const [state,setState]=useState({near:false,visible:false});
@@ -22,6 +23,8 @@ export default function HybridExperience({Stage,SoundControl,DeviceCapture,mobil
  const onStageLoading=status=>{if(status?.phase==='ready'&&(threshold?lateThresholdReady(latestProgress.current,story.current?.getBoundingClientRect().top,innerHeight):latestProgress.current>.02))setLate(true);setLoading(status);};const flat=new URLSearchParams(location.search).get('renderer')==='canvas';
  useEffect(()=>{const id=location.hash.slice(1);if(!id)return;const frame=requestAnimationFrame(()=>document.getElementById(id)?.scrollIntoView());return()=>cancelAnimationFrame(frame);},[]);
  const enabled=near&&!reduced&&!light&&!flat,ready=enabled&&loading?.phase==='ready'&&!late;
+ // Wait until editorial paint has had time to complete. Only fetch the small, approved mobile opening GLB; no GPU/decoder work at the hero.
+ useEffect(()=>{if(innerWidth>=720)return;let idle=0,timer=0,closed=false;const connection=navigator.connection;const allowed=()=>openingPrefetchAllowed({search:location.search,hash:location.hash,reduced,reading:light,hidden:document.hidden,saveData:connection?.saveData,effectiveType:connection?.effectiveType,scroll:scrollY,viewport:innerHeight});const start=()=>{if(closed||!allowed())return;openingPrefetch(import.meta.env.BASE_URL+'models/facility/hangar-low.glb');};const schedule=()=>{if(typeof requestIdleCallback==='function')idle=requestIdleCallback(start,{timeout:1500});else start();};timer=setTimeout(schedule,idleOpeningDelay);const cancel=()=>{if(document.hidden||light||reduced||location.hash.startsWith('#research')||location.hash==='#work')cancelOpeningPrefetch();};addEventListener('hashchange',cancel);document.addEventListener('visibilitychange',cancel);return()=>{closed=true;clearTimeout(timer);if(idle&&typeof cancelIdleCallback==='function')cancelIdleCallback(idle);removeEventListener('hashchange',cancel);document.removeEventListener('visibilitychange',cancel);cancelOpeningPrefetch();};},[reduced,light]);
  useEffect(()=>{if(!enabled){setLoading(null);setLate(false);}},[enabled]);
  useEffect(()=>{if(!threshold&&progress<=.02&&late)setLate(false);},[progress,late,threshold]);
  useEffect(()=>{if(!threshold||!late)return;const retry=()=>{const top=story.current?.getBoundingClientRect().top;if(Number.isFinite(top)&&top>=innerHeight*.25)setLate(false);};addEventListener('scroll',retry,{passive:true});retry();return()=>removeEventListener('scroll',retry);},[threshold,late]);
