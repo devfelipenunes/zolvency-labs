@@ -120,3 +120,7 @@
 /* R99.13: the spatial pilot adds a short final reading beat; control remains 40svh. */
 .hybrid-page[data-spatial-entry="true"] .hybrid-return-runway{height:65svh}
 @media(prefers-reduced-motion:reduce){.hybrid-page[data-spatial-entry="true"] .hybrid-return-runway{height:0;min-height:0}}
+
+/* Reading fallback must outrank the legacy narrative-ready selector, including a late ready engine. */
+.hybrid-page .hybrid-facility[data-reading="true"] #stage[data-renderer][data-typography-mode][data-narrative-ready] ~ #story .chapter .copy{opacity:1!important;pointer-events:auto!important}
+.hybrid-page .hybrid-facility[data-reading="true"] #story .chapter .copy{visibility:visible}
