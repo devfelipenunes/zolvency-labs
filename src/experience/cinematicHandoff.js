@@ -11,5 +11,5 @@ export function cinematicHandoff(scroll,portalTop,storyTop,storyEnd,viewport,res
  const exit=exitFraction<=hold+1e-12?0:smooth((exitFraction-hold)/(1-hold));
  const copy=1-smooth((entry-.03)/.32);
  const cover=1-smooth((entry-.35)/.52);
- return {entry,cover,copy,exit,light:smooth((entry-.35)/.52),near:scroll>=portalTop-viewport*1.05&&scroll<researchTop-1,inside:scroll>=storyTop&&scroll<exitStart};
+ return {entry,cover,copy,exit,light:smooth((entry-.35)/.52),near:scroll>=portalTop-viewport*1.05&&scroll<researchTop-1,inside:scroll>=storyTop-2&&scroll<exitStart};
 }
