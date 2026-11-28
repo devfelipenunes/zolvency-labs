@@ -124,3 +124,18 @@
 /* Reading fallback must outrank the legacy narrative-ready selector, including a late ready engine. */
 .hybrid-page .hybrid-facility[data-reading="true"] #stage[data-renderer][data-typography-mode][data-narrative-ready] ~ #story .chapter .copy{opacity:1!important;pointer-events:auto!important}
 .hybrid-page .hybrid-facility[data-reading="true"] #story .chapter .copy{visibility:visible}
+
+/* R109: threshold only; scroll owns composition, no decorative time loop. */
+.hybrid-page[data-threshold="choreographed"] .hybrid-portal{min-height:165svh}
+.hybrid-page[data-threshold="choreographed"] .hybrid-portal-inner{justify-content:center;gap:18px}
+.hybrid-page[data-threshold="choreographed"] .hybrid-entry-cover{background:#090e0c}
+.hybrid-page[data-threshold="choreographed"] .hybrid-threshold-guide{position:absolute;inset:12% var(--gutter);z-index:1;pointer-events:none;opacity:.34;color:#8da99b;font:9px/1.3 ui-monospace,monospace;letter-spacing:.16em;display:flex;justify-content:flex-end;align-items:flex-start;border-block:1px solid #52695a60}
+.hybrid-threshold-guide .hybrid-threshold-axis{position:absolute;right:0;top:12%;height:76%;width:34%;border:1px solid #829b8755;clip-path:polygon(0 0,100% 0,100% 100%,0 100%);transform:perspective(700px) rotateY(-26deg);transform-origin:right center}
+.hybrid-threshold-guide i{position:absolute;right:0;top:50%;width:34%;height:1px;background:#829b8755}.hybrid-threshold-guide i:last-child{transform:rotate(90deg)}
+.hybrid-page[data-threshold="choreographed"] .hybrid-portal[data-live="true"] .hybrid-threshold-guide{opacity:calc(.34 * (1 - var(--ready-mix,1)*(1 - var(--entry-cover,1))))}
+.hybrid-page[data-threshold="choreographed"] .hybrid-portal[data-live="true"] .hybrid-portal-heading{transform:translateY(calc(-18px * (1 - var(--entry-copy,1))));text-shadow:0 2px 14px #050807b0}
+.hybrid-page[data-threshold="choreographed"] .hybrid-portal[data-live="true"] .hybrid-portal-copy{transform:translateY(calc(8px * (1 - var(--entry-copy,1))))}
+.hybrid-page[data-threshold="choreographed"] .hybrid-portal[data-live="true"][data-copy-visible="false"] :is(.hybrid-portal-heading,.hybrid-portal-copy){visibility:visible;pointer-events:none}
+.hybrid-threshold-preparation{margin-top:12px;max-width:245px;color:#95b1a0;font:9px/1.5 ui-monospace,monospace;letter-spacing:.12em}.hybrid-threshold-preparation>div{height:2px;margin-top:6px;background:#293b31}.hybrid-threshold-preparation i{display:block;height:2px;background:#a6c6b1}
+@media(max-width:720px){.hybrid-page[data-threshold="choreographed"] .hybrid-portal{min-height:160svh}.hybrid-page[data-threshold="choreographed"] .hybrid-threshold-guide{inset:8% var(--gutter)}.hybrid-threshold-guide .hybrid-threshold-axis,.hybrid-threshold-guide i{width:28%}}
+@media(prefers-reduced-motion:reduce){.hybrid-page[data-threshold="choreographed"] .hybrid-portal{min-height:70svh}.hybrid-page[data-threshold="choreographed"] .hybrid-threshold-guide{display:none}.hybrid-page[data-threshold="choreographed"] .hybrid-portal[data-live="true"] :is(.hybrid-portal-heading,.hybrid-portal-copy){transform:none!important}}
