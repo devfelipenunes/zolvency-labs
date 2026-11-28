@@ -4,3 +4,10 @@ export function preparationPercent(status){if(!status)return 0;const fraction=Ma
 export function presentationReady({rendered,target,narrativeReady,submitted}={}){return submitted===true&&narrativeReady===true&&Number.isFinite(rendered)&&Number.isFinite(target)&&Math.abs(rendered-target)<=.0005;}
 // Only renderer submission is observed. No assertion about display scanout.
 export function warmOpeningShaders(search=''){const q=new URLSearchParams(search);return seamlessThreshold(search)&&q.get('hybrid-decoder')!=='control';}
+
+// R116: editorial copy owns the early reveal; Origin geometry owns the late reveal.
+export function originTitleHandoff(search=''){return seamlessThreshold(search)&&new URLSearchParams(search).get('hybrid-title')!=='control';}
+export function originTitleAlpha(entry){if(!Number.isFinite(entry))return 1;const t=Math.max(0,Math.min(1,(entry-.70)/.22));return t*t*(3-2*t);}
+// Keep the opening legible on phone displays. Retain adaptive budget but avoid
+// sub-.85 CSS-pixel buffers that visibly damaged the R115 typography.
+export function readableRasterRatio(ratio,device,scale){const cap=Math.min(1.15,Math.max(.1,device||1));return Math.min(cap,Math.max(ratio,cap*Math.max(.85,Math.min(1,scale))));}
