@@ -11,3 +11,7 @@ export function originTitleAlpha(entry){if(!Number.isFinite(entry))return 1;cons
 // Keep the opening legible on phone displays. Retain adaptive budget but avoid
 // sub-.85 CSS-pixel buffers that visibly damaged the R115 typography.
 export function readableRasterRatio(ratio,device,scale){const cap=Math.min(1.15,Math.max(.1,device||1));return Math.min(cap,Math.max(ratio,cap*Math.max(.85,Math.min(1,scale))));}
+
+// R117: actual rendered Origin still, short architectural entrance; R116 is the exact control.
+export function cinematicEntrance(search=''){return seamlessThreshold(search)&&new URLSearchParams(search).get('hybrid-entrance')!=='control';}
+export function entranceCanJoin(progress,storyTop,viewport){return Number.isFinite(progress)&&Number.isFinite(storyTop)&&Number.isFinite(viewport)&&viewport>0&&progress<=.045&&storyTop>=-viewport*.25;}
