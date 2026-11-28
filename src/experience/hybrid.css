@@ -139,3 +139,17 @@
 .hybrid-threshold-preparation{margin-top:12px;max-width:245px;color:#95b1a0;font:9px/1.5 ui-monospace,monospace;letter-spacing:.12em}.hybrid-threshold-preparation>div{height:2px;margin-top:6px;background:#293b31}.hybrid-threshold-preparation i{display:block;height:2px;background:#a6c6b1}
 @media(max-width:720px){.hybrid-page[data-threshold="choreographed"] .hybrid-portal{min-height:160svh}.hybrid-page[data-threshold="choreographed"] .hybrid-threshold-guide{inset:8% var(--gutter)}.hybrid-threshold-guide .hybrid-threshold-axis,.hybrid-threshold-guide i{width:28%}}
 @media(prefers-reduced-motion:reduce){.hybrid-page[data-threshold="choreographed"] .hybrid-portal{min-height:70svh}.hybrid-page[data-threshold="choreographed"] .hybrid-threshold-guide{display:none}.hybrid-page[data-threshold="choreographed"] .hybrid-portal[data-live="true"] :is(.hybrid-portal-heading,.hybrid-portal-copy){transform:none!important}}
+
+/* R112: same composition before, during and after GPU readiness. No new
+   bitmap, animated background, blur filter or loading overlay. */
+.hybrid-page[data-seam="stable"] .hybrid-threshold-preparation{height:25px;margin-top:12px;box-sizing:border-box;opacity:1}
+.hybrid-page[data-seam="stable"] .hybrid-threshold-preparation[data-preparing="false"]{visibility:hidden;opacity:0}
+.hybrid-page[data-seam="stable"] .hybrid-portal-copy .hybrid-status{min-height:3.2em;max-width:32ch}
+.hybrid-page[data-seam="stable"] .hybrid-portal-inner{justify-content:flex-start;padding-top:max(48px,17svh);gap:18px}
+.hybrid-page[data-seam="stable"] .hybrid-portal-heading{flex:none}
+.hybrid-page[data-seam="stable"] .hybrid-portal-copy{flex:none;max-width:min(580px,100%)}
+.hybrid-page[data-seam="stable"] .hybrid-portal[data-live="true"] .hybrid-portal-heading{transform:translateY(calc(-12px * (1 - var(--entry-copy,1))));text-shadow:0 2px 14px #050807c0}
+.hybrid-page[data-seam="stable"] .hybrid-threshold-guide{border-color:#52695a44;opacity:.25}
+.hybrid-page[data-seam="stable"] .hybrid-portal[data-live="true"] .hybrid-threshold-guide{opacity:calc(.25 * (1 - var(--ready-mix,1)*(1 - var(--entry-cover,1))))}
+@media(max-height:600px){.hybrid-page[data-seam="stable"] .hybrid-portal-inner{padding-top:24px;gap:8px}.hybrid-page[data-seam="stable"] .hybrid-threshold-preparation{margin-top:6px}}
+@media(prefers-reduced-motion:reduce){.hybrid-page[data-seam="stable"] .hybrid-portal-inner{padding-top:24px;justify-content:center}.hybrid-page[data-seam="stable"] .hybrid-threshold-preparation{display:none}}
