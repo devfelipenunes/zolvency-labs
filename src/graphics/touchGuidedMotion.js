@@ -2,9 +2,9 @@ import {createGuidedMotion,opticalCuts} from './guidedMotion.js';
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 // Native scroll never loses ownership. Touch only suspends automatic reading
 // holds and continuation after the last input, not native progress updates.
-export function createTouchGuidedMotion(map,{initial=0,quietMs=160}={}){
- let auto=createGuidedMotion(map,{initial}),p=initial,target=p,nativeTarget=p,active=false,dir=0,lastInput=-Infinity,lastFrame=null,waiting=false;
- const resetAuto=()=>{auto=createGuidedMotion(map,{initial:p});};
+export function createTouchGuidedMotion(map,{initial=0,quietMs=160,dwellMs=850}={}){
+ let auto=createGuidedMotion(map,{initial,dwellMs}),p=initial,target=p,nativeTarget=p,active=false,dir=0,lastInput=-Infinity,lastFrame=null,waiting=false;
+ const resetAuto=()=>{auto=createGuidedMotion(map,{initial:p,dwellMs});};
  function begin(now){if(active)return;p=auto.value;target=p;active=true;dir=0;lastInput=now;lastFrame=null;waiting=true;}
  function end(){if(!active)return;active=false;resetAuto();auto.set(target);}
  function set(q,{snap=false,now=0}={}){
