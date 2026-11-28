@@ -1,3 +1,4 @@
+import {takeOpeningFont} from '../experience/openingPrefetch.js';
 import * as THREE from 'three';
 import {SVGLoader} from 'three/addons/loaders/SVGLoader.js';
 import {FontLoader} from 'three/addons/loaders/FontLoader.js';
@@ -27,8 +28,8 @@ const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,art=false,composition='default',brandOnly=false,reusePlacement=false,flow3d=false,livingType=false,glyphType=false,architectureType=false,selectedType=false,curvedType=false,spaceFont=false,gpuType=false,contactType=false,worldAll=false,continuousType=false,continuousAll=false,corridorType=false,auditCorridor=false,clearanceType=false,bridgeGpu=false,cinematicType=false,waveType=false,directedLayout=false,ribbonType=false,visibleRibbon=false,sculptedType=false,cinematicFlow=false,stageFlow=false,presenceType=false,typeFinish='mineral',holdPose=null}={}){
  const finaleContrast=presenceType&&typeof location!=='undefined'&&convergenceContrastEnabled(location.search),frameFor=finaleContrast?convergenceReadingFrame:readingFrame;
  let font=null,titleFont=null,bodyFont=null,logo=null,disposed=false,aspect=0,active=null,layoutMobile=null,builds=0,placementResets=0;const entries=new Map(),ray=new THREE.Raycaster();let continuous=[];
- if(!brandOnly)new FontLoader().loadAsync(import.meta.env.BASE_URL+'models/fonts/helvetiker_regular.typeface.json').then(f=>{if(!disposed){font=f;onReady();}}).catch(()=>{});
- if(spaceFont)for(const weight of [400,600])new FontLoader().loadAsync(import.meta.env.BASE_URL+'models/fonts/space-grotesk-'+weight+'.typeface.json').then(f=>{if(!disposed){if(weight===600)titleFont=f;else bodyFont=f;onReady();}}).catch(()=>{if(!disposed){if(weight===600)titleFont=font;else bodyFont=font;onReady();}});
+ if(!brandOnly)loadOpeningFont(import.meta.env.BASE_URL+'models/fonts/helvetiker_regular.typeface.json').then(f=>{if(!disposed){font=f;onReady();}}).catch(()=>{});
+ if(spaceFont)for(const weight of [400,600])loadOpeningFont(import.meta.env.BASE_URL+'models/fonts/space-grotesk-'+weight+'.typeface.json').then(f=>{if(!disposed){if(weight===600)titleFont=f;else bodyFont=f;onReady();}}).catch(()=>{if(!disposed){if(weight===600)titleFont=font;else bodyFont=font;onReady();}});
  new SVGLoader().loadAsync(import.meta.env.BASE_URL+'brand/zolvency.svg').then(d=>{if(!disposed){logo=d.paths.flatMap(p=>SVGLoader.createShapes(p));onReady();}}).catch(()=>{});
  function width(s,f=font){let x=0,prev='';for(const c of s){x+=((f.data.glyphs[c]?.ha??f.data.glyphs['?']?.ha??600)+(f.data.kerning?.[prev+c]??0))/f.data.resolution;prev=c;}return x;}
  function wrap(s,size,max=.98,f=font){const out=[];let line='';for(const word of s.split(' ')){const next=line?line+' '+word:word;if(line&&width(next,f)*size>max){out.push(line);line=word;}else line=next;}if(line)out.push(line);return out;}
@@ -378,3 +379,5 @@ export function createSpatialNarrativeText(scene,onReady,{rail=null,world=false,
  function suppressCopy(){if(!active)return;for(const m of active.group.children)if(!active.card.brand||m.name!=='hero')m.visible=false;}
  return {update,inspect,prebuild,requiresWorldUpdate,suppressCopy,stats:()=>({builds,placementResets,entries:entries.size}),ready:()=>!!logo&&(brandOnly||!!font&&(!spaceFont||!!titleFont&&!!bodyFont)),dispose(){disposed=true;clear();},diagnostics(){return [...entries.values()].map(e=>({name:e.card.name,roles:e.roles,bodyLines:e.bodyLines,anchors:e.anchors?.map(a=>({point:a.point.toArray(),depth:a.depth,mount:a.mount}))??[],titleLines:e.titleLines,focus:e.card.focus,intent:e.card.intent}));}};
 }
+
+async function loadOpeningFont(url){const loader=new FontLoader(),pending=takeOpeningFont(url);if(pending){const data=await pending;if(data)try{return loader.parse(data);}catch{}}return loader.loadAsync(url);}
