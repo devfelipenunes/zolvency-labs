@@ -1,9 +1,9 @@
 import React,{useEffect,useRef,useState} from 'react';
 // Explicit opt-in, no network upload or hardware identifier. Does not poll during measurement.
-export function DeviceCapture({reduced=false}){
+export function DeviceCapture({reduced=false,stageAvailable=true}){
  const [ready,setReady]=useState(false),[recording,setRecording]=useState(false),[report,setReport]=useState(null),[error,setError]=useState('');const capture=useRef(null);
  const stage=()=>document.getElementById('stage');
- useEffect(()=>{const s=stage();if(!s)return;const check=()=>setReady(!reduced&&s.dataset.renderer==='three'&&typeof s.startDeviceStudy==='function'&&typeof s.stopDeviceStudy==='function');check();const observer=new MutationObserver(check);observer.observe(s,{attributes:true,attributeFilter:['data-renderer']});return()=>observer.disconnect();},[reduced]);
+ useEffect(()=>{const s=stage();if(!stageAvailable||!s){setReady(false);return;}const check=()=>setReady(!reduced&&s.dataset.renderer==='three'&&typeof s.startDeviceStudy==='function'&&typeof s.stopDeviceStudy==='function');check();const observer=new MutationObserver(check);observer.observe(s,{attributes:true,attributeFilter:['data-renderer']});return()=>observer.disconnect();},[reduced,stageAvailable]);
  useEffect(()=>{if(!ready&&recording){capture.current=null;setRecording(false);setError('3D renderer unavailable; restart capture when ready.');}},[ready,recording]);
  function start(){const s=stage();if(!ready||!s?.startDeviceStudy)return;try{s.startDeviceStudy();capture.current=s.stopDeviceStudy;setReport(null);setError('');setRecording(true);}catch{setError('Could not start capture.');}}
  function stop(){try{const s=stage();if(!capture.current||s?.stopDeviceStudy!==capture.current)throw Error('Renderer changed');const value=capture.current();setReport({...value,schemaVersion:2});setError('');}catch{setError('Capture interrupted. Restart and repeat the same route.');}finally{capture.current=null;setRecording(false);}}

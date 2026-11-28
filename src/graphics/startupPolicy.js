@@ -18,5 +18,14 @@ export function mobileMotionEnabled(search='',width=0){return mobileStartupBudge
 // deadline unchanged and allow the outer lifecycle to outlast preflight.
 export function startupDeadlines(search=''){
  const q=new URLSearchParams(search),diagnostic=q.has('diagnostics')&&q.get('type-choreography')==='scene-presence'&&q.get('living-type')==='kinetic'&&q.get('type-formation')==='ribbon'&&q.get('type-visibility')==='continuous';
- return diagnostic?{preflight:240000,lifecycle:270000}:{preflight:90000,lifecycle:100000};
+ const hybridSoftware=q.get('hybrid')==='1'&&q.get('hybrid-ci')==='software'&&q.get('type-choreography')==='scene-presence'&&q.get('type-spatial')==='control';
+ return diagnostic||hybridSoftware?{preflight:240000,lifecycle:270000}:{preflight:90000,lifecycle:100000};
 }
+
+// Hybrid-only recovery experiments; keep a single exact rollback and independent controls.
+export function hybridPerformance(search=''){const q=new URLSearchParams(search),enabled=q.get('hybrid')==='1'&&q.get('hybrid-perf')!=='control';return {startup:enabled&&q.get('hybrid-startup')!=='control',motion:enabled&&q.get('hybrid-motion')!=='control',gpu:enabled&&q.get('hybrid-gpu')!=='control',scroll:enabled&&q.get('hybrid-scroll')!=='control'};}
+export function hybridPreflightMode(search='',mobile=false){const q=new URLSearchParams(search);return q.get('preflight')??(hybridPerformance(search).startup?(mobile?'guarded':'compact'):null);}
+export function hybridRasterRatio(ratio,device,scale){return Math.min(ratio,Math.min(1,device||1)*Math.max(.65,Math.min(1,scale)));}
+
+// Entry-first is an isolated candidate with explicit rollback to guarded/compact.
+export function entryFirstPreflight(search=''){const q=new URLSearchParams(search);return hybridPerformance(search).startup&&q.get('hybrid-warmup')!=='control'&&!q.has('preflight');}

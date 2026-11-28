@@ -60,3 +60,7 @@ export function readingTilt(mask){return 1-ease((mask-.35)/.30);}
 export function presencePixelRatio(dpr,device,governorScale){return Math.max(dpr,Math.min(1.25,device||1)*clamp(governorScale));}
 // Translation-only corrections should never shrink the reading composition.
 export function readingFitScale(shrink){return shrink<1?shrink*.995:1;}
+
+// R100.5: final scene only. Reuse the established reading-plane fit and preserve all other shots.
+export function convergenceReadingFrame(index,aspect,driftX=0,driftY=0){const f=readingFrame(index,aspect,driftX,driftY);if(index!==6)return f;return {...f,y:Math.min(.10,f.y+(aspect<1?.18:.12))};}
+export function convergenceContrastEnabled(search=''){const q=new URLSearchParams(search);return q.get('hybrid')==='1'&&q.get('type-finale-contrast')!=='control';}
