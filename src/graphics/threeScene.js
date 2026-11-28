@@ -33,7 +33,7 @@ import {subjectLighting} from './subjectLighting.js';
 import {selectWarmHolds} from './warmupPlan.js';
 import {batchStaticRackMeshes} from './staticRackBatch.js';
 import {waitForSubmittedFrame} from './frameFence.js';
-import {warmupPlan} from './compactPreflight.js';
+import {warmupPlan,entryFirstWarmupPlan} from './compactPreflight.js';
 import {studyModes,subjectGrade,craneProgress} from './compositionStudy.js';
 import {isolateHangarFloor} from './floorMaterial.js';
 import {noirPose,editorialMotion,noirGrade,drawingRatio} from './noirDirection.js';
@@ -51,7 +51,7 @@ import {travelCost,createGuidedMotion,needsGuidedCaption} from './guidedMotion.j
 import {createTouchGuidedMotion} from './touchGuidedMotion.js';
 import {qualityProfile} from './qualityProfiles.js';
 import {mobileGpuBudget} from './mobileGpuBudget.js';
-import {completeStartup,mobileStartupBudget,mobileMotionEnabled,startupDeadlines,hybridPerformance,hybridPreflightMode,hybridRasterRatio} from './startupPolicy.js';
+import {completeStartup,mobileStartupBudget,mobileMotionEnabled,startupDeadlines,hybridPerformance,hybridPreflightMode,hybridRasterRatio,entryFirstPreflight} from './startupPolicy.js';
 import {createAdaptiveAO,createDeviceStudy} from './deviceStudy.js';
 import {createRenderQueue,createResolutionGovernor,createGpuTimer} from './renderPerformance.js';
 export async function createThreeScene(host,onLost){
@@ -179,7 +179,7 @@ export async function createThreeScene(host,onLost){
    const upload=[...textures];
    for(let i=0;i<upload.length;i++){check();renderer.initTexture(upload[i]);if(i%4===3)await tick();status('textures',i+1,upload.length);}
    host.dataset.warmedTextures=String(upload.length);mark('textureSubmission',uploadStart);const warmStart=performance.now(),warmRows=[];
-   resize();const diagnostic=debug&&benchmark&&params.get('warmup')==='targeted',preflightMode=hybridPreflightMode(location.search,mobile),guarded=!diagnostic&&preflightMode==='guarded'&&mobile,compact=!diagnostic&&(preflightMode==='compact'||preflightMode==='guarded'),plan=diagnostic?selectWarmHolds({diagnostics:debug,benchmark,mode:'targeted'}).map(p=>({p,draw:true})):warmupPlan(compact,guarded),holds=plan.map(x=>x.p);if(continuousType){for(const p of continuousAll?[.115,.31,.51,.65,.85,.95]:[.31]){plan.push({p,draw:true});holds.push(p);}}host.dataset.warmupPlan=diagnostic?'targeted-diagnostics':'full';host.dataset.preflightPlan=diagnostic?'targeted-diagnostics':guarded?'guarded':compact?'compact':'full';
+   resize();const diagnostic=debug&&benchmark&&params.get('warmup')==='targeted',preflightMode=hybridPreflightMode(location.search,mobile),guarded=!diagnostic&&preflightMode==='guarded'&&mobile,compact=!diagnostic&&(preflightMode==='compact'||preflightMode==='guarded'),entryFirst=!diagnostic&&entryFirstPreflight(location.search),plan=entryFirst?entryFirstWarmupPlan():diagnostic?selectWarmHolds({diagnostics:debug,benchmark,mode:'targeted'}).map(p=>({p,draw:true})):warmupPlan(compact,guarded),holds=plan.map(x=>x.p);if(continuousType){for(const p of continuousAll?[.115,.31,.51,.65,.85,.95]:[.31]){plan.push({p,draw:true});holds.push(p);}}host.dataset.warmupPlan=diagnostic?'targeted-diagnostics':'full';host.dataset.preflightPlan=entryFirst?'entry-first':diagnostic?'targeted-diagnostics':guarded?'guarded':compact?'compact':'full';
    for(let i=0;i<holds.length;i++){
     check();const poseStart=performance.now();status('warming',i,holds.length);applySet(holds[i]);const pose=rail(holds[i],mobile);
     const compilePose=(!directed||compact)&&useEditorialCut?directedCut(holds[i],mobile,null,rail).pose:!directed&&useWallCut?wallCut?.pose(holds[i],mobile).pose??pose:pose;
