@@ -179,3 +179,8 @@
 @media(max-width:720px){.hybrid-page[data-entrance="cinema"]{--origin-preview:url('/brand/origin-poster.svg')}.hybrid-page[data-entrance="cinema"] .hybrid-portal{min-height:128svh}.hybrid-page[data-entrance="cinema"] .hybrid-portal-inner{padding:26px var(--gutter) max(24px,env(safe-area-inset-bottom));gap:10px}.hybrid-page[data-entrance="cinema"] .hybrid-portal-heading h2{font-size:clamp(43px,11vw,64px)}.hybrid-cinema-window::after{background:linear-gradient(0deg,#080d0cf8 0%,#080d0cb0 32%,transparent 76%)}}
 @media(max-height:600px){.hybrid-page[data-entrance="cinema"] .hybrid-portal-inner{padding-block:18px;gap:6px}.hybrid-page[data-entrance="cinema"] .hybrid-portal-heading h2{font-size:clamp(33px,7vw,55px)}}
 @media(prefers-reduced-motion:reduce){.hybrid-page[data-entrance="cinema"] .hybrid-portal{min-height:70svh}.hybrid-page[data-entrance="cinema"] .hybrid-portal-inner{justify-content:center}.hybrid-page[data-entrance="cinema"] .hybrid-cinema-window{display:none}}
+
+/* At the fully covered start, changing readiness has no visible fade to perform.
+   Avoid restarting an inherited custom-property transition after a hidden return.
+   Mid-entrance readiness continues to blend with the established 360ms curve. */
+.hybrid-page[data-entrance="cinema"] .hybrid-portal[data-entry-start="true"]{transition:none}
