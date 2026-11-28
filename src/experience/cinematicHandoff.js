@@ -14,3 +14,7 @@ export function cinematicHandoff(scroll,portalTop,storyTop,storyEnd,viewport,res
  const cover=1-smooth(threshold?(entry-.12)/.73:(entry-.35)/.52);
  return {entry,cover,copy,exit,light:1-cover,near:scroll>=(earlyPrepare?Math.max(viewport*.35,portalTop-viewport*1.8):portalTop-viewport*1.05)&&scroll<researchTop-1,inside:scroll>=storyTop-2&&scroll<exitStart};
 }
+
+// Never swap HTML to WebGL after the reader has already crossed the threshold.
+// The entry cover can safely blend while at least one quarter viewport remains.
+export function lateThresholdReady(progress,storyTop,viewport){return progress>.02||Number.isFinite(storyTop)&&Number.isFinite(viewport)&&viewport>0&&storyTop<viewport*.25;}
