@@ -1,3 +1,4 @@
+import {takeOpeningPrefetch} from '../experience/openingPrefetch.js';
 import {presencePixelRatio} from './scenePresence.js';
 import {livingTypeEnabled} from './livingCopy.js';
 import {finaleFraming,finaleFrameMode} from './finaleFraming.js';
@@ -128,7 +129,7 @@ export async function createThreeScene(host,onLost){
  // First render needs only the actual hangar. Subsequent geometry loads by distance
  // and narrative priority, with at most two concurrent model decodes.
  const fileFor=s=>initialMobile&&s.lowFile?s.lowFile:s.file;
- async function loadOne(spec){let g;try{g=await loader.loadAsync(base+fileFor(spec));}catch(e){if(disposed||fileFor(spec)===spec.file)throw e;g=await loader.loadAsync(base+spec.file);lodFallbacks.add(spec.id);}if(disposed){collect(g.scene);for(const o of g.scene.children)o.removeFromParent();disposeCollected();return;}add(spec,g);}
+ async function loadOne(spec){let g;try{const url=base+fileFor(spec),prefetched=spec.id==='hangar'?takeOpeningPrefetch(url):null;const bytes=prefetched?await prefetched:null;if(bytes&&!disposed){try{g=await loader.parseAsync(bytes,base);host.dataset.openingPrefetch='reused';}catch{host.dataset.openingPrefetch='parse-fallback';}}if(!g)g=await loader.loadAsync(url);}catch(e){if(disposed||fileFor(spec)===spec.file)throw e;g=await loader.loadAsync(base+spec.file);lodFallbacks.add(spec.id);}if(disposed){collect(g.scene);for(const o of g.scene.children)o.removeFromParent();disposeCollected();return;}add(spec,g);}
  function pump(){if(disposed||roots.size===facility.length)return;const pos=(spatialEnabled?rail:cameraPose)(last,mobile).position;const todo=facility.filter(s=>(!s.mount||roots.has('servers'))&&!roots.has(s.id)&&!pending.has(s.id)&&!failures.includes(s.id)).sort((a,b)=>score(a)-score(b));function score(s){return Math.hypot(s.position[0]-pos[0],s.position[2]-pos[2])+s.priority*2;}
  while(activeLoads<2&&todo.length){const s=todo.shift();pending.add(s.id);activeLoads++;loadOne(s).catch(e=>{failures.push(s.id);console.warn('Secondary facility asset unavailable',s.id,e);}).finally(()=>{activeLoads--;pending.delete(s.id);if(!disposed){if(roots.size===facility.length)timings.allAssetsMs=Math.round(performance.now()-startTime);invalidate();pump();}});}
  }
